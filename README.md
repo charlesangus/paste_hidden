@@ -5,6 +5,15 @@ Replacement and improvement for the Copy/Cut/Paste functions in Foundry's Nuke.
 - "Input Nodes" (e.g. Read, Camera, ReadGeo, DeepRead) will be replaced by a hidden input-ed PostageStamp/NoOp when copied/pasted. This prevents multiplying input nodes, which is a bad practice which makes script maintenance difficult. Inputs should exist exactly one time in the script.
 - Makes working with hidden inputs easier, by re-piping the hidden input of a copy/pasted PostageStamp/NoOp/Dot.
 - Handles colorizing and labelling hidden input-ed PostageStamp/NoOp/Dot nodes.
+- "Old-style" paste (without the secret sauce) is available with `Ctrl-Shift-D`.
+
+# Installation
+
+Copy the `paste_hidden` folder into your `~/.nuke` folder and add this line to your top-level `init.py`:
+
+`nuke.pluginAddPath('paste_hidden')`
+
+The included `menu.py` will handle replacing the built-in copy/paste functions.
 
 # Why
 
