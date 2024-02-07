@@ -40,9 +40,9 @@ def copy_hidden(cut=False):
                 input_node_name = ""
             else:
                 input_node_name = get_fully_qualified_node_name(input_node)
+                setup_replacement_node(input_node, node)
             add_input_knob(node)
             node[KNOB_NAME].setText(input_node_name)
-            setup_replacement_node(input_node, node)
         elif node.Class() in REPLACEMENT_CLASSES.keys():
             input_node_name = get_fully_qualified_node_name(node)
             if cut:
