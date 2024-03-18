@@ -4,7 +4,7 @@ homepage: https://github.com/dbr/tabtabtab-nuke
 license: http://unlicense.org/
 """
 
-__version__ = "2.0"
+__version__ = "1.8"
 
 import os
 import sys
@@ -32,44 +32,12 @@ except ImportError:
 else:
     IN_NUKE = True
 
+import paste_hidden
 
-def find_menu_items(menu, _path = None):
-    """Extracts items from a given Nuke menu
+def find_parents():
 
-    Returns a list of strings, with the path to each item
-
-    Ignores divider lines and hidden items (ones like "@;&CopyBranch" for shift+k)
-
-    >>> found = find_menu_items(nuke.menu("Nodes"))
-    >>> found.sort()
-    >>> found[:5]
-    ['3D/Axis', '3D/Camera', '3D/CameraTracker', '3D/DepthGenerator', '3D/Geometry/Card']
-    """
-    found = []
-
-    mi = list(menu.items())
-    for i in mi:
-        if isinstance(i, nuke.Menu):
-            # Sub-menu, recurse
-            mname = i.name().replace("&", "")
-            subpath = "/".join(x for x in (_path, mname) if x is not None)
-
-            if "ToolSets/Delete" in subpath:
-                # Remove all ToolSets delete commands
-                continue
-
-            sub_found = find_menu_items(menu = i, _path = subpath)
-            found.extend(sub_found)
-        elif isinstance(i, nuke.MenuItem):
-            if i.name() == "":
-                # Skip dividers
-                continue
-            if i.name().startswith("@;"):
-                # Skip hidden items
-                continue
-
-            subpath = "/".join(x for x in (_path, i.name()) if x is not None)
-            found.append({'menuobj': i, 'menupath': subpath})
+    nodes = paste_hidden.find_labelled_parents()
+    found = [{"node": node, "node_label": node["label"].value()} for node in nodes]
 
     return found
 
@@ -187,7 +155,7 @@ class NodeWeights(object):
         def _load_internal():
             import json
             if not os.path.isfile(self.fname):
-                print("Weight file does not exist")
+                print "Weight file does not exist"
                 return
             f = open(self.fname)
             self._weights = json.load(f)
@@ -198,20 +166,20 @@ class NodeWeights(object):
             _load_internal()
             self._successful_load = True
         except Exception:
-            print("Error loading node weights.")
+            print "Error loading node weights"
             import traceback
             traceback.print_exc()
             self._successful_load = False
 
     def save(self):
         if self.fname is None:
-            print("Not saving node weights, no file specified")
+            print "Not saving node weights, no file specified"
             return
 
         if not self._successful_load:
             # Avoid clobbering existing weights file on load error
-            print(("Not writing weights file because %r previously failed to load" % (
-                self.fname)))
+            print "Not writing weights file because %r previously failed to load" % (
+                self.fname)
             return
 
         def _save_internal():
@@ -220,7 +188,7 @@ class NodeWeights(object):
             if not os.path.isdir(ndir):
                 try:
                     os.makedirs(ndir)
-                except OSError as e:
+                except OSError, e:
                     if e.errno != 17: # errno 17 is "already exists"
                         raise
 
@@ -233,12 +201,12 @@ class NodeWeights(object):
         try:
             _save_internal()
         except Exception:
-            print("Error saving node weights")
+            print "Error saving node weights"
             import traceback
             traceback.print_exc()
 
     def get(self, k, default = 0):
-        if len(list(self._weights.values())) == 0:
+        if len(self._weights.values()) == 0:
             maxval = 1.0
         else:
             maxval = max(self._weights.values())
@@ -291,8 +259,8 @@ class NodeModel(QtCore.QAbstractListModel):
         scored_b = []
         for n in self._all:
             # Turn "3D/Shader/Phong" into "Phong [3D/Shader]"
-            menupath = n['menupath'].replace("&", "")
-            uiname = "%s [%s]" % (menupath.rpartition("/")[2], menupath.rpartition("/")[0])
+            node_label = n['node_label']
+            uiname = node_label
             search_string = uiname.lower()
 
             if force_non_anchored:
@@ -300,22 +268,22 @@ class NodeModel(QtCore.QAbstractListModel):
             
             if consec_find(filtertext, search_string, anchored):
                 # Matches, get weighting and add to list of stuff
-                score = self.weights.get(n['menupath'])
+                score = self.weights.get(n['node_label'])
 
                 scored_a.append({
                         'text': uiname,
-                        'menupath': n['menupath'],
-                        'menuobj': n['menuobj'],
+                        'node_label': n['node_label'],
+                        'node': n['node'],
                         'score': score})   
 
             elif nonconsec_find(filtertext, search_string, anchored):
                 # Matches, get weighting and add to list of stuff
-                score = self.weights.get(n['menupath'])
+                score = self.weights.get(n['node_label'])
 
                 scored_b.append({
                         'text': uiname,
-                        'menupath': n['menupath'],
-                        'menuobj': n['menuobj'],
+                        'node_label': n['node_label'],
+                        'node': n['node'],
                         'score': score})
 
         # Sort based on scores (descending), then alphabetically
@@ -435,13 +403,13 @@ class TabTabTabWidget(QtWidgets.QDialog):
         self.input = TabyLineEdit()
 
         # Node weighting
-        self.weights = NodeWeights(os.path.expanduser("~/.nuke/tabtabtab_weights.json"))
+        self.weights = NodeWeights(os.path.expanduser("~/.nuke/paste_hidden_weights.json"))
         self.weights.load() # weights.save() called in close method
 
-        nodes = find_menu_items(nuke.menu("Nodes")) + find_menu_items(nuke.menu("Nuke"))
+        parents = find_parents()
 
         # List of stuff, and associated model
-        self.things_model = NodeModel(nodes, weights = self.weights)
+        self.things_model = NodeModel(parents, weights = self.weights)
         self.things = QtWidgets.QListView()
         self.things.setModel(self.things_model)
 
@@ -575,7 +543,7 @@ class TabTabTabWidget(QtWidgets.QDialog):
 
         # Create node, increment weight and close
         self.cb_on_create(thing = thing)
-        self.weights.increment(thing['menupath'])
+        self.weights.increment(thing['node_label'])
         self.close()
 
 
@@ -596,9 +564,9 @@ def main():
 
     def on_create(thing):
         try:
-            thing['menuobj'].invoke()
+            nuke.zoom(nuke.zoom(), (thing["node"].xpos(), thing["node"].ypos()))
         except ImportError:
-            print("Error creating %s" % thing)
+            print "Error zooming to %s" % thing
 
     t = TabTabTabWidget(on_create = on_create, winflags = Qt.FramelessWindowHint)
 
