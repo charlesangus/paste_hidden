@@ -9,6 +9,17 @@ with by editing REPLACEMENT_CLASSES.
 import nuke
 import nukescripts
 
+try:
+    if hasattr(nuke, 'NUKE_VERSION_MAJOR') and nuke.NUKE_VERSION_MAJOR >= 16:
+        from PySide6 import QtCore, QtWidgets
+        from PySide6.QtCore import Qt
+    else:
+        from PySide2 import QtWidgets, QtCore
+        from PySide2.QtCore import Qt
+except ImportError:
+    QtWidgets = None
+    QtCore = None
+
 TAB_NAME = 'copy_hidden_tab'
 KNOB_NAME = 'copy_hidden_input_node'
 HIDDEN_INPUT_CLASSES = ['PostageStamp', 'Dot', 'NoOp']
@@ -22,6 +33,8 @@ REPLACEMENT_CLASSES = {
     "Camera4": "NoOp",
     "GeoImport": "NoOp",
 }
+
+ANCHOR_PREFIX = 'Anchor_'
 
 
 def copy_hidden(cut=False):
@@ -194,4 +207,139 @@ def get_fully_qualified_node_name(node):
     to avoid attempting to make a PostageStamp etc. in another script"""
 
     return f"{nuke.root().name().split('.')[0]}.{node.fullName()}"
+
+
+# ---------------------------------------------------------------------------
+# Anchor functionality
+# ---------------------------------------------------------------------------
+
+def is_anchor(node):
+    try:
+        return node.name().startswith(ANCHOR_PREFIX)
+    except Exception:
+        return False
+
+
+def anchor_display_name(node):
+    return node.name()[len(ANCHOR_PREFIX):]
+
+
+def all_anchors():
+    anchors = [n for n in nuke.allNodes() if is_anchor(n)]
+    anchors.sort(key=lambda n: anchor_display_name(n).lower())
+    return anchors
+
+
+def create_anchor():
+    selected = nuke.selectedNodes()
+    input_node = selected[0] if len(selected) == 1 else None
+
+    name = nuke.getInput("Anchor name:", "")
+    if not name or not name.strip():
+        return
+
+    import re
+    sanitized = re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
+    if not sanitized:
+        return
+
+    nukescripts.clear_selection_recursive()
+    anchor = nuke.createNode('NoOp')
+    anchor.setName(ANCHOR_PREFIX + sanitized)
+    anchor['label'].setValue(anchor_display_name(anchor))
+    anchor['tile_color'].setValue(0x6f3399ff)
+
+    if input_node is not None:
+        anchor.setInput(0, input_node)
+        anchor.setXYpos(
+            input_node.xpos() + input_node.screenWidth() // 2 - anchor.screenWidth() // 2,
+            input_node.ypos() + input_node.screenHeight() + 20
+        )
+
+
+def create_from_anchor(anchor_node):
+    nukescripts.clear_selection_recursive()
+    replacement = nuke.createNode('PostageStamp')
+    setup_replacement_node(anchor_node, replacement)
+    return replacement
+
+
+_anchor_picker = None
+
+
+def select_anchor_and_create():
+    if QtWidgets is None:
+        return
+    anchors = all_anchors()
+    if not anchors:
+        return
+    global _anchor_picker
+    _anchor_picker = AnchorPickerDialog(anchors)
+    if _anchor_picker.exec_():
+        chosen = _anchor_picker.chosen_anchor
+        if chosen is not None and nuke.exists(chosen.name()):
+            create_from_anchor(chosen)
+
+
+class AnchorPickerDialog(QtWidgets.QDialog):
+    def __init__(self, anchors, parent=None):
+        super(AnchorPickerDialog, self).__init__(parent)
+        self.chosen_anchor = None
+        self._anchors = anchors
+
+        self.setWindowTitle("Create from Anchor")
+        self.setMinimumWidth(360)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        self.search_edit = QtWidgets.QLineEdit()
+        self.search_edit.setPlaceholderText("filter...")
+        layout.addWidget(self.search_edit)
+
+        self.list_widget = QtWidgets.QListWidget()
+        layout.addWidget(self.list_widget)
+
+        self._populate(anchors)
+
+        self.search_edit.textChanged.connect(self._on_filter_changed)
+        self.list_widget.itemDoubleClicked.connect(self._on_double_click)
+
+        self.search_edit.setFocus()
+
+    def _populate(self, anchors):
+        self.list_widget.clear()
+        for anchor in anchors:
+            display = anchor_display_name(anchor)
+            full_name = anchor.name()
+            item = QtWidgets.QListWidgetItem(f"{display}  ({full_name})")
+            item.setData(Qt.UserRole, anchor)
+            self.list_widget.addItem(item)
+        if self.list_widget.count() > 0:
+            self.list_widget.setCurrentRow(0)
+
+    def _on_filter_changed(self, text):
+        text_lower = text.lower()
+        filtered = [
+            a for a in self._anchors
+            if text_lower in anchor_display_name(a).lower()
+            or text_lower in a.name().lower()
+        ]
+        self._populate(filtered)
+
+    def _on_double_click(self, item):
+        self.chosen_anchor = item.data(Qt.UserRole)
+        self.accept()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            current = self.list_widget.currentItem()
+            if current is not None:
+                self.chosen_anchor = current.data(Qt.UserRole)
+                self.accept()
+        elif event.key() == Qt.Key_Escape:
+            self.reject()
+        else:
+            super(AnchorPickerDialog, self).keyPressEvent(event)
 

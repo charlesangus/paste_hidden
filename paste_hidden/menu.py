@@ -10,3 +10,6 @@ menu.addCommand("Edit/Paste Multiple", "paste_hidden.paste_multiple_hidden()", "
 menu.addCommand("Edit/Copy (old)", "paste_hidden.copy_old()")
 menu.addCommand("Edit/Cut (old)", "paste_hidden.cut_old()")
 menu.addCommand("Edit/Paste (old)", "paste_hidden.paste_old()", "+^D")
+
+menu.addCommand("Edit/Create Anchor",      "paste_hidden.create_anchor()")
+menu.addCommand("Edit/Create from Anchor", "paste_hidden.select_anchor_and_create()")
