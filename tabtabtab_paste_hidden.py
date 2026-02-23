@@ -32,45 +32,12 @@ except ImportError:
 else:
     IN_NUKE = True
 
+import paste_hidden
 
-def find_menu_items(menu, _path = None):
-    """Extracts items from a given Nuke menu
-
-    Returns a list of strings, with the path to each item
-
-    Ignores divider lines and hidden items (ones like "@;&CopyBranch" for shift+k)
-
-    >>> found = find_menu_items(nuke.menu("Nodes"))
-    >>> found.sort()
-    >>> found[:5]
-    ['3D/Axis', '3D/Camera', '3D/CameraTracker', '3D/DepthGenerator', '3D/Geometry/Card']
-    """
-    found = []
-
-    mi = list(menu.items())
-    for i in mi:
-        if isinstance(i, nuke.Menu):
-            # Sub-menu, recurse
-            mname = i.name().replace("&", "")
-            subpath = "/".join(x for x in (_path, mname) if x is not None)
-
-            if "ToolSets/Delete" in subpath:
-                # Remove all ToolSets delete commands
-                continue
-
-            sub_found = find_menu_items(menu = i, _path = subpath)
-            found.extend(sub_found)
-        elif isinstance(i, nuke.MenuItem):
-            if i.name() == "":
-                # Skip dividers
-                continue
-            if i.name().startswith("@;"):
-                # Skip hidden items
-                continue
-
-            subpath = "/".join(x for x in (_path, i.name()) if x is not None)
-            found.append({'menuobj': i, 'menupath': subpath})
-
+def find_parents():
+    nodes = paste_hidden.find_labelled_parents()
+    found = [{"node": node, "node_label": node["label"].value()} for node in nodes]
+    print(found)
     return found
 
 
@@ -79,17 +46,12 @@ def consec_find(needle, haystack, anchored = False):
         added to tabtabtab as a way to prioritize more relevant results.
     '''
 
-    if "[" not in needle:
-        haystack = haystack.rpartition(" [")[0]
-
-    stripped_haystack = haystack.replace(' ','').replace('-','').replace('_','')
-
     if anchored:
-        if haystack.startswith(needle) or stripped_haystack.startswith(needle):
+        if haystack.startswith(needle):
             return True
 
     else:
-        if needle in haystack or needle in stripped_haystack:
+        if needle in haystack:
             return True
     return False
 
@@ -126,9 +88,6 @@ def nonconsec_find(needle, haystack, anchored = False):
     >>> nonconsec_find(" ov", "matchmove", anchored = False)
     True
     """
-
-    if "[" not in needle:
-        haystack = haystack.rpartition(" [")[0]
 
     if len(haystack) == 0 and len(needle) > 0:
         # "a" is not in ""
@@ -275,7 +234,7 @@ class NodeModel(QtCore.QAbstractListModel):
 
         # Two spaces as a shortcut for [
         filtertext = filtertext.replace("  ", "[")
-        
+        print(f"filtertext = {filtertext}")
         anchored = True
         force_non_anchored = False
         # Starting the string with * or [ disables anchoring.
@@ -286,13 +245,15 @@ class NodeModel(QtCore.QAbstractListModel):
             if filtertext.startswith('*'):
                 force_non_anchored = True
             filtertext = filtertext.replace("*", "")
-
+        print(self._all)
         scored_a = []
         scored_b = []
         for n in self._all:
             # Turn "3D/Shader/Phong" into "Phong [3D/Shader]"
-            menupath = n['menupath'].replace("&", "")
-            uiname = "%s [%s]" % (menupath.rpartition("/")[2], menupath.rpartition("/")[0])
+            node_label = n['node_label']
+            print(f"node_label = {node_label}")
+            uiname = node_label
+            print(f"uiname = {uiname}")
             search_string = uiname.lower()
 
             if force_non_anchored:
@@ -300,30 +261,31 @@ class NodeModel(QtCore.QAbstractListModel):
             
             if consec_find(filtertext, search_string, anchored):
                 # Matches, get weighting and add to list of stuff
-                score = self.weights.get(n['menupath'])
-
+                score = self.weights.get(n['node_label'])
+                print(f"Score = {score}")
                 scored_a.append({
                         'text': uiname,
-                        'menupath': n['menupath'],
-                        'menuobj': n['menuobj'],
-                        'score': score})   
+                        'node_label': n['node_label'],
+                        'node': n['node'],
+                        'score': score})
 
             elif nonconsec_find(filtertext, search_string, anchored):
                 # Matches, get weighting and add to list of stuff
-                score = self.weights.get(n['menupath'])
-
+                score = self.weights.get(n['node_label'])
+                print(f"Score = {score}")
                 scored_b.append({
                         'text': uiname,
-                        'menupath': n['menupath'],
-                        'menuobj': n['menuobj'],
+                        'node_label': n['node_label'],
+                        'node': n['node'],
                         'score': score})
 
         # Sort based on scores (descending), then alphabetically
         sort_a = sorted(scored_a, key = lambda k: (-k['score'], k['text']))
         sort_b = sorted(scored_b, key = lambda k: (-k['score'], k['text']))
         s = sort_a + sort_b
-
+        print(f"s = {s}")
         self._items = s
+        print(f"self._items = {self._items}")
         self.modelReset.emit()
 
     def rowCount(self, parent = QtCore.QModelIndex()):
@@ -435,13 +397,13 @@ class TabTabTabWidget(QtWidgets.QDialog):
         self.input = TabyLineEdit()
 
         # Node weighting
-        self.weights = NodeWeights(os.path.expanduser("~/.nuke/tabtabtab_weights.json"))
+        self.weights = NodeWeights(os.path.expanduser("~/.nuke/paste_hidden_weights.json"))
         self.weights.load() # weights.save() called in close method
 
-        nodes = find_menu_items(nuke.menu("Nodes")) + find_menu_items(nuke.menu("Nuke"))
+        parents = find_parents()
 
         # List of stuff, and associated model
-        self.things_model = NodeModel(nodes, weights = self.weights)
+        self.things_model = NodeModel(parents, weights = self.weights)
         self.things = QtWidgets.QListView()
         self.things.setModel(self.things_model)
 
@@ -539,6 +501,12 @@ class TabTabTabWidget(QtWidgets.QDialog):
         create previously created node (instead of the most popular)
         """
 
+        parents = find_parents()
+
+        # List of stuff, and associated model
+        self.things_model = NodeModel(parents, weights = self.weights)
+        self.things.setModel(self.things_model)
+
         # Load the weights everytime the panel is shown, to prevent
         # overwritting weights from other Nuke instances
         self.weights.load()
@@ -575,7 +543,7 @@ class TabTabTabWidget(QtWidgets.QDialog):
 
         # Create node, increment weight and close
         self.cb_on_create(thing = thing)
-        self.weights.increment(thing['menupath'])
+        self.weights.increment(thing['node_label'])
         self.close()
 
 
@@ -596,7 +564,7 @@ def main():
 
     def on_create(thing):
         try:
-            thing['menuobj'].invoke()
+            nuke.zoom(nuke.zoom(), (thing["node"].xpos(), thing["node"].ypos()))
         except ImportError:
             print("Error creating %s" % thing)
 
