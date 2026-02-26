@@ -47,7 +47,13 @@ def copy_hidden(cut=False):
     """
     selected_nodes = nuke.selectedNodes()
     for node in selected_nodes:
-        if node.Class() in HIDDEN_INPUT_CLASSES and node['hide_input'].getValue():
+        if is_anchor(node):
+            input_node_name = get_fully_qualified_node_name(node)
+            if cut:
+                input_node_name = ""
+            add_input_knob(node)
+            node[KNOB_NAME].setText(input_node_name)
+        elif node.Class() in HIDDEN_INPUT_CLASSES and node['hide_input'].getValue():
             input_node = node.input(0)
             if input_node is None or input_node in selected_nodes:
                 input_node_name = ""
@@ -98,7 +104,17 @@ def paste_hidden():
         if prefix_from_knob != prefix_from_current:
             # we are in a different script and/or Group, do nothing
             continue
-        if node.Class() in REPLACEMENT_CLASSES.keys():
+        if is_anchor(node):
+            nukescripts.clear_selection_recursive()
+            node["selected"].setValue(True)
+            input_node = nuke.toNode(full_name_from_knob)
+            replacement_node = nuke.createNode(get_replacement_class_for_source(input_node))
+            setup_replacement_node(input_node, replacement_node)
+            replacement_node.setXYpos(node.xpos(), node.ypos())
+            selected_nodes.remove(node)
+            selected_nodes.append(replacement_node)
+            nuke.delete(node)
+        elif node.Class() in REPLACEMENT_CLASSES.keys():
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
             replacement_node = nuke.createNode(REPLACEMENT_CLASSES[node.Class()])
@@ -181,6 +197,55 @@ def find_node_color(node):
     return tile_color
 
 
+def find_anchor_color(anchor):
+    """Return the tile color an anchor should display.
+
+    Priority:
+      1. Smallest BackdropNode containing the anchor — only when the anchor's
+         input is a Read node.
+      2. The anchor's input node color (with Preferences fallback).
+      3. Hard-coded default purple if neither is available.
+    """
+    ANCHOR_DEFAULT_COLOR = 0x6f3399ff
+
+    input_node = anchor.input(0)
+
+    # --- 1. Backdrop color — only for Read nodes ---
+    if input_node is not None and input_node.Class() == 'Read':
+        ax, ay = anchor.xpos(), anchor.ypos()
+        containing = []
+        for bd in nuke.allNodes('BackdropNode'):
+            bx = bd.xpos()
+            by = bd.ypos()
+            bw = bd['bdwidth'].value()
+            bh = bd['bdheight'].value()
+            if bx <= ax < bx + bw and by <= ay < by + bh:
+                containing.append(bd)
+
+        if containing:
+            smallest = min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
+            color = smallest['tile_color'].value()
+            if color != 0:
+                return color
+
+    # --- 2. Attached input node color (with Preferences fallback) ---
+    if input_node is not None:
+        return find_node_color(input_node)
+
+    # --- 3. Default anchor color ---
+    return ANCHOR_DEFAULT_COLOR
+
+
+def get_replacement_class_for_source(source_node):
+    """Return the appropriate replacement node class for a given source node.
+    Dot → Dot, REPLACEMENT_CLASSES lookup, else PostageStamp."""
+    if source_node is None:
+        return 'PostageStamp'
+    if source_node.Class() == 'Dot':
+        return 'Dot'
+    return REPLACEMENT_CLASSES.get(source_node.Class(), 'PostageStamp')
+
+
 def add_input_knob(node):
     # remove our custom knobs to make sure they're at the end
     try:
@@ -215,12 +280,18 @@ def get_fully_qualified_node_name(node):
 
 def is_anchor(node):
     try:
-        return node.name().startswith(ANCHOR_PREFIX)
+        if node.name().startswith(ANCHOR_PREFIX):
+            return True
+        if node.Class() == 'Dot' and node['label'].getValue().strip():
+            return True
+        return False
     except Exception:
         return False
 
 
 def anchor_display_name(node):
+    if node.Class() == 'Dot':
+        return node['label'].getValue().strip()
     return node.name()[len(ANCHOR_PREFIX):]
 
 
@@ -247,7 +318,6 @@ def create_anchor():
     anchor = nuke.createNode('NoOp')
     anchor.setName(ANCHOR_PREFIX + sanitized)
     anchor['label'].setValue(anchor_display_name(anchor))
-    anchor['tile_color'].setValue(0x6f3399ff)
 
     if input_node is not None:
         anchor.setInput(0, input_node)
@@ -256,15 +326,27 @@ def create_anchor():
             input_node.ypos() + input_node.screenHeight() + 20
         )
 
+    anchor['tile_color'].setValue(find_anchor_color(anchor))
+
 
 def create_from_anchor(anchor_node):
     nukescripts.clear_selection_recursive()
-    replacement = nuke.createNode('PostageStamp')
+    source = anchor_node if anchor_node.Class() == 'Dot' else anchor_node.input(0)
+    replacement_class = get_replacement_class_for_source(source)
+    replacement = nuke.createNode(replacement_class)
     setup_replacement_node(anchor_node, replacement)
     return replacement
 
 
 _anchor_picker = None
+
+
+def anchor_shortcut():
+    """If a node is selected, create an anchor from it. Otherwise, pick an anchor to create from."""
+    if nuke.selectedNodes():
+        create_anchor()
+    else:
+        select_anchor_and_create()
 
 
 def select_anchor_and_create():

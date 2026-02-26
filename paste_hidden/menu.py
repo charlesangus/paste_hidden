@@ -13,3 +13,4 @@ menu.addCommand("Edit/Paste (old)", "paste_hidden.paste_old()", "+^D")
 
 menu.addCommand("Edit/Create Anchor",      "paste_hidden.create_anchor()")
 menu.addCommand("Edit/Create from Anchor", "paste_hidden.select_anchor_and_create()")
+menu.addCommand("Edit/Anchor", "paste_hidden.anchor_shortcut()", "A")
