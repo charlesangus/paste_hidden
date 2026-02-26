@@ -1,9 +1,9 @@
 """
 Replace default copy-cut-paste behaviour to re-connect hidden inputs
-and replace input-type nodes with hidden-inputted dummy nodes.
+and replace input-type nodes with hidden-inputted link nodes.
 
-Configure additional nodes to replace and the dummy to replace them
-with by editing REPLACEMENT_CLASSES.
+Configure additional nodes to replace and the link node to replace them
+with by editing LINK_CLASSES.
 """
 
 import nuke
@@ -23,7 +23,7 @@ except ImportError:
 TAB_NAME = 'copy_hidden_tab'
 KNOB_NAME = 'copy_hidden_input_node'
 HIDDEN_INPUT_CLASSES = ['PostageStamp', 'Dot', 'NoOp']
-REPLACEMENT_CLASSES = {
+LINK_CLASSES = {
     "Read": "PostageStamp",
     "DeepRead": "NoOp",
     "ReadGeo": "NoOp",
@@ -41,7 +41,7 @@ def copy_hidden(cut=False):
     """Add a hidden knob storing the original name of the node/node's input. We
     can then, when pasting, replace the node or reconnect its inputs.
 
-    Setting cut to True does not store the original name on nodes in REPLACEMENT_CLASSES,
+    Setting cut to True does not store the original name on nodes in LINK_CLASSES,
     causing our paste routine to do a normal paste without replacement. This is required
     for cuts, as the original node will have been deleted.
     """
@@ -59,13 +59,13 @@ def copy_hidden(cut=False):
                 input_node_name = ""
             else:
                 input_node_name = get_fully_qualified_node_name(input_node)
-                setup_replacement_node(input_node, node)
+                setup_link_node(input_node, node)
             add_input_knob(node)
             node[KNOB_NAME].setText(input_node_name)
-        elif node.Class() in REPLACEMENT_CLASSES.keys():
+        elif node.Class() in LINK_CLASSES.keys():
             input_node_name = get_fully_qualified_node_name(node)
             if cut:
-                # don't store the replacement name, we do not want to replace
+                # don't store the link name, we do not want to replace
                 input_node_name = ""
             add_input_knob(node)
             node[KNOB_NAME].setText(input_node_name)
@@ -108,27 +108,27 @@ def paste_hidden():
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
             input_node = nuke.toNode(full_name_from_knob)
-            replacement_node = nuke.createNode(get_replacement_class_for_source(input_node))
-            setup_replacement_node(input_node, replacement_node)
-            replacement_node.setXYpos(node.xpos(), node.ypos())
+            link_node = nuke.createNode(get_link_class_for_source(input_node))
+            setup_link_node(input_node, link_node)
+            link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)
-            selected_nodes.append(replacement_node)
+            selected_nodes.append(link_node)
             nuke.delete(node)
-        elif node.Class() in REPLACEMENT_CLASSES.keys():
+        elif node.Class() in LINK_CLASSES.keys():
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
-            replacement_node = nuke.createNode(REPLACEMENT_CLASSES[node.Class()])
+            link_node = nuke.createNode(LINK_CLASSES[node.Class()])
             input_node = nuke.toNode(full_name_from_knob)
-            setup_replacement_node(input_node, replacement_node)
-            # add_input_knob(replacement_node)
-            # replacement_node[KNOB_NAME].setValue(fully_qualifed_name_from_knob)
-            replacement_node.setXYpos(node.xpos(), node.ypos())
+            setup_link_node(input_node, link_node)
+            # add_input_knob(link_node)
+            # link_node[KNOB_NAME].setValue(fully_qualifed_name_from_knob)
+            link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)
-            selected_nodes.append(replacement_node)
+            selected_nodes.append(link_node)
             nuke.delete(node)
         elif node.Class() in HIDDEN_INPUT_CLASSES:
             input_node = nuke.toNode(full_name_from_knob)
-            setup_replacement_node(input_node, node)
+            setup_link_node(input_node, node)
 
     # it's possible we changed selection, reset it
     nukescripts.clear_selection_recursive()
@@ -172,11 +172,11 @@ def paste_old():
     nuke.nodePaste(nukescripts.cut_paste_file())
 
 
-def setup_replacement_node(input_node, replacement_node):
-    replacement_node["hide_input"].setValue(True)
-    replacement_node["tile_color"].setValue(find_node_color(input_node))
-    replacement_node["label"].setValue(f"Pointed to: {input_node.name()}\n{input_node['label'].getText()}")
-    replacement_node.setInput(0, input_node)
+def setup_link_node(input_node, link_node):
+    link_node["hide_input"].setValue(True)
+    link_node["tile_color"].setValue(find_node_color(input_node))
+    link_node["label"].setValue(f"Link: {input_node.name()}\n{input_node['label'].getText()}")
+    link_node.setInput(0, input_node)
 
 
 def find_node_default_color(node):
@@ -236,14 +236,14 @@ def find_anchor_color(anchor):
     return ANCHOR_DEFAULT_COLOR
 
 
-def get_replacement_class_for_source(source_node):
-    """Return the appropriate replacement node class for a given source node.
-    Dot → Dot, REPLACEMENT_CLASSES lookup, else PostageStamp."""
+def get_link_class_for_source(source_node):
+    """Return the appropriate link node class for a given source node.
+    Dot → Dot, LINK_CLASSES lookup, else PostageStamp."""
     if source_node is None:
         return 'PostageStamp'
     if source_node.Class() == 'Dot':
         return 'Dot'
-    return REPLACEMENT_CLASSES.get(source_node.Class(), 'PostageStamp')
+    return LINK_CLASSES.get(source_node.Class(), 'PostageStamp')
 
 
 def add_input_knob(node):
@@ -332,10 +332,10 @@ def create_anchor():
 def create_from_anchor(anchor_node):
     nukescripts.clear_selection_recursive()
     source = anchor_node if anchor_node.Class() == 'Dot' else anchor_node.input(0)
-    replacement_class = get_replacement_class_for_source(source)
-    replacement = nuke.createNode(replacement_class)
-    setup_replacement_node(anchor_node, replacement)
-    return replacement
+    link_class = get_link_class_for_source(source)
+    link = nuke.createNode(link_class)
+    setup_link_node(anchor_node, link)
+    return link
 
 
 _anchor_picker = None
@@ -369,7 +369,7 @@ class AnchorPickerDialog(QtWidgets.QDialog):
         self.chosen_anchor = None
         self._anchors = anchors
 
-        self.setWindowTitle("Create from Anchor")
+        self.setWindowTitle("Create Link")
         self.setMinimumWidth(360)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -424,4 +424,3 @@ class AnchorPickerDialog(QtWidgets.QDialog):
             self.reject()
         else:
             super(AnchorPickerDialog, self).keyPressEvent(event)
-
