@@ -34,6 +34,8 @@ LINK_CLASSES = {
     "GeoImport": "NoOp",
 }
 
+ANCHOR_RECONNECT_KNOB_NAME = "reconnect_child_links"
+LINK_RECONNECT_KNOB_NAME = "reconnect_link"
 ANCHOR_PREFIX = 'Anchor_'
 
 
@@ -47,6 +49,8 @@ def copy_hidden(cut=False):
     """
     selected_nodes = nuke.selectedNodes()
     for node in selected_nodes:
+        if is_link(node):
+            continue
         if is_anchor(node):
             input_node_name = get_fully_qualified_node_name(node)
             if cut:
@@ -84,6 +88,24 @@ def cut_hidden():
         nuke.delete(node)
 
 
+def find_anchor_node(link_node):
+
+    fully_qualifed_name_from_knob = link_node[KNOB_NAME].getText()
+    fqn_from_knob_split = fully_qualifed_name_from_knob.split(".")
+
+    # strip off the script name to get Nuke's version of a full name
+    full_name_from_knob = ".".join(fqn_from_knob_split[1:])
+    fully_qualifed_name_from_current = get_fully_qualified_node_name(link_node)
+    fqn_from_current_split = fully_qualifed_name_from_current.split(".")
+    prefix_from_knob = fqn_from_knob_split[:-1]
+    prefix_from_current = fqn_from_current_split[:-1]
+    if prefix_from_knob != prefix_from_current:
+        # we are in a different script and/or Group, do nothing
+        return None
+    anchor_node = nuke.toNode(full_name_from_knob)
+    return anchor_node
+
+
 def paste_hidden():
     last_pasted_node = nuke.nodePaste(nukescripts.cut_paste_file())
     selected_nodes = nuke.selectedNodes()
@@ -92,42 +114,21 @@ def paste_hidden():
         if KNOB_NAME not in node.knobs():
             # we haven't stored any info on this node, do nothing
             continue
-        fully_qualifed_name_from_knob = node[KNOB_NAME].getText()
-        fqn_from_knob_split = fully_qualifed_name_from_knob.split(".")
 
-        # strip off the script name to get Nuke's version of a full name
-        full_name_from_knob = ".".join(fqn_from_knob_split[1:])
-        fully_qualifed_name_from_current = get_fully_qualified_node_name(node)
-        fqn_from_current_split = fully_qualifed_name_from_current.split(".")
-        prefix_from_knob = fqn_from_knob_split[:-1]
-        prefix_from_current = fqn_from_current_split[:-1]
-        if prefix_from_knob != prefix_from_current:
-            # we are in a different script and/or Group, do nothing
+        input_node = find_anchor_node(node)
+        if not input_node:
             continue
-        if is_anchor(node):
+        
+        if is_anchor(node) or node.Class() in LINK_CLASSES.keys():
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
-            input_node = nuke.toNode(full_name_from_knob)
             link_node = nuke.createNode(get_link_class_for_source(input_node))
             setup_link_node(input_node, link_node)
             link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)
             selected_nodes.append(link_node)
             nuke.delete(node)
-        elif node.Class() in LINK_CLASSES.keys():
-            nukescripts.clear_selection_recursive()
-            node["selected"].setValue(True)
-            link_node = nuke.createNode(LINK_CLASSES[node.Class()])
-            input_node = nuke.toNode(full_name_from_knob)
-            setup_link_node(input_node, link_node)
-            # add_input_knob(link_node)
-            # link_node[KNOB_NAME].setValue(fully_qualifed_name_from_knob)
-            link_node.setXYpos(node.xpos(), node.ypos())
-            selected_nodes.remove(node)
-            selected_nodes.append(link_node)
-            nuke.delete(node)
         elif node.Class() in HIDDEN_INPUT_CLASSES:
-            input_node = nuke.toNode(full_name_from_knob)
             setup_link_node(input_node, node)
 
     # it's possible we changed selection, reset it
@@ -172,10 +173,24 @@ def paste_old():
     nuke.nodePaste(nukescripts.cut_paste_file())
 
 
+def reconnect_link_node(link_node):
+    anchor_node = find_anchor_node(link_node)
+    if not anchor_node:
+        return None
+    link_node.setInput(0, anchor_node)
+
+
 def setup_link_node(input_node, link_node):
     link_node["hide_input"].setValue(True)
     link_node["tile_color"].setValue(find_node_color(input_node))
-    link_node["label"].setValue(f"Link: {input_node.name()}\n{input_node['label'].getText()}")
+    
+    if input_node["label"].getText():
+        link_node["label"].setValue(f"Link: {input_node['label'].getText()}")
+    else:
+        link_node["label"].setValue(f"Link: {input_node.name()}")
+
+    add_input_knob(link_node)
+    link_node[KNOB_NAME].setValue(get_fully_qualified_node_name(input_node))
     link_node.setInput(0, input_node)
 
 
@@ -247,6 +262,10 @@ def get_link_class_for_source(source_node):
 
 
 def add_input_knob(node):
+
+    if not is_anchor(node):
+        add_link_reconnect_knob(node)
+
     # remove our custom knobs to make sure they're at the end
     try:
         node.removeKnob(node[KNOB_NAME])
@@ -265,6 +284,15 @@ def add_input_knob(node):
     k = nuke.String_Knob(KNOB_NAME)
     k.setVisible(False)
     node.addKnob(k)
+
+
+def add_link_reconnect_knob(node):
+    if LINK_RECONNECT_KNOB_NAME in node.knobs():
+        return
+    knob = nuke.PyScript_Knob(LINK_RECONNECT_KNOB_NAME, "Reconnect", 
+        """import paste_hidden
+paste_hidden.reconnect_link_node(nuke.thisNode())""")
+    node.addKnob(knob)
 
 
 def get_fully_qualified_node_name(node):
@@ -287,6 +315,37 @@ def is_anchor(node):
         return False
     except Exception:
         return False
+
+
+def is_link(node):
+    if KNOB_NAME in node.knobs():
+        return True
+    else:
+        return False
+
+
+def add_reconnect_anchor_knob(node):
+    if ANCHOR_RECONNECT_KNOB_NAME in node.knobs():
+        return
+    knob = nuke.PyScript_Knob(LINK_RECONNECT_KNOB_NAME, "Reconnect Child Links", 
+        """import paste_hidden
+paste_hidden.reconnect_anchor_node(nuke.thisNode())""")
+    node.addKnob(knob)
+
+
+def reconnect_anchor_node(anchor_node):
+    for node in [
+            node for node in
+            nuke.allNodes()
+            if is_link(node)
+            #and anchor_node.name() in node[KNOB_NAME].getText()
+        ]:
+        reconnect_link_node(node)
+
+
+def reconnect_all_links():
+    for node in [node for node in nuke.allNodes() if is_link(node)]:
+        reconnect_link_node(node)
 
 
 def anchor_display_name(node):
@@ -327,6 +386,7 @@ def create_anchor():
         )
 
     anchor['tile_color'].setValue(find_anchor_color(anchor))
+    add_reconnect_anchor_knob(anchor)
 
 
 def create_from_anchor(anchor_node):
