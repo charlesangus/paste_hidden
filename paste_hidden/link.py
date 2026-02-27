@@ -49,6 +49,22 @@ def find_node_color(node):
     return tile_color
 
 
+def find_smallest_containing_backdrop(node):
+    """Return the smallest BackdropNode that fully contains *node*, or None."""
+    nx, ny = node.xpos(), node.ypos()
+    containing = []
+    for bd in nuke.allNodes('BackdropNode'):
+        bx = bd.xpos()
+        by = bd.ypos()
+        bw = bd['bdwidth'].value()
+        bh = bd['bdheight'].value()
+        if bx <= nx < bx + bw and by <= ny < by + bh:
+            containing.append(bd)
+    if not containing:
+        return None
+    return min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
+
+
 def get_link_class_for_source(source_node):
     """Return the appropriate link node class for a given source node.
     Dot → Dot, LINK_CLASSES lookup, else PostageStamp."""
@@ -122,13 +138,13 @@ def setup_link_node(input_node, link_node):
 
 
 def find_anchor_node(link_node):
-    fully_qualifed_name_from_knob = link_node[KNOB_NAME].getText()
-    fqn_from_knob_split = fully_qualifed_name_from_knob.split(".")
+    fully_qualified_name_from_knob = link_node[KNOB_NAME].getText()
+    fqn_from_knob_split = fully_qualified_name_from_knob.split(".")
 
     # strip off the script name to get Nuke's version of a full name
     full_name_from_knob = ".".join(fqn_from_knob_split[1:])
-    fully_qualifed_name_from_current = get_fully_qualified_node_name(link_node)
-    fqn_from_current_split = fully_qualifed_name_from_current.split(".")
+    fully_qualified_name_from_current = get_fully_qualified_node_name(link_node)
+    fqn_from_current_split = fully_qualified_name_from_current.split(".")
     prefix_from_knob = fqn_from_knob_split[:-1]
     prefix_from_current = fqn_from_current_split[:-1]
     if prefix_from_knob != prefix_from_current:

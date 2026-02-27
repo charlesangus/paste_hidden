@@ -27,12 +27,17 @@ from link import (
     add_input_knob,
     reconnect_link_node,
     find_node_color,
+    find_smallest_containing_backdrop,
     get_link_class_for_source,
     setup_link_node,
 )
 
 ANCHOR_RECONNECT_KNOB_NAME = "reconnect_child_links"
 ANCHOR_RENAME_KNOB_NAME = "rename_anchor"
+
+
+def sanitize_anchor_name(name):
+    return re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
 
 
 def find_anchor_color(anchor):
@@ -50,18 +55,8 @@ def find_anchor_color(anchor):
 
     # --- 1. Backdrop color — only for Read nodes ---
     if input_node is not None and input_node.Class() == 'Read':
-        ax, ay = anchor.xpos(), anchor.ypos()
-        containing = []
-        for bd in nuke.allNodes('BackdropNode'):
-            bx = bd.xpos()
-            by = bd.ypos()
-            bw = bd['bdwidth'].value()
-            bh = bd['bdheight'].value()
-            if bx <= ax < bx + bw and by <= ay < by + bh:
-                containing.append(bd)
-
-        if containing:
-            smallest = min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
+        smallest = find_smallest_containing_backdrop(anchor)
+        if smallest is not None:
             color = smallest['tile_color'].value()
             if color != 0:
                 return color
@@ -120,18 +115,8 @@ def suggest_anchor_name(input_node):
             else:
                 suggestion = os.path.splitext(filename)[0]
 
-    ax, ay = input_node.xpos(), input_node.ypos()
-    containing = []
-    for bd in nuke.allNodes('BackdropNode'):
-        bx = bd.xpos()
-        by = bd.ypos()
-        bw = bd['bdwidth'].value()
-        bh = bd['bdheight'].value()
-        if bx <= ax < bx + bw and by <= ay < by + bh:
-            containing.append(bd)
-
-    if containing:
-        smallest = min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
+    smallest = find_smallest_containing_backdrop(input_node)
+    if smallest is not None:
         label = smallest['label'].getValue().strip()
         if label:
             suggestion = label + '_' + suggestion
@@ -147,7 +132,7 @@ def rename_anchor(anchor_node):
     if not name or not name.strip():
         return
 
-    sanitized = re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
+    sanitized = sanitize_anchor_name(name)
     if not sanitized:
         return
 
@@ -193,7 +178,7 @@ def create_anchor():
     if not name or not name.strip():
         return
 
-    sanitized = re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
+    sanitized = sanitize_anchor_name(name)
     if not sanitized:
         return
 
