@@ -6,19 +6,24 @@ Configure additional nodes to replace and the link node to replace them
 with by editing LINK_CLASSES.
 """
 
+import os
+
 import nuke
 import nukescripts
 
 try:
     if hasattr(nuke, 'NUKE_VERSION_MAJOR') and nuke.NUKE_VERSION_MAJOR >= 16:
-        from PySide6 import QtCore, QtWidgets
+        from PySide6 import QtCore, QtGui, QtWidgets
         from PySide6.QtCore import Qt
     else:
-        from PySide2 import QtWidgets, QtCore
+        from PySide2 import QtGui, QtWidgets, QtCore
         from PySide2.QtCore import Qt
 except ImportError:
+    QtGui = None
     QtWidgets = None
     QtCore = None
+
+import tabtabtab as _tabtabtab
 
 TAB_NAME = 'copy_hidden_tab'
 KNOB_NAME = 'copy_hidden_input_node'
@@ -398,7 +403,35 @@ def create_from_anchor(anchor_node):
     return link
 
 
-_anchor_picker = None
+class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
+    """tabtabtab plugin that lists all anchor nodes for link creation."""
+
+    def get_items(self):
+        return [
+            {
+                'menuobj': anchor,
+                'menupath': 'Anchors/' + anchor_display_name(anchor),
+            }
+            for anchor in all_anchors()
+        ]
+
+    def get_weights_file(self):
+        return os.path.expanduser('~/.nuke/paste_hidden_anchor_weights.json')
+
+    def invoke(self, thing):
+        anchor = thing['menuobj']
+        if nuke.exists(anchor.name()):
+            create_from_anchor(anchor)
+
+    def get_icon(self, menuobj):
+        return None
+
+    def get_color(self, menuobj):
+        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        r = (color_int >> 24) & 0xFF
+        g = (color_int >> 16) & 0xFF
+        b = (color_int >> 8) & 0xFF
+        return QtGui.QColor(r, g, b)
 
 
 def anchor_shortcut():
@@ -409,78 +442,26 @@ def anchor_shortcut():
         select_anchor_and_create()
 
 
+_anchor_picker_widget = None
+
+
 def select_anchor_and_create():
     if QtWidgets is None:
         return
-    anchors = all_anchors()
-    if not anchors:
+    if not all_anchors():
         return
-    global _anchor_picker
-    _anchor_picker = AnchorPickerDialog(anchors)
-    if _anchor_picker.exec_():
-        chosen = _anchor_picker.chosen_anchor
-        if chosen is not None and nuke.exists(chosen.name()):
-            create_from_anchor(chosen)
-
-
-class AnchorPickerDialog(QtWidgets.QDialog):
-    def __init__(self, anchors, parent=None):
-        super(AnchorPickerDialog, self).__init__(parent)
-        self.chosen_anchor = None
-        self._anchors = anchors
-
-        self.setWindowTitle("Create Link")
-        self.setMinimumWidth(360)
-
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
-
-        self.search_edit = QtWidgets.QLineEdit()
-        self.search_edit.setPlaceholderText("filter...")
-        layout.addWidget(self.search_edit)
-
-        self.list_widget = QtWidgets.QListWidget()
-        layout.addWidget(self.list_widget)
-
-        self._populate(anchors)
-
-        self.search_edit.textChanged.connect(self._on_filter_changed)
-        self.list_widget.itemDoubleClicked.connect(self._on_double_click)
-
-        self.search_edit.setFocus()
-
-    def _populate(self, anchors):
-        self.list_widget.clear()
-        for anchor in anchors:
-            display = anchor_display_name(anchor)
-            full_name = anchor.name()
-            item = QtWidgets.QListWidgetItem(f"{display}  ({full_name})")
-            item.setData(Qt.UserRole, anchor)
-            self.list_widget.addItem(item)
-        if self.list_widget.count() > 0:
-            self.list_widget.setCurrentRow(0)
-
-    def _on_filter_changed(self, text):
-        text_lower = text.lower()
-        filtered = [
-            a for a in self._anchors
-            if text_lower in anchor_display_name(a).lower()
-            or text_lower in a.name().lower()
-        ]
-        self._populate(filtered)
-
-    def _on_double_click(self, item):
-        self.chosen_anchor = item.data(Qt.UserRole)
-        self.accept()
-
-    def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            current = self.list_widget.currentItem()
-            if current is not None:
-                self.chosen_anchor = current.data(Qt.UserRole)
-                self.accept()
-        elif event.key() == Qt.Key_Escape:
-            self.reject()
-        else:
-            super(AnchorPickerDialog, self).keyPressEvent(event)
+    global _anchor_picker_widget
+    if _anchor_picker_widget is not None:
+        try:
+            _anchor_picker_widget.under_cursor()
+            _anchor_picker_widget.show()
+            _anchor_picker_widget.raise_()
+            return
+        except RuntimeError:
+            _anchor_picker_widget = None
+    _anchor_picker_widget = _tabtabtab.TabTabTabWidget(
+        AnchorPlugin(), winflags=Qt.FramelessWindowHint
+    )
+    _anchor_picker_widget.under_cursor()
+    _anchor_picker_widget.show()
+    _anchor_picker_widget.raise_()
