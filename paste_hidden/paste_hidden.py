@@ -2,14 +2,14 @@
 and replace input-type nodes with hidden-inputted link nodes.
 
 Configure additional nodes to replace and the link node to replace them
-with by editing LINK_CLASSES in link.py.
+with by editing LINK_CLASSES in constants.py.
 """
 
 import nuke
 import nukescripts
 
+from constants import KNOB_NAME, LINK_CLASSES, HIDDEN_INPUT_CLASSES
 from link import (
-    KNOB_NAME, LINK_CLASSES, HIDDEN_INPUT_CLASSES,
     is_anchor, is_link,
     get_fully_qualified_node_name,
     setup_link_node, add_input_knob,

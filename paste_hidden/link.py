@@ -1,29 +1,16 @@
-"""Shared constants, predicates, and link-node utilities.
+"""Shared predicates and link-node utilities.
 
 Neither anchor.py nor paste_hidden.py need to import from each other;
-both pull what they need from here.
+both pull what they need from here and from constants.py.
 """
 
 import nuke
 import nukescripts
 
-TAB_NAME = 'copy_hidden_tab'
-KNOB_NAME = 'copy_hidden_input_node'
-LINK_RECONNECT_KNOB_NAME = "reconnect_link"
-HIDDEN_INPUT_CLASSES = ['PostageStamp', 'Dot', 'NoOp']
-LINK_CLASSES = {
-    "Read": "PostageStamp",
-    "DeepRead": "NoOp",
-    "ReadGeo": "NoOp",
-    "Camera": "NoOp",
-    "Camera2": "NoOp",
-    "Camera3": "NoOp",
-    "Camera4": "NoOp",
-    "GeoImport": "NoOp",
-}
-
-# Lives here so is_anchor (below) can reference it without a circular import
-ANCHOR_PREFIX = 'Anchor_'
+from constants import (
+    TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
+    HIDDEN_INPUT_CLASSES, LINK_CLASSES, ANCHOR_PREFIX,
+)
 
 
 def get_fully_qualified_node_name(node):

@@ -20,8 +20,11 @@ except ImportError:
 
 import tabtabtab as _tabtabtab
 
-from link import (
+from constants import (
     ANCHOR_PREFIX, KNOB_NAME,
+    ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
+)
+from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
     add_input_knob,
@@ -31,9 +34,6 @@ from link import (
     get_link_class_for_source,
     setup_link_node,
 )
-
-ANCHOR_RECONNECT_KNOB_NAME = "reconnect_child_links"
-ANCHOR_RENAME_KNOB_NAME = "rename_anchor"
 
 
 def sanitize_anchor_name(name):
@@ -49,8 +49,6 @@ def find_anchor_color(anchor):
       2. The anchor's input node color (with Preferences fallback).
       3. Hard-coded default purple if neither is available.
     """
-    ANCHOR_DEFAULT_COLOR = 0x6f3399ff
-
     input_node = anchor.input(0)
 
     # --- 1. Backdrop color — only for Read nodes ---
