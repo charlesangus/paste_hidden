@@ -7,6 +7,7 @@ with by editing LINK_CLASSES.
 """
 
 import os
+import re
 
 import nuke
 import nukescripts
@@ -365,15 +366,48 @@ def all_anchors():
     return anchors
 
 
+def suggest_anchor_name(input_node):
+    """Return a suggested anchor name based on the input node's file knob and backdrop context."""
+    suggestion = ""
+
+    if 'file' in input_node.knobs():
+        filepath = input_node['file'].getValue()
+        if filepath:
+            filename = os.path.basename(filepath)
+            m = re.match(r'^(.+)_v\d+(?:\.[^.]+)?\.[^.]+$', filename)
+            if m:
+                suggestion = m.group(1)
+            else:
+                suggestion = os.path.splitext(filename)[0]
+
+    ax, ay = input_node.xpos(), input_node.ypos()
+    containing = []
+    for bd in nuke.allNodes('BackdropNode'):
+        bx = bd.xpos()
+        by = bd.ypos()
+        bw = bd['bdwidth'].value()
+        bh = bd['bdheight'].value()
+        if bx <= ax < bx + bw and by <= ay < by + bh:
+            containing.append(bd)
+
+    if containing:
+        smallest = min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
+        label = smallest['label'].getValue().strip()
+        if label:
+            suggestion = label + '_' + suggestion
+
+    return suggestion
+
+
 def create_anchor():
     selected = nuke.selectedNodes()
     input_node = selected[0] if len(selected) == 1 else None
 
-    name = nuke.getInput("Anchor name:", "")
+    suggested = suggest_anchor_name(input_node) if input_node is not None else ""
+    name = nuke.getInput("Anchor name:", suggested)
     if not name or not name.strip():
         return
 
-    import re
     sanitized = re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
     if not sanitized:
         return
