@@ -43,6 +43,7 @@ LINK_CLASSES = {
 ANCHOR_RECONNECT_KNOB_NAME = "reconnect_child_links"
 LINK_RECONNECT_KNOB_NAME = "reconnect_link"
 ANCHOR_PREFIX = 'Anchor_'
+ANCHOR_RENAME_KNOB_NAME = "rename_anchor"
 
 
 def copy_hidden(cut=False):
@@ -333,10 +334,49 @@ def is_link(node):
 def add_reconnect_anchor_knob(node):
     if ANCHOR_RECONNECT_KNOB_NAME in node.knobs():
         return
-    knob = nuke.PyScript_Knob(LINK_RECONNECT_KNOB_NAME, "Reconnect Child Links", 
+    knob = nuke.PyScript_Knob(LINK_RECONNECT_KNOB_NAME, "Reconnect Child Links",
         """import paste_hidden
 paste_hidden.reconnect_anchor_node(nuke.thisNode())""")
     node.addKnob(knob)
+
+
+def add_rename_anchor_knob(node):
+    if ANCHOR_RENAME_KNOB_NAME in node.knobs():
+        return
+    knob = nuke.PyScript_Knob(ANCHOR_RENAME_KNOB_NAME, "Rename",
+        """import paste_hidden
+paste_hidden.rename_anchor(nuke.thisNode())""")
+    node.addKnob(knob)
+
+
+def rename_anchor(anchor_node):
+    """Rename an anchor and update all link nodes that reference it."""
+    input_node = anchor_node.input(0)
+    suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
+    name = nuke.getInput("Rename anchor:", suggested)
+    if not name or not name.strip():
+        return
+
+    sanitized = re.sub(r'[^A-Za-z0-9_]', '_', name.strip())
+    if not sanitized:
+        return
+
+    old_fqn = get_fully_qualified_node_name(anchor_node)
+    anchor_node.setName(ANCHOR_PREFIX + sanitized)
+    anchor_node['label'].setValue(anchor_display_name(anchor_node))
+    new_fqn = get_fully_qualified_node_name(anchor_node)
+
+    new_label = anchor_node['label'].getText() or anchor_node.name()
+    for node in nuke.allNodes():
+        if is_link(node) and node[KNOB_NAME].getText() == old_fqn:
+            node[KNOB_NAME].setValue(new_fqn)
+            node['label'].setValue(f"Link: {new_label}")
+
+
+def rename_selected_anchor():
+    selected = nuke.selectedNodes()
+    if len(selected) == 1 and is_anchor(selected[0]):
+        rename_anchor(selected[0])
 
 
 def reconnect_anchor_node(anchor_node):
@@ -426,6 +466,7 @@ def create_anchor():
 
     anchor['tile_color'].setValue(find_anchor_color(anchor))
     add_reconnect_anchor_knob(anchor)
+    add_rename_anchor_knob(anchor)
 
 
 def create_from_anchor(anchor_node):
@@ -470,7 +511,10 @@ class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
 
 def anchor_shortcut():
     """If a node is selected, create an anchor from it. Otherwise, pick an anchor to create from."""
-    if nuke.selectedNodes():
+    selected = nuke.selectedNodes()
+    if len(selected) == 1 and is_anchor(selected[0]):
+        rename_anchor(selected[0])
+    elif selected:
         create_anchor()
     else:
         select_anchor_and_create()
