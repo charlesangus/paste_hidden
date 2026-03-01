@@ -1,6 +1,7 @@
 import nuke
 import paste_hidden
 import anchor
+import labels
 
 menu = nuke.menu("Nuke")
 menu.addCommand("Edit/Copy", "paste_hidden.copy_hidden()", "^C")
@@ -17,3 +18,7 @@ menu.addCommand("Edit/Rename Anchor",      "anchor.rename_selected_anchor()")
 menu.addCommand("Edit/Create Link",        "anchor.select_anchor_and_create()")
 menu.addCommand("Edit/Anchor",             "anchor.anchor_shortcut()", "A")
 menu.addCommand("Edit/Reconnect All Links","anchor.reconnect_all_links()")
+
+menu.addCommand("Edit/Label (Large)",  "labels.create_large_label()",  "+M")
+menu.addCommand("Edit/Label (Medium)", "labels.create_medium_label()", "+N")
+menu.addCommand("Edit/Append Label",   "labels.append_to_label()",     "^M")

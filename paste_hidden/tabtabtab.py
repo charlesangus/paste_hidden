@@ -42,8 +42,15 @@ class TabTabTabPlugin:
         return None
 
     def get_color(self, menuobj):
-        """Return a QtGui.QColor for menuobj, or None for no colour."""
-        return None
+        """Return a (left_block_color, text_tint_color) tuple of QtGui.QColor or None.
+
+        left_block_color: solid colour filling the icon-width column on the left.
+          Use None when an icon is present (or when no left-block colour is wanted).
+        text_tint_color: semi-transparent wash applied only behind the text area,
+          also controls foreground text colour via luminance.
+        Either element may be None to suppress that part of the colouring.
+        """
+        return (None, None)
 
 
 def _normalize_qt_item_name(item):
@@ -283,7 +290,7 @@ class NodeModel(QtCore.QAbstractListModel):
         self._all = mlist
         self._filtertext = filtertext
         self._icon_fn = icon_fn if icon_fn is not None else (lambda obj: None)
-        self._color_fn = color_fn if color_fn is not None else (lambda obj: None)
+        self._color_fn = color_fn if color_fn is not None else (lambda obj: (None, None))
 
         # _items is the list of objects to be shown, update sets this
         self._items = []
@@ -371,24 +378,25 @@ class NodeModel(QtCore.QAbstractListModel):
             return None
 
         elif role == Qt.BackgroundRole:
-            color = self._items[index.row()].get('color')
-            if color is None:
+            left_block_color, text_tint_color = self._items[index.row()]['color']
+            if text_tint_color is None:
                 return None
-            tinted = QtGui.QColor(color.red(), color.green(), color.blue(), 80)  # 31% opacity
+            tinted = QtGui.QColor(text_tint_color.red(), text_tint_color.green(), text_tint_color.blue(), 80)  # 31% opacity
             return QtGui.QBrush(tinted)
 
         elif role == Qt.ForegroundRole:
-            color = self._items[index.row()].get('color')
-            if color is None:
+            _, text_tint_color = self._items[index.row()]['color']
+            if text_tint_color is None:
                 return None
-            luminance = 0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()
+            luminance = 0.299 * text_tint_color.red() + 0.587 * text_tint_color.green() + 0.114 * text_tint_color.blue()
             if luminance > 160:
                 return QtGui.QBrush(QtGui.QColor(40, 40, 40))
             else:
                 return QtGui.QBrush(QtGui.QColor(220, 220, 220))
 
         elif role == Qt.UserRole:
-            return self._items[index.row()].get('color')
+            left_block_color, _ = self._items[index.row()]['color']
+            return left_block_color
 
         else:
             return None
@@ -461,16 +469,33 @@ class _ItemDelegate(QtWidgets.QStyledItemDelegate):
         painter.save()
         rect = option.rect
 
-        # 1. Full-width tinted background (from BackgroundRole)
+        # Determine what occupies the left icon column so we can compute the
+        # text rect before drawing anything (the background wash uses it).
+        left_block_color = index.data(Qt.UserRole)  # solid colour block, or None
+        icon = index.data(Qt.DecorationRole)
+        has_icon = isinstance(icon, QtGui.QIcon) and not icon.isNull()
+        has_left_block = left_block_color is not None or has_icon
+
+        text_left = rect.left() + (self._icon_w + 6 if has_left_block else 4)
+        text_rect = QtCore.QRect(text_left, rect.top(), rect.right() - text_left, rect.height())
+
+        # 1. Tinted background wash — from the right edge of the left block to
+        # the end of the row, so there is no uncoloured gap before the text.
         bg_brush = index.data(Qt.BackgroundRole)
         if bg_brush is not None:
-            painter.fillRect(rect, bg_brush)
+            bg_left = rect.left() + (self._icon_w if has_left_block else 0)
+            bg_rect = QtCore.QRect(bg_left, rect.top(), rect.right() - bg_left, rect.height())
+            painter.fillRect(bg_rect, bg_brush)
 
-        # 2. Left icon block — full un-dimmed colour (from UserRole)
-        full_color = index.data(Qt.UserRole)
-        if full_color is not None:
+        # 2. Left icon column: solid colour block as background, then QIcon on top
+        if left_block_color is not None:
             icon_rect = QtCore.QRect(rect.left(), rect.top(), self._icon_w, rect.height())
-            painter.fillRect(icon_rect, full_color)
+            painter.fillRect(icon_rect, left_block_color)
+        if has_icon:
+            icon_size = min(self._icon_w, rect.height()) - 4
+            icon_x = rect.left() + (self._icon_w - icon_size) // 2
+            icon_y = rect.top() + (rect.height() - icon_size) // 2
+            icon.paint(painter, icon_x, icon_y, icon_size, icon_size)
 
         # 3. Selection as outline only (1px border, highlight colour)
         if option.state & QtWidgets.QStyle.State_Selected:
@@ -478,9 +503,7 @@ class _ItemDelegate(QtWidgets.QStyledItemDelegate):
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
 
-        # 4. Text (shifted right by icon_w + small padding when icon present)
-        text_left = rect.left() + (self._icon_w + 6 if full_color is not None else 4)
-        text_rect = QtCore.QRect(text_left, rect.top(), rect.right() - text_left, rect.height())
+        # 4. Text
         fg = index.data(Qt.ForegroundRole)
         painter.setPen(fg.color() if fg else option.palette.text().color())
         text = index.data(Qt.DisplayRole) or ""
@@ -651,6 +674,9 @@ class TabTabTabWidget(QtWidgets.QDialog):
 
         # Refresh items from the plugin so additions/removals are reflected
         self.things_model.refresh_items(self.plugin.get_items())
+
+        # Restore selection to the first item, since modelReset clears it
+        self.move_selection(where="first")
 
         # Select all text to allow overwriting
         self.input.selectAll()

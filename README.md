@@ -38,3 +38,110 @@ If you would like to customize the behaviour, look at the top of the script. Thi
 # Bonus
 
 Also includes multiple pasting, because it's handy, and other multiple paste solutions won't have the Paste Hidden secret sauce that handles the re-piping etc.
+
+# Python API
+
+The following functions are stable entry points for tools and scripts that want to integrate with paste_hidden programmatically.
+
+## Anchors (`import anchor`)
+
+### Querying
+
+```python
+anchor.all_anchors() -> list[nuke.Node]
+```
+Returns all anchor nodes in the current script, sorted alphabetically by display name.
+
+```python
+anchor.find_anchor_by_name(display_name: str) -> nuke.Node | None
+```
+Looks up an anchor by its display name (the label shown in the node graph). Returns `None` if not found.
+
+```python
+anchor.get_links_for_anchor(anchor_node: nuke.Node) -> list[nuke.Node]
+```
+Returns all link nodes in the current script that reference the given anchor node. Useful for impact analysis before renaming or deleting an anchor.
+
+---
+
+### Creating anchors
+
+```python
+anchor.create_anchor_named(name: str, input_node: nuke.Node | None = None) -> nuke.Node
+```
+Creates an anchor with the given name. Positions it below `input_node` and wires it up if provided. Returns the new anchor node.
+Raises `ValueError` if `name` sanitizes to an empty string (i.e. contains no alphanumeric characters or underscores).
+
+```python
+anchor.create_anchor_silent(input_node: nuke.Node | None = None) -> nuke.Node
+```
+Creates an anchor using the auto-suggested name derived from the input node's file path and surrounding backdrop. Falls back to the node's name, then to `"Anchor"` if no suggestion can be derived. Returns the new anchor node.
+
+```python
+anchor.create_anchor()
+```
+Prompts the user for a name (pre-filled with the auto-suggestion) and creates the anchor. Intended for interactive use via keybind or menu.
+
+---
+
+### Creating links
+
+```python
+anchor.create_from_anchor(anchor_node: nuke.Node) -> nuke.Node
+```
+Creates a link node wired to the given anchor node and returns it. The link node class (PostageStamp, NoOp, Dot) is chosen based on the anchor's input.
+
+```python
+anchor.create_link_for_anchor_named(display_name: str) -> nuke.Node
+```
+Looks up the anchor by display name, creates a link node wired to it, and returns the link node.
+Raises `ValueError` if no anchor with that display name exists.
+
+```python
+anchor.try_create_link_for_anchor_named(display_name: str) -> nuke.Node | None
+```
+Same as above but returns `None` instead of raising if the anchor is not found.
+
+---
+
+### Renaming
+
+```python
+anchor.rename_anchor_to(anchor_node: nuke.Node, name: str)
+```
+Renames the anchor to `name` and updates the stored reference and label on all link nodes that point to it.
+Raises `ValueError` if `name` sanitizes to an empty string.
+
+```python
+anchor.rename_anchor(anchor_node: nuke.Node)
+```
+Prompts the user for a new name (pre-filled with a suggestion) and renames the anchor. Intended for interactive use.
+
+---
+
+### Reconnecting
+
+```python
+anchor.reconnect_anchor_node(anchor_node: nuke.Node)
+```
+Re-wires all link nodes that reference the given anchor. Useful after loading or merging scripts.
+
+```python
+anchor.reconnect_all_links()
+```
+Re-wires every link node in the current script.
+
+---
+
+## Copy / Paste (`import paste_hidden`)
+
+These are drop-in replacements for Nuke's built-in copy/cut/paste. They are wired to `Ctrl+C/X/V` by `menu.py` automatically on installation. You only need to call them directly if you are building your own menu or keybind setup.
+
+```python
+paste_hidden.copy_hidden()
+paste_hidden.cut_hidden()
+paste_hidden.paste_hidden() -> nuke.Node   # returns last pasted node, same as nuke.nodePaste()
+paste_hidden.paste_multiple_hidden()
+```
+
+The "old-style" equivalents (no anchor/link magic) are also available as `copy_old()`, `cut_old()`, and `paste_old()`.

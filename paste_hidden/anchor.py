@@ -99,6 +99,20 @@ def all_anchors():
     return anchors
 
 
+def find_anchor_by_name(display_name):
+    """Return the anchor node whose display name equals *display_name*, or None."""
+    for anchor in all_anchors():
+        if anchor_display_name(anchor) == display_name:
+            return anchor
+    return None
+
+
+def get_links_for_anchor(anchor_node):
+    """Return all link nodes in the current script that reference *anchor_node*."""
+    fqnn = get_fully_qualified_node_name(anchor_node)
+    return [node for node in nuke.allNodes() if is_link(node) and node[KNOB_NAME].getText() == fqnn]
+
+
 def suggest_anchor_name(input_node):
     """Return a suggested anchor name based on the input node's file knob and backdrop context."""
     suggestion = ""
@@ -122,17 +136,14 @@ def suggest_anchor_name(input_node):
     return suggestion
 
 
-def rename_anchor(anchor_node):
-    """Rename an anchor and update all link nodes that reference it."""
-    input_node = anchor_node.input(0)
-    suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
-    name = nuke.getInput("Rename anchor:", suggested)
-    if not name or not name.strip():
-        return
+def rename_anchor_to(anchor_node, name):
+    """Rename an anchor to *name* and update all referencing link nodes.
 
+    Raises ValueError if *name* sanitizes to an empty string.
+    """
     sanitized = sanitize_anchor_name(name)
     if not sanitized:
-        return
+        raise ValueError(f"Anchor name {name!r} produces an empty sanitized name")
 
     old_fqn = get_fully_qualified_node_name(anchor_node)
     anchor_node.setName(ANCHOR_PREFIX + sanitized)
@@ -144,6 +155,19 @@ def rename_anchor(anchor_node):
         if is_link(node) and node[KNOB_NAME].getText() == old_fqn:
             node[KNOB_NAME].setValue(new_fqn)
             node['label'].setValue(f"Link: {new_label}")
+
+
+def rename_anchor(anchor_node):
+    """Prompt the user for a new name and rename the anchor."""
+    input_node = anchor_node.input(0)
+    suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
+    name = nuke.getInput("Rename anchor:", suggested)
+    if not name or not name.strip():
+        return
+    try:
+        rename_anchor_to(anchor_node, name)
+    except ValueError:
+        pass
 
 
 def rename_selected_anchor():
@@ -176,9 +200,30 @@ def create_anchor():
     if not name or not name.strip():
         return
 
+    try:
+        create_anchor_named(name, input_node)
+    except ValueError:
+        pass
+
+
+def create_from_anchor(anchor_node):
+    nukescripts.clear_selection_recursive()
+    source = anchor_node if anchor_node.Class() == 'Dot' else anchor_node.input(0)
+    link_class = get_link_class_for_source(source)
+    link = nuke.createNode(link_class)
+    setup_link_node(anchor_node, link)
+    return link
+
+
+def create_anchor_named(name, input_node=None):
+    """Create an anchor with the given *name* without any user prompt.
+
+    Returns the new anchor node.
+    Raises ValueError if *name* sanitizes to an empty string.
+    """
     sanitized = sanitize_anchor_name(name)
     if not sanitized:
-        return
+        raise ValueError(f"Anchor name {name!r} produces an empty sanitized name")
 
     nukescripts.clear_selection_recursive()
     anchor = nuke.createNode('NoOp')
@@ -195,15 +240,43 @@ def create_anchor():
     anchor['tile_color'].setValue(find_anchor_color(anchor))
     add_reconnect_anchor_knob(anchor)
     add_rename_anchor_knob(anchor)
+    return anchor
 
 
-def create_from_anchor(anchor_node):
-    nukescripts.clear_selection_recursive()
-    source = anchor_node if anchor_node.Class() == 'Dot' else anchor_node.input(0)
-    link_class = get_link_class_for_source(source)
-    link = nuke.createNode(link_class)
-    setup_link_node(anchor_node, link)
-    return link
+def create_anchor_silent(input_node=None):
+    """Create an anchor using the auto-suggested name without any user prompt.
+
+    Falls back to the input node's name, then to ``"Anchor"`` if no suggestion
+    can be derived.  Returns the new anchor node.
+    """
+    if input_node is not None:
+        suggested = suggest_anchor_name(input_node) or input_node.name()
+    else:
+        suggested = "Anchor"
+    return create_anchor_named(suggested, input_node)
+
+
+def create_link_for_anchor_named(display_name):
+    """Create a link node wired to the anchor with *display_name*.
+
+    Returns the new link node.
+    Raises ValueError if no anchor with that display name exists.
+    """
+    anchor = find_anchor_by_name(display_name)
+    if anchor is None:
+        raise ValueError(f"No anchor found with display name {display_name!r}")
+    return create_from_anchor(anchor)
+
+
+def try_create_link_for_anchor_named(display_name):
+    """Create a link node wired to the anchor with *display_name*, or None.
+
+    Returns the new link node, or None if no anchor with that display name exists.
+    """
+    anchor = find_anchor_by_name(display_name)
+    if anchor is None:
+        return None
+    return create_from_anchor(anchor)
 
 
 class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
@@ -234,7 +307,8 @@ class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
         r = (color_int >> 24) & 0xFF
         g = (color_int >> 16) & 0xFF
         b = (color_int >> 8) & 0xFF
-        return QtGui.QColor(r, g, b)
+        color = QtGui.QColor(r, g, b)
+        return (color, color)
 
 
 def anchor_shortcut():
