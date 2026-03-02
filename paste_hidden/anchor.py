@@ -345,3 +345,67 @@ def select_anchor_and_create():
     _anchor_picker_widget.under_cursor()
     _anchor_picker_widget.show()
     _anchor_picker_widget.raise_()
+
+
+def navigate_to_anchor(anchor_node):
+    """Pan the DAG view to centre on *anchor_node* without changing zoom level."""
+    centre_x = anchor_node.xpos() + anchor_node.screenWidth() // 2
+    centre_y = anchor_node.ypos() + anchor_node.screenHeight() // 2
+    nuke.zoom(nuke.zoom(), [centre_x, centre_y])
+
+
+class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
+    """tabtabtab plugin that lists all anchor nodes for DAG navigation."""
+
+    def get_items(self):
+        return [
+            {
+                'menuobj': anchor_node,
+                'menupath': 'Anchors/' + anchor_display_name(anchor_node),
+            }
+            for anchor_node in all_anchors()
+        ]
+
+    def get_weights_file(self):
+        return os.path.expanduser('~/.nuke/paste_hidden_anchor_navigate_weights.json')
+
+    def invoke(self, thing):
+        anchor_node = thing['menuobj']
+        if nuke.exists(anchor_node.name()):
+            navigate_to_anchor(anchor_node)
+
+    def get_icon(self, menuobj):
+        return None
+
+    def get_color(self, menuobj):
+        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        r = (color_int >> 24) & 0xFF
+        g = (color_int >> 16) & 0xFF
+        b = (color_int >> 8) & 0xFF
+        color = QtGui.QColor(r, g, b)
+        return (color, color)
+
+
+_anchor_navigate_widget = None
+
+
+def select_anchor_and_navigate():
+    if QtWidgets is None:
+        return
+    if not all_anchors():
+        return
+    global _anchor_navigate_widget
+    if _anchor_navigate_widget is not None:
+        try:
+            _anchor_navigate_widget.under_cursor()
+            _anchor_navigate_widget.show()
+            _anchor_navigate_widget.raise_()
+            return
+        except RuntimeError:
+            _anchor_navigate_widget = None
+    _anchor_navigate_widget = _tabtabtab.TabTabTabWidget(
+        AnchorNavigatePlugin(), winflags=Qt.FramelessWindowHint
+    )
+    _anchor_navigate_widget.under_cursor()
+    _anchor_navigate_widget.show()
+    _anchor_navigate_widget.raise_()
