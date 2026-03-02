@@ -23,6 +23,7 @@ import tabtabtab as _tabtabtab
 from constants import (
     ANCHOR_PREFIX, KNOB_NAME,
     ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
+    DOT_LABEL_FONT_SIZE_MEDIUM, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE,
 )
 from link import (
     is_anchor, is_link,
@@ -139,28 +140,41 @@ def suggest_anchor_name(input_node):
 def rename_anchor_to(anchor_node, name):
     """Rename an anchor to *name* and update all referencing link nodes.
 
-    Raises ValueError if *name* sanitizes to an empty string.
+    Raises ValueError if *name* sanitizes to an empty string (NoOp anchors only).
+    For Dot anchors the label is updated directly; the node name (and FQNN) is
+    left unchanged because it is the stable identifier used in link tracking.
     """
-    sanitized = sanitize_anchor_name(name)
-    if not sanitized:
-        raise ValueError(f"Anchor name {name!r} produces an empty sanitized name")
+    if anchor_node.Class() == 'Dot':
+        new_label = name.strip()
+        anchor_node['label'].setValue(new_label)
+        dot_fqnn = get_fully_qualified_node_name(anchor_node)
+        for node in nuke.allNodes():
+            if is_link(node) and node[KNOB_NAME].getText() == dot_fqnn:
+                node['label'].setValue(f"Link: {new_label}")
+    else:
+        sanitized = sanitize_anchor_name(name)
+        if not sanitized:
+            raise ValueError(f"Anchor name {name!r} produces an empty sanitized name")
 
-    old_fqn = get_fully_qualified_node_name(anchor_node)
-    anchor_node.setName(ANCHOR_PREFIX + sanitized)
-    anchor_node['label'].setValue(anchor_display_name(anchor_node))
-    new_fqn = get_fully_qualified_node_name(anchor_node)
+        old_fqn = get_fully_qualified_node_name(anchor_node)
+        anchor_node.setName(ANCHOR_PREFIX + sanitized)
+        anchor_node['label'].setValue(anchor_display_name(anchor_node))
+        new_fqn = get_fully_qualified_node_name(anchor_node)
 
-    new_label = anchor_node['label'].getText() or anchor_node.name()
-    for node in nuke.allNodes():
-        if is_link(node) and node[KNOB_NAME].getText() == old_fqn:
-            node[KNOB_NAME].setValue(new_fqn)
-            node['label'].setValue(f"Link: {new_label}")
+        new_label = anchor_node['label'].getText() or anchor_node.name()
+        for node in nuke.allNodes():
+            if is_link(node) and node[KNOB_NAME].getText() == old_fqn:
+                node[KNOB_NAME].setValue(new_fqn)
+                node['label'].setValue(f"Link: {new_label}")
 
 
 def rename_anchor(anchor_node):
     """Prompt the user for a new name and rename the anchor."""
-    input_node = anchor_node.input(0)
-    suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
+    if anchor_node.Class() == 'Dot':
+        suggested = anchor_display_name(anchor_node)
+    else:
+        input_node = anchor_node.input(0)
+        suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
     name = nuke.getInput("Rename anchor:", suggested)
     if not name or not name.strip():
         return
@@ -311,11 +325,33 @@ class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
         return (color, color)
 
 
+def _offer_make_dot_anchor(dot_node):
+    """Prompt the user to label an un-anchored Dot and mark it as an anchor."""
+    panel = nuke.Panel("Make Dot Anchor")
+    panel.addEnumerationPulldown("Label size", "Medium Large")
+    if not panel.show():
+        return
+    size = panel.value("Label size")
+    text = nuke.getInput("Label:", dot_node['label'].getText())
+    if text is None:
+        return
+    from labels import _apply_label
+    if size == "Medium":
+        _apply_label(dot_node, text, DOT_LABEL_FONT_SIZE_MEDIUM, None)
+    else:
+        _apply_label(dot_node, text, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE)
+    # _apply_label → mark_dot_as_anchor already ran; add anchor utility knobs
+    add_reconnect_anchor_knob(dot_node)
+    add_rename_anchor_knob(dot_node)
+
+
 def anchor_shortcut():
     """If a node is selected, create an anchor from it. Otherwise, pick an anchor to create from."""
     selected = nuke.selectedNodes()
     if len(selected) == 1 and is_anchor(selected[0]):
         rename_anchor(selected[0])
+    elif len(selected) == 1 and selected[0].Class() == 'Dot' and not is_link(selected[0]):
+        _offer_make_dot_anchor(selected[0])
     elif selected:
         create_anchor()
     else:

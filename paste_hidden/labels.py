@@ -8,7 +8,7 @@ from constants import (
     DOT_LABEL_FONT_SIZE_MEDIUM,
     NODE_LABEL_FONT_SIZE_LARGE,
 )
-from link import get_fully_qualified_node_name, is_link, reconnect_link_node
+from link import get_fully_qualified_node_name, is_link, reconnect_link_node, mark_dot_as_anchor
 
 
 def _update_dot_link_labels(dot_node, new_label):
@@ -32,6 +32,7 @@ def _apply_label(node, text, dot_font_size=None, node_font_size=None):
     if node.Class() == 'Dot':
         if dot_font_size is not None:
             node['note_font_size'].setValue(dot_font_size)
+        mark_dot_as_anchor(node)
         _update_dot_link_labels(node, text)
     else:
         if node_font_size is not None:
