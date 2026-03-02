@@ -10,6 +10,7 @@ import nukescripts
 from constants import (
     TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
     HIDDEN_INPUT_CLASSES, LINK_CLASSES, ANCHOR_PREFIX,
+    DOT_ANCHOR_KNOB_NAME,
 )
 
 
@@ -62,12 +63,29 @@ def get_link_class_for_source(source_node):
     return LINK_CLASSES.get(source_node.Class(), 'PostageStamp')
 
 
+def mark_dot_as_anchor(dot_node):
+    """Add the canonical anchor marker knob to a Dot node if not already present."""
+    if DOT_ANCHOR_KNOB_NAME in dot_node.knobs():
+        dot_node[DOT_ANCHOR_KNOB_NAME].setValue(True)
+        return
+    knob = nuke.Boolean_Knob(DOT_ANCHOR_KNOB_NAME, 'Dot Anchor')
+    knob.setVisible(False)
+    knob.setValue(True)
+    dot_node.addKnob(knob)
+
+
 def is_anchor(node):
     try:
         if node.name().startswith(ANCHOR_PREFIX):
             return True
-        if node.Class() == 'Dot' and node['label'].getValue().strip():
-            return True
+        if node.Class() == 'Dot':
+            # Explicit anchor knob (set by mark_dot_as_anchor)
+            if DOT_ANCHOR_KNOB_NAME in node.knobs():
+                return True
+            # Legacy: labelled dot that is not a link, not hidden-input, no "Link: " prefix
+            label = node['label'].getValue().strip()
+            if label and not label.startswith('Link: ') and not is_link(node) and not node['hide_input'].getValue():
+                return True
         return False
     except Exception:
         return False
