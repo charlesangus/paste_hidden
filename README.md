@@ -1,11 +1,6 @@
 # Paste Hidden
 
-Replacement and improvement for the Copy/Cut/Paste functions in Foundry's Nuke.
-
-- "Input Nodes" (e.g. Read, Camera, ReadGeo, DeepRead) will be replaced by a hidden input-ed PostageStamp/NoOp when copied/pasted. This prevents multiplying input nodes, which is a bad practice which makes script maintenance difficult. Inputs should exist exactly one time in the script.
-- Makes working with hidden inputs easier, by re-piping the hidden input of a copy/pasted PostageStamp/NoOp/Dot.
-- Handles colorizing and labelling hidden input-ed PostageStamp/NoOp/Dot nodes.
-- "Old-style" paste (without the secret sauce) is available with `Ctrl-Shift-D`.
+Replacement and improvement for the Copy/Cut/Paste functions in Foundry's Nuke, with a full anchor-and-link system for reusable named inputs.
 
 # Installation
 
@@ -33,11 +28,96 @@ I am a firm believer that the ONLY nodes that should ever have hidden inputs are
 
 There are no callbacks. Everything is handled by over-riding the builtin copy-paste functions. Hidden knobs are added to relevant nodes as copying is conducted, and the magic happens at paste time. If you re-pipe nodes yourself, labels etc. will not update as nothing is live.
 
-If you would like to customize the behaviour, look at the top of the script. This contains two variables which control which nodes are treated as "Hidden input nodes", and which nodes are replaced by "Hidden input nodes". So e.g. you could add `Constant` nodes to the list that gets replaced, and set them to be replaced by `PostageStamp` nodes. It does not make sense to replace nodes which have inputs, so please don't try it. Only replace nodes with no inputs.
+The anchor system lives alongside copy/paste and provides a reusable named-input mechanism for the node graph. Anchors and their links are plain Nuke nodes; the system is stateless and survives script save/load without callbacks.
 
-# Bonus
+# Copy / Paste
 
-Also includes multiple pasting, because it's handy, and other multiple paste solutions won't have the Paste Hidden secret sauce that handles the re-piping etc.
+`Ctrl+C`, `Ctrl+X`, and `Ctrl+V` are replaced with hidden-aware versions:
+
+- **Input nodes** (Read, Camera, ReadGeo, DeepRead, etc.) are converted to hidden-input PostageStamp/NoOp proxies on copy. When pasted, the proxy is re-piped to the original input node automatically, provided the original is in the same script and at the same level.
+- **Paste Multiple** (`Edit > Paste Multiple`) pastes the clipboard contents multiple times in sequence, with full hidden-input re-piping applied each time.
+- **Old-style paste** (no re-piping magic): `Edit > Anchors > Paste (old)` / `Ctrl+Shift+D`. Old-style copy and cut are also available under `Edit > Anchors`.
+
+# Anchor System
+
+The anchor system is a reusable named-input mechanism for the node graph.
+
+## Concepts
+
+- **Anchor** — a named NoOp (node name prefixed `Anchor_`) or labeled Dot node that sits below an input node and acts as a stable reference point. Each anchor has a "Reconnect Child Links" button and a "Rename" button in its properties panel.
+- **Link** — a PostageStamp, NoOp, or Dot node that references an anchor by fully-qualified name. Automatically re-pipes itself when reconnected. Displays a `Link: <name>` label.
+
+## Creating Anchors
+
+- Select a node and press `A` (or `Edit > Anchors > Create Anchor`) — a name dialog appears, pre-filled from the input node's file path and the smallest containing backdrop label.
+- **Dot anchors**: select a Dot node and press `A` to promote it to a Dot anchor. A size picker (Medium / Large label) appears first, then a label prompt.
+- **Rename**: if an anchor is already selected when you press `A`, the rename dialog opens instead of creating a new anchor.
+
+## Creating Links
+
+- With no node selected, press `A` (or `Edit > Anchors > Create Link`) — a fuzzy-search picker appears listing all anchors with their colors. Pick one and a link node is created and wired.
+
+## Renaming
+
+- Select an anchor and press `A` — the rename dialog opens, pre-filled with the current name (NoOp anchors) or label (Dot anchors).
+- Or: `Edit > Anchors > Rename Anchor`.
+- All link nodes referencing the anchor are updated automatically.
+
+## Navigating
+
+- `Alt+A` (or `Edit > Anchors > Anchor Find`) — opens a fuzzy-search picker to jump the DAG view to any anchor.
+
+## Reconnecting
+
+- `Edit > Anchors > Reconnect All Links` — re-wires all link nodes in the script. Useful after a script load or merge.
+- The "Reconnect Child Links" button on each anchor node re-wires only that anchor's links.
+
+## Colors
+
+Anchors inherit their tile color using this priority:
+
+1. The smallest containing BackdropNode — only when the anchor's input is a Read node.
+2. The input node's tile color (with Preferences fallback).
+3. Default purple (`#6f3399`) if neither is available.
+
+Link nodes inherit the same color as their anchor.
+
+## Auto-Naming
+
+The suggested anchor name is derived from the input node's file knob: the basename is taken, any trailing `_v<number>` version suffix and file extension are stripped, and the result is prefixed with the smallest containing backdrop's label (if any).
+
+# Label Utilities
+
+Keyboard shortcuts for quickly labeling Dot anchors and other nodes (available under `Edit > Anchors`):
+
+| Shortcut | Action |
+|---|---|
+| `Shift+M` | Label (Large) — prompts for a label; applies large font to Dots and other nodes |
+| `Shift+N` | Label (Medium) — prompts for a label; applies medium font to Dots, unchanged for other nodes |
+| `Ctrl+M` | Append Label — prompts for a suffix and appends it to the existing label |
+
+For Dot anchors, applying or appending a label also propagates the change to all link nodes pointing at that Dot.
+
+# Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+C` | Copy (hidden) |
+| `Ctrl+X` | Cut (hidden) |
+| `Ctrl+V` | Paste (hidden) |
+| `Ctrl+Shift+D` | Paste (old-style, no re-piping) |
+| `A` | Anchor shortcut (context-sensitive: create anchor, promote Dot, rename, or open link picker) |
+| `Alt+A` | Anchor Find (navigate DAG to an anchor) |
+| `Shift+M` | Label (Large) |
+| `Shift+N` | Label (Medium) |
+| `Ctrl+M` | Append Label |
+
+# Configuration
+
+Edit `constants.py` to change the default behaviour:
+
+- **`HIDDEN_INPUT_CLASSES`** — list of node classes that are treated as hidden-input proxies (default: `PostageStamp`, `Dot`, `NoOp`).
+- **`LINK_CLASSES`** — dict mapping source node classes to the proxy class used when creating links or copying (e.g. `Read → PostageStamp`, `Camera → NoOp`).
 
 # Python API
 
@@ -110,12 +190,45 @@ Same as above but returns `None` instead of raising if the anchor is not found.
 anchor.rename_anchor_to(anchor_node: nuke.Node, name: str)
 ```
 Renames the anchor to `name` and updates the stored reference and label on all link nodes that point to it.
-Raises `ValueError` if `name` sanitizes to an empty string.
+Raises `ValueError` if `name` sanitizes to an empty string (NoOp anchors only; Dot anchors update the label directly).
 
 ```python
 anchor.rename_anchor(anchor_node: nuke.Node)
 ```
 Prompts the user for a new name (pre-filled with a suggestion) and renames the anchor. Intended for interactive use.
+
+```python
+anchor.rename_selected_anchor()
+```
+Renames the currently selected anchor. Does nothing if the selection is not exactly one anchor node.
+
+---
+
+### Shortcuts and pickers
+
+```python
+anchor.anchor_shortcut()
+```
+Context-sensitive handler for the `A` keybind. Behaviour depends on the current selection:
+- One anchor selected → rename dialog.
+- One unanchored Dot selected → Dot anchor promotion (size picker + label prompt).
+- Any other nodes selected → create anchor dialog.
+- Nothing selected → open the link-creation fuzzy picker.
+
+```python
+anchor.select_anchor_and_create()
+```
+Opens the fuzzy-search picker for link creation. Selecting an entry creates a link node wired to the chosen anchor.
+
+```python
+anchor.select_anchor_and_navigate()
+```
+Opens the fuzzy-search picker for DAG navigation. Selecting an entry pans the DAG view to that anchor.
+
+```python
+anchor.navigate_to_anchor(anchor_node: nuke.Node)
+```
+Pans the DAG view to centre on `anchor_node` without changing the zoom level.
 
 ---
 
@@ -130,6 +243,25 @@ Re-wires all link nodes that reference the given anchor. Useful after loading or
 anchor.reconnect_all_links()
 ```
 Re-wires every link node in the current script.
+
+---
+
+## Labels (`import labels`)
+
+```python
+labels.create_large_label()
+```
+Prompts for a label and applies it to the selected node with large font sizing. For Dot anchors, propagates the label to all linked nodes.
+
+```python
+labels.create_medium_label()
+```
+Prompts for a label and applies it; Dot nodes get medium font size, other nodes are unchanged. For Dot anchors, propagates the label to all linked nodes.
+
+```python
+labels.append_to_label()
+```
+Prompts for a suffix and appends it to the selected node's existing label. For Dot anchors, propagates the updated label to all linked nodes.
 
 ---
 
