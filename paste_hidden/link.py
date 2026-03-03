@@ -10,7 +10,7 @@ import nukescripts
 from constants import (
     TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
     HIDDEN_INPUT_CLASSES, LINK_CLASSES, ANCHOR_PREFIX,
-    DOT_ANCHOR_KNOB_NAME,
+    DOT_ANCHOR_KNOB_NAME, DOT_LINK_LABEL_FONT_SIZE,
 )
 
 
@@ -136,6 +136,9 @@ def setup_link_node(input_node, link_node):
         link_node["label"].setValue(f"Link: {input_node['label'].getText()}")
     else:
         link_node["label"].setValue(f"Link: {input_node.name()}")
+
+    if link_node.Class() == 'Dot':
+        link_node["note_font_size"].setValue(DOT_LINK_LABEL_FONT_SIZE)
 
     add_input_knob(link_node)
     link_node[KNOB_NAME].setValue(get_fully_qualified_node_name(input_node))

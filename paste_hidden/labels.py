@@ -6,6 +6,7 @@ from constants import (
     KNOB_NAME,
     DOT_LABEL_FONT_SIZE_LARGE,
     DOT_LABEL_FONT_SIZE_MEDIUM,
+    DOT_LINK_LABEL_FONT_SIZE,
     NODE_LABEL_FONT_SIZE_LARGE,
 )
 from link import get_fully_qualified_node_name, is_link, reconnect_link_node, mark_dot_as_anchor
@@ -19,6 +20,7 @@ def _update_dot_link_labels(dot_node, new_label):
             continue
         if candidate_node[KNOB_NAME].getText() == dot_fqnn:
             candidate_node['label'].setValue(f"Link: {new_label}")
+            candidate_node['note_font_size'].setValue(DOT_LINK_LABEL_FONT_SIZE)
             reconnect_link_node(candidate_node)
 
 
