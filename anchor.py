@@ -384,10 +384,17 @@ def select_anchor_and_create():
 
 
 def navigate_to_anchor(anchor_node):
-    """Pan the DAG view to centre on *anchor_node* without changing zoom level."""
-    centre_x = anchor_node.xpos() + anchor_node.screenWidth() // 2
-    centre_y = anchor_node.ypos() + anchor_node.screenHeight() // 2
-    nuke.zoom(nuke.zoom(), [centre_x, centre_y])
+    """Zoom the DAG to fit *anchor_node* and its visible-path upstream nodes."""
+    from util import upstream_ignoring_hidden
+    upstream_nodes = upstream_ignoring_hidden(anchor_node) or set()
+    nodes_to_fit = upstream_nodes | {anchor_node}
+
+    nukescripts.clear_selection_recursive()
+    for node in nodes_to_fit:
+        node["selected"].setValue(True)
+
+    nuke.zoomToFitSelected()
+    nukescripts.clear_selection_recursive()
 
 
 class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
