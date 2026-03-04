@@ -29,7 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Copying a hidden-input Dot and pasting reconnects it to its original source node by identity; no anchor is created and no Link node appears
   4. Pasting a Camera node produces a NoOp link, not a PostageStamp; pasting a 2D Read produces a PostageStamp link
   5. If stream-type detection cannot be implemented simply, all non-Dot links fall back to NoOp and no regressions occur
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Foundation: stream detection, link class stored on anchor, lookup helpers
+- [ ] 01-02-PLAN.md — Routing: copy_hidden() and paste_hidden() new three-path classification
 
 ### Phase 2: Cross-Script Paste
 **Goal**: Pasting into a different script reconnects Links by anchor name and leaves hidden-input Dots cleanly disconnected
@@ -70,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Copy-Paste Semantics | 0/? | Not started | - |
+| 1. Copy-Paste Semantics | 0/2 | Not started | - |
 | 2. Cross-Script Paste | 0/? | Not started | - |
 | 3. Anchor Color System | 0/? | Not started | - |
 | 4. Anchor Navigation | 0/? | Not started | - |
