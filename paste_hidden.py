@@ -99,19 +99,33 @@ def paste_hidden():
             continue
 
         input_node = find_anchor_node(node)
-        if not input_node:
-            continue
 
-        if is_anchor(node) or node.Class() in LINK_CLASSES.keys():
+        if node.Class() in LINK_CLASSES.keys() or is_anchor(node):
+            # Path A/C: file node or anchor node pasted → replace with a link node.
+            # find_anchor_node() resolves the stored FQNN; None means cross-script or
+            # deleted — skip silently so the pasted placeholder node remains as-is.
+            if not input_node:
+                continue
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
-            link_node = nuke.createNode(get_link_class_for_source(input_node))
+            # get_link_class_for_source dispatches to the anchor's stored knob when
+            # input_node is an anchor (Camera anchor → NoOp, Read anchor → PostageStamp).
+            # Do NOT pass the anchor directly expecting re-detection — the dispatch
+            # handles this correctly via get_link_class_for_anchor().
+            link_class = get_link_class_for_source(input_node)
+            link_node = nuke.createNode(link_class)
             setup_link_node(input_node, link_node)
             link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)
             selected_nodes.append(link_node)
             nuke.delete(node)
+
         elif node.Class() in HIDDEN_INPUT_CLASSES:
+            # Path B: hidden-input Dot — reconnect to the stored source node.
+            # find_anchor_node() returns None for cross-script or unresolvable FQNNs;
+            # skip silently in that case (PASTE-03/PASTE-04 legacy Dot cross-script).
+            if not input_node:
+                continue
             setup_link_node(input_node, node)
 
     # it's possible we changed selection, reset it
