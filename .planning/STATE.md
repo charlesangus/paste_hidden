@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-03-04T12:30:58.933Z"
+progress:
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+---
+
 # Project State
 
 ## Project Reference
@@ -10,27 +23,27 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 1 of 4 (Copy-Paste Semantics)
-Plan: 1 of ? in current phase
+Plan: 2 of ? in current phase
 Status: In progress
-Last activity: 2026-03-04 — Completed 01-01 (stream-type detection infrastructure)
+Last activity: 2026-03-04 — Completed 01-02 (copy/paste three-path routing in paste_hidden.py)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 2 min
-- Total execution time: 2 min
+- Total plans completed: 2
+- Average duration: 1.5 min
+- Total execution time: 3 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-copy-paste-semantics | 1 | 2 min | 2 min |
+| 01-copy-paste-semantics | 2 | 3 min | 1.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min
+- Last 5 plans: 1.5 min avg
 - Trend: —
 
 *Updated after each plan completion*
@@ -49,6 +62,8 @@ Recent decisions affecting current work:
 - Detect link class once at anchor creation time and cache on hidden knob rather than re-deriving at paste time (01-01)
 - NoOp is the safe fallback for all inconclusive detection cases including None input, API errors, and unknown channel types (01-01)
 - Channel-inspection heuristic uses prefix matching on rgba/depth/forward to distinguish 2D from 3D/geo streams (01-01)
+- [Phase 01-copy-paste-semantics]: LINK_CLASSES branch ordered before HIDDEN_INPUT_CLASSES in copy_hidden() to prevent mis-routing of file nodes with hide_input set (01-02)
+- [Phase 01-copy-paste-semantics]: Silent continue for unresolvable FQNNs in paste_hidden() — matches existing cross-script behavior in find_anchor_node() (01-02)
 
 ### Pending Todos
 
@@ -61,5 +76,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 01-01-PLAN.md — stream-type detection infrastructure (constants.py, link.py, anchor.py)
+Stopped at: Completed 01-02-PLAN.md — copy/paste three-path routing (paste_hidden.py)
 Resume file: None
