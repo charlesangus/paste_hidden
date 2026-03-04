@@ -9,9 +9,8 @@ import nukescripts
 
 from constants import (
     TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
-    HIDDEN_INPUT_CLASSES, LINK_CLASSES, ANCHOR_PREFIX,
+    HIDDEN_INPUT_CLASSES, ANCHOR_PREFIX,
     DOT_ANCHOR_KNOB_NAME, DOT_LINK_LABEL_FONT_SIZE,
-    ANCHOR_LINK_CLASS_KNOB_NAME,
 )
 
 
@@ -54,94 +53,14 @@ def find_smallest_containing_backdrop(node):
     return min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
 
 
-def probe_stream_type_via_can_set_input(node_to_probe):
-    """Determine stream type by probing with scratch nodes via canSetInput().
-
-    Creates temporary NoOp (2D), Scene (3D/geo), and DeepMerge (Deep) scratch
-    nodes and tests whether node_to_probe can accept each as an input at slot 0.
-    All scratch nodes are deleted immediately in a finally block regardless of
-    result or exception.
-
-    Returns:
-        'PostageStamp' if node_to_probe accepts a NoOp (2D stream),
-        'NoOp'         if node_to_probe accepts a Scene or DeepMerge (3D/Deep),
-        'NoOp'         if no scratch is accepted or any exception occurs.
-
-    This implements LINK-04: any inconclusive result falls back to 'NoOp'.
-    """
-    scratch_noop = None
-    scratch_scene = None
-    scratch_deep_merge = None
-    try:
-        scratch_noop = nuke.createNode('NoOp')
-        scratch_scene = nuke.createNode('Scene')
-        scratch_deep_merge = nuke.createNode('DeepMerge')
-        if node_to_probe.canSetInput(0, scratch_noop):
-            return 'PostageStamp'
-        if node_to_probe.canSetInput(0, scratch_scene):
-            return 'NoOp'
-        if node_to_probe.canSetInput(0, scratch_deep_merge):
-            return 'NoOp'
-        return 'NoOp'
-    except Exception:
-        return 'NoOp'
-    finally:
-        if scratch_noop is not None:
-            nuke.delete(scratch_noop)
-        if scratch_scene is not None:
-            nuke.delete(scratch_scene)
-        if scratch_deep_merge is not None:
-            nuke.delete(scratch_deep_merge)
-
-
-def detect_link_class_for_node(source_node):
-    """Detect the correct link node class for a given source node.
-
-    Uses canSetInput() probing for unknown node classes so that the
-    detection result is accurate for arbitrary 2D, 3D/geo, and Deep node
-    types — not just the static LINK_CLASSES entries.
-
-    Returns 'Dot' for Dot nodes, a value from LINK_CLASSES for known
-    file-node classes, and a probe result for everything else.
-    Falls back to 'NoOp' in all inconclusive cases (including None input
-    and Nuke API errors). This implements LINK-04.
-    """
-    if source_node is None:
-        return 'NoOp'
-    node_class = source_node.Class()
-    if node_class == 'Dot':
-        return 'Dot'
-    if node_class in LINK_CLASSES:
-        return LINK_CLASSES[node_class]
-    return probe_stream_type_via_can_set_input(source_node)
-
-
-def get_link_class_for_anchor(anchor_node):
-    """Read the stored link class from an anchor node's hidden knob.
-
-    Returns the stored class string, or 'NoOp' if the knob is absent.
-    """
-    if ANCHOR_LINK_CLASS_KNOB_NAME in anchor_node.knobs():
-        return anchor_node[ANCHOR_LINK_CLASS_KNOB_NAME].getValue()
-    return 'NoOp'
-
-
 def get_link_class_for_source(source_node):
     """Return the appropriate link node class for a given source node.
 
-    Dispatch order:
-      1. Anchor node → read stored class from hidden knob (avoids re-detection).
-      2. Dot node → 'Dot'.
-      3. Known file-node class in LINK_CLASSES → direct lookup.
-      4. Else → 'PostageStamp' (direct-file-node paste path fallback).
+    Dot nodes produce a 'Dot' link; all other nodes produce a 'NoOp' link.
     """
-    if source_node is not None and is_anchor(source_node):
-        return get_link_class_for_anchor(source_node)
-    if source_node is None:
-        return 'PostageStamp'
-    if source_node.Class() == 'Dot':
+    if source_node is not None and source_node.Class() == 'Dot':
         return 'Dot'
-    return LINK_CLASSES.get(source_node.Class(), 'PostageStamp')
+    return 'NoOp'
 
 
 def mark_dot_as_anchor(dot_node):

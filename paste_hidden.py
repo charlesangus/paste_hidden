@@ -1,8 +1,8 @@
 """Replace default copy-cut-paste behaviour to re-connect hidden inputs
-and replace input-type nodes with hidden-inputted link nodes.
+and replace input-type nodes with hidden-inputted NoOp link nodes.
 
-Configure additional nodes to replace and the link node to replace them
-with by editing LINK_CLASSES in constants.py.
+Configure which node classes trigger link replacement by editing LINK_CLASSES
+in constants.py.
 """
 
 import nuke
@@ -13,7 +13,7 @@ from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
     setup_link_node, add_input_knob,
-    find_anchor_node, get_link_class_for_source,
+    find_anchor_node,
 )
 
 
@@ -108,12 +108,7 @@ def paste_hidden():
                 continue
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
-            # get_link_class_for_source dispatches to the anchor's stored knob when
-            # input_node is an anchor (Camera anchor → NoOp, Read anchor → PostageStamp).
-            # Do NOT pass the anchor directly expecting re-detection — the dispatch
-            # handles this correctly via get_link_class_for_anchor().
-            link_class = get_link_class_for_source(input_node)
-            link_node = nuke.createNode(link_class)
+            link_node = nuke.createNode('NoOp')
             setup_link_node(input_node, link_node)
             link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)

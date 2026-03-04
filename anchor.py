@@ -24,7 +24,6 @@ from constants import (
     ANCHOR_PREFIX, KNOB_NAME,
     ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
     DOT_LABEL_FONT_SIZE_MEDIUM, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE,
-    ANCHOR_LINK_CLASS_KNOB_NAME,
 )
 from link import (
     is_anchor, is_link,
@@ -35,7 +34,6 @@ from link import (
     find_smallest_containing_backdrop,
     get_link_class_for_source,
     setup_link_node,
-    detect_link_class_for_node,
 )
 
 
@@ -231,31 +229,6 @@ def create_from_anchor(anchor_node):
     return link
 
 
-def _store_link_class_on_anchor(anchor_node, input_node):
-    """Detect the link class for *input_node* and persist it as a hidden knob on *anchor_node*.
-
-    When *input_node* is None, attempts to resolve the source via
-    anchor_node.input(0) so the canSetInput probe can run against the
-    connected node rather than receiving None (which would return 'NoOp'
-    without probing).
-
-    Creates the knob if it does not yet exist, or updates the value if it does.
-    Silently ignores any Nuke API error so anchor creation is never disrupted.
-    """
-    try:
-        node_to_classify = input_node if input_node is not None else anchor_node.input(0)
-        detected_link_class = detect_link_class_for_node(node_to_classify)
-        if ANCHOR_LINK_CLASS_KNOB_NAME in anchor_node.knobs():
-            anchor_node[ANCHOR_LINK_CLASS_KNOB_NAME].setValue(detected_link_class)
-        else:
-            link_class_knob = nuke.String_Knob(ANCHOR_LINK_CLASS_KNOB_NAME)
-            link_class_knob.setVisible(False)
-            anchor_node.addKnob(link_class_knob)
-            anchor_node[ANCHOR_LINK_CLASS_KNOB_NAME].setValue(detected_link_class)
-    except Exception:
-        pass
-
-
 def create_anchor_named(name, input_node=None):
     """Create an anchor with the given *name* without any user prompt.
 
@@ -279,7 +252,6 @@ def create_anchor_named(name, input_node=None):
         )
 
     anchor['tile_color'].setValue(find_anchor_color(anchor))
-    _store_link_class_on_anchor(anchor, input_node)
     add_reconnect_anchor_knob(anchor)
     add_rename_anchor_knob(anchor)
     return anchor
