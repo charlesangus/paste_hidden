@@ -26,3 +26,5 @@ NODE_LABEL_FONT_SIZE_LARGE = 33
 DOT_LINK_LABEL_FONT_SIZE = 33
 
 DOT_ANCHOR_KNOB_NAME = 'paste_hidden_dot_anchor'
+
+ANCHOR_LINK_CLASS_KNOB_NAME = 'paste_hidden_anchor_link_class'

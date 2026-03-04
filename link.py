@@ -11,6 +11,7 @@ from constants import (
     TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
     HIDDEN_INPUT_CLASSES, LINK_CLASSES, ANCHOR_PREFIX,
     DOT_ANCHOR_KNOB_NAME, DOT_LINK_LABEL_FONT_SIZE,
+    ANCHOR_LINK_CLASS_KNOB_NAME,
 )
 
 
@@ -53,9 +54,60 @@ def find_smallest_containing_backdrop(node):
     return min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
 
 
+_2D_CHANNEL_PREFIXES = ('rgba', 'depth', 'forward')
+
+
+def detect_link_class_for_node(source_node):
+    """Detect the correct link node class for a given source node.
+
+    Uses Nuke API channel inspection for unknown node classes so that the
+    detection result is accurate rather than a static dict lookup.
+
+    Returns 'Dot' for Dot nodes, a value from LINK_CLASSES for known
+    file-node classes, 'PostageStamp' when 2D channels are detected, and
+    'NoOp' in all other cases (including None input and Nuke API errors).
+    This implements LINK-04: fall back to NoOp when detection is inconclusive.
+    """
+    if source_node is None:
+        return 'NoOp'
+    node_class = source_node.Class()
+    if node_class == 'Dot':
+        return 'Dot'
+    if node_class in LINK_CLASSES:
+        return LINK_CLASSES[node_class]
+    try:
+        channels = source_node.channels()
+        if not channels:
+            return 'NoOp'
+        for channel_name in channels:
+            if channel_name.startswith(_2D_CHANNEL_PREFIXES):
+                return 'PostageStamp'
+        return 'NoOp'
+    except Exception:
+        return 'NoOp'
+
+
+def get_link_class_for_anchor(anchor_node):
+    """Read the stored link class from an anchor node's hidden knob.
+
+    Returns the stored class string, or 'NoOp' if the knob is absent.
+    """
+    if ANCHOR_LINK_CLASS_KNOB_NAME in anchor_node.knobs():
+        return anchor_node[ANCHOR_LINK_CLASS_KNOB_NAME].getValue()
+    return 'NoOp'
+
+
 def get_link_class_for_source(source_node):
     """Return the appropriate link node class for a given source node.
-    Dot → Dot, LINK_CLASSES lookup, else PostageStamp."""
+
+    Dispatch order:
+      1. Anchor node → read stored class from hidden knob (avoids re-detection).
+      2. Dot node → 'Dot'.
+      3. Known file-node class in LINK_CLASSES → direct lookup.
+      4. Else → 'PostageStamp' (direct-file-node paste path fallback).
+    """
+    if source_node is not None and is_anchor(source_node):
+        return get_link_class_for_anchor(source_node)
     if source_node is None:
         return 'PostageStamp'
     if source_node.Class() == 'Dot':
