@@ -234,11 +234,17 @@ def create_from_anchor(anchor_node):
 def _store_link_class_on_anchor(anchor_node, input_node):
     """Detect the link class for *input_node* and persist it as a hidden knob on *anchor_node*.
 
+    When *input_node* is None, attempts to resolve the source via
+    anchor_node.input(0) so the canSetInput probe can run against the
+    connected node rather than receiving None (which would return 'NoOp'
+    without probing).
+
     Creates the knob if it does not yet exist, or updates the value if it does.
     Silently ignores any Nuke API error so anchor creation is never disrupted.
     """
     try:
-        detected_link_class = detect_link_class_for_node(input_node)
+        node_to_classify = input_node if input_node is not None else anchor_node.input(0)
+        detected_link_class = detect_link_class_for_node(node_to_classify)
         if ANCHOR_LINK_CLASS_KNOB_NAME in anchor_node.knobs():
             anchor_node[ANCHOR_LINK_CLASS_KNOB_NAME].setValue(detected_link_class)
         else:
