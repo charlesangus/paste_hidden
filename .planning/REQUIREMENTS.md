@@ -66,31 +66,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PASTE-01 | — | Pending |
-| PASTE-02 | — | Pending |
-| PASTE-03 | — | Pending |
-| PASTE-04 | — | Pending |
-| LINK-01 | — | Pending |
-| LINK-02 | — | Pending |
-| LINK-03 | — | Pending |
-| LINK-04 | — | Pending |
-| XSCRIPT-01 | — | Pending |
-| XSCRIPT-02 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| COLOR-01 | — | Pending |
-| COLOR-02 | — | Pending |
-| COLOR-03 | — | Pending |
-| COLOR-04 | — | Pending |
-| COLOR-05 | — | Pending |
-| FIND-01 | — | Pending |
+| PASTE-01 | Phase 1 | Pending |
+| PASTE-02 | Phase 1 | Pending |
+| PASTE-03 | Phase 1 | Pending |
+| PASTE-04 | Phase 1 | Pending |
+| LINK-01 | Phase 1 | Pending |
+| LINK-02 | Phase 1 | Pending |
+| LINK-03 | Phase 1 | Pending |
+| LINK-04 | Phase 1 | Pending |
+| XSCRIPT-01 | Phase 2 | Pending |
+| XSCRIPT-02 | Phase 2 | Pending |
+| NAV-01 | Phase 4 | Pending |
+| NAV-02 | Phase 4 | Pending |
+| NAV-03 | Phase 4 | Pending |
+| COLOR-01 | Phase 3 | Pending |
+| COLOR-02 | Phase 3 | Pending |
+| COLOR-03 | Phase 3 | Pending |
+| COLOR-04 | Phase 3 | Pending |
+| COLOR-05 | Phase 3 | Pending |
+| FIND-01 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️ (pending roadmap creation)
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-03*
-*Last updated: 2026-03-03 after initial definition*
+*Last updated: 2026-03-03 after roadmap creation*
