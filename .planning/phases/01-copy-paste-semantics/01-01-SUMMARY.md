@@ -96,6 +96,15 @@ None - no external service configuration required.
 - Detection infrastructure is in place; subsequent plans in this phase can use `get_link_class_for_source()` with confidence that anchor nodes return the correct stored class
 - No blockers
 
+## Self-Check: PASSED
+
+- FOUND: constants.py
+- FOUND: link.py
+- FOUND: anchor.py
+- FOUND: 01-01-SUMMARY.md
+- FOUND: d13aebf (Task 1 commit)
+- FOUND: 2fcdba5 (Task 2 commit)
+
 ---
 *Phase: 01-copy-paste-semantics*
 *Completed: 2026-03-04*
