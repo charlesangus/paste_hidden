@@ -22,11 +22,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### Phase 1: Copy-Paste Semantics
 **Goal**: Copy and paste behave predictably for file nodes and hidden-input Dots, with the correct link node class used for each stream type
 **Depends on**: Nothing (first phase)
-**Requirements**: PASTE-01, PASTE-02, PASTE-03, LINK-01, LINK-02, LINK-03, LINK-04
+**Requirements**: PASTE-01, PASTE-03, LINK-01, LINK-02, LINK-03, LINK-04
 **Success Criteria** (what must be TRUE):
-  1. Copying a Read (or other file node) that already has an anchor and pasting produces a Link node wired to that anchor, not a copy of the original node
-  2. Copying a Read node with no anchor and pasting auto-creates a new anchor for it and produces a Link node wired to that anchor
-  3. Copying a hidden-input Dot and pasting reconnects it to its original source node by identity; no anchor is created and no Link node appears
+  1. Copying a LINK_CLASSES file node with an existing anchor, or a hidden-input Dot whose input is an anchor, produces a Link node wired to that anchor on paste (cross-script capable)
+  2. Copying a LINK_CLASSES file node with no anchor produces a Link node pointing directly to that file node on paste (legacy behaviour; no anchor involved)
+  3. Copying a hidden-input Dot whose input is a non-anchor node reconnects it to that source on paste (same-script only); no anchor created, no Link node
   4. Pasting a Camera node produces a NoOp link, not a PostageStamp; pasting a 2D Read produces a PostageStamp link
   5. If stream-type detection cannot be implemented simply, all non-Dot links fall back to NoOp and no regressions occur
 **Plans**: 2 plans

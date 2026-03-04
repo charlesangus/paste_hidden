@@ -7,10 +7,9 @@
 
 ### Copy-Paste Behavior
 
-- [ ] **PASTE-01**: When a file node (Read, Camera, etc.) with an existing anchor is copied, paste creates a Link node pointing to that anchor
-- [ ] **PASTE-02**: When a file node without an existing anchor is copied, paste auto-creates an anchor for it and a Link node pointing to the new anchor
-- [ ] **PASTE-03**: Hidden-input Dot nodes reconnect to their original source node by identity on paste; they do not create anchors or become Links
-- [ ] **PASTE-04**: Hidden-input Dot nodes pasted into a different script do not attempt to reconnect (leave disconnected cleanly)
+- [ ] **PASTE-01**: When a LINK_CLASSES file node is copied, paste creates a Link node: pointing to the existing anchor if one exists, or pointing directly to the file node if no anchor exists (legacy fallback). When a hidden-input Dot whose input(0) is an anchor is copied, paste creates a Link node pointing to that anchor (cross-script capable).
+- [ ] **PASTE-03**: A hidden-input Dot whose input(0) is a non-anchor node reconnects to that source by identity on paste (same-script only); no anchor is created and no Link behavior applies
+- [ ] **PASTE-04**: A hidden-input Dot whose input(0) is a non-anchor node, pasted into a different script, is left disconnected silently (no reconnection attempt)
 
 ### Link Node Types
 
@@ -67,7 +66,6 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PASTE-01 | Phase 1 | Pending |
-| PASTE-02 | Phase 1 | Pending |
 | PASTE-03 | Phase 1 | Pending |
 | PASTE-04 | Phase 1 | Pending |
 | LINK-01 | Phase 1 | Pending |
@@ -87,8 +85,8 @@
 | FIND-01 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 19 total
-- Mapped to phases: 19
+- v1 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---
