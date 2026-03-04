@@ -1,0 +1,52 @@
+---
+status: complete
+phase: 01-copy-paste-semantics
+source: 01-01-SUMMARY.md, 01-02-SUMMARY.md
+started: 2026-03-04T12:45:00Z
+updated: 2026-03-04T13:10:00Z
+---
+
+## Current Test
+<!-- OVERWRITE each test - shows where we are -->
+
+[testing complete]
+
+## Tests
+
+### 1. Camera anchor paste creates NoOp link
+expected: Create a Camera node. Run the paste_hidden anchor workflow to attach it (creating a hidden anchor for that Camera). Copy the Camera node. Paste it — a new link node should be created using the NoOp class (not PostageStamp), because Camera nodes produce 3D/geo streams, not 2D image streams.
+result: issue
+reported: "Works for camera nodes, but only camera nodes. We need a generic solution. I suggest that at anchor creation, we create some temp nodes - a 3d node, a Deep node, and a 2d node, and either actually try to wire them in to the anchor's input, or use canSetInput to determine whether the anchor is wired into a 2d, 3d, or Deep stream. Then we need to store that on the anchor, so we can make the correct link type."
+severity: major
+
+### 2. Read anchor paste creates PostageStamp link
+expected: Create a Read node with media loaded. Run the paste_hidden anchor workflow to attach it. Copy the Read node. Paste it — a new link node should be created using the PostageStamp class (not NoOp), because Read nodes produce 2D image streams.
+result: pass
+
+### 3. Unknown node type anchor paste falls back to NoOp
+expected: Create a node type that is not in LINK_CLASSES (e.g., a generic node with no standard channel output, or one with unusual channel names). Attach it via the anchor workflow. Copy and paste — a NoOp link should be created with no error or exception. The fallback should be silent and safe.
+result: pass
+
+### 4. Cross-script Dot paste is silent
+expected: In script A, create a hidden-input Dot connected to some source node. Copy that Dot. Open (or switch to) script B where that source node does not exist. Paste — the paste should complete silently with no error dialog or Python traceback. The Dot may appear disconnected or be skipped, but no exception should be raised.
+result: pass
+
+## Summary
+
+total: 4
+passed: 3
+issues: 1
+pending: 0
+skipped: 0
+
+## Gaps
+
+- truth: "Link class detection at anchor creation works generically for all node types (2D, 3D/geo, Deep), not just Camera"
+  status: failed
+  reason: "User reported: Works for camera nodes, but only camera nodes. We need a generic solution. I suggest that at anchor creation, we create some temp nodes - a 3d node, a Deep node, and a 2d node, and either actually try to wire them in to the anchor's input, or use canSetInput to determine whether the anchor is wired into a 2d, 3d, or Deep stream. Then we need to store that on the anchor, so we can make the correct link type."
+  severity: major
+  test: 1
+  root_cause: ""
+  artifacts: []
+  missing: []
+  debug_session: ""
