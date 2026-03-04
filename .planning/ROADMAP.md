@@ -43,7 +43,10 @@ Plans:
   1. A Link node copied from script A and pasted into script B automatically reconnects to an anchor of the same name in script B if one exists
   2. A Link node copied from script A and pasted into script B leaves the Link disconnected (not errored) if no matching anchor exists in script B
   3. A hidden-input Dot copied from script A and pasted into script B is left disconnected without any reconnection attempt or error
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 02-01-PLAN.md — Cross-script reconnect (XSCRIPT-01/02), LINK_CLASSES dead code removal, PASTE-04 confirmed
 
 ### Phase 3: Anchor Color System
 **Goal**: Anchor color is set via an explicit color picker at creation and rename time, surfaced on the anchor node itself, and propagates to all linked nodes when changed through our picker
@@ -74,7 +77,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Copy-Paste Semantics | 2/2 | Complete   | 2026-03-04 |
+| 1. Copy-Paste Semantics | 3/3 | Complete   | 2026-03-04 |
 | 2. Cross-Script Paste | 0/? | Not started | - |
 | 3. Anchor Color System | 0/? | Not started | - |
 | 4. Anchor Navigation | 0/? | Not started | - |
