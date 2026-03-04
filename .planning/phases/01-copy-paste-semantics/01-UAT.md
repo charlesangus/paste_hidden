@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 01-copy-paste-semantics
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md
 started: 2026-03-04T12:45:00Z
@@ -46,7 +46,17 @@ skipped: 0
   reason: "User reported: Works for camera nodes, but only camera nodes. We need a generic solution. I suggest that at anchor creation, we create some temp nodes - a 3d node, a Deep node, and a 2d node, and either actually try to wire them in to the anchor's input, or use canSetInput to determine whether the anchor is wired into a 2d, 3d, or Deep stream. Then we need to store that on the anchor, so we can make the correct link type."
   severity: major
   test: 1
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "detect_link_class_for_node() uses static LINK_CLASSES dict (only 8 known file-reader types) then channel-prefix heuristic ('rgba','depth','forward'). Neither strategy affirmatively identifies stream type for arbitrary node classes — 3D/Deep nodes fall through to NoOp by coincidence, not by design. No use of Nuke's canSetInput() API."
+  artifacts:
+    - path: "link.py"
+      issue: "detect_link_class_for_node() relies on static dict + channel-name prefix inspection; no canSetInput probe; cannot classify unknown node types correctly"
+    - path: "constants.py"
+      issue: "LINK_CLASSES dict covers only 8 known file-reader classes; no generic stream-type coverage"
+    - path: "anchor.py"
+      issue: "_store_link_class_on_anchor() calls detect_link_class_for_node() without any canSetInput fallback; if input_node is None, silently stores 'NoOp' without probing"
+  missing:
+    - "New probe function in link.py: create temp NoOp (2D), Scene (3D/geo), DeepMerge (Deep) scratch nodes; call anchor_node.canSetInput(0, scratch) for each; first True match identifies stream type; delete scratch nodes immediately"
+    - "Map probe result to link class: 2D accepted → 'PostageStamp'; 3D or Deep accepted → 'NoOp'; no match → 'NoOp'"
+    - "Replace channel-inspection fallback in detect_link_class_for_node() with canSetInput probe; retain LINK_CLASSES fast-path for known types"
+    - "Update _store_link_class_on_anchor() to use probe against anchor.input(0) when input_node is None"
   debug_session: ""
