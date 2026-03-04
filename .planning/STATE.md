@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-04T12:35:21.547Z"
+last_updated: "2026-03-04T12:59:03.263Z"
 progress:
   total_phases: 1
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -23,27 +23,27 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 1 of 4 (Copy-Paste Semantics)
-Plan: 2 of ? in current phase
-Status: In progress
-Last activity: 2026-03-04 — Completed 01-02 (copy/paste three-path routing in paste_hidden.py)
+Plan: 3 of 3 in current phase (phase complete)
+Status: Phase 1 complete
+Last activity: 2026-03-04 — Completed 01-03 (canSetInput stream probe replacing channel-prefix heuristic)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 1.5 min
-- Total execution time: 3 min
+- Total plans completed: 3
+- Average duration: 2.3 min
+- Total execution time: 7 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-copy-paste-semantics | 2 | 3 min | 1.5 min |
+| 01-copy-paste-semantics | 3 | 7 min | 2.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 1.5 min avg
+- Last 5 plans: 2.3 min avg
 - Trend: —
 
 *Updated after each plan completion*
@@ -61,9 +61,11 @@ Recent decisions affecting current work:
 - Cross-script reconnection for Links by name; Dots left disconnected (pending implementation)
 - Detect link class once at anchor creation time and cache on hidden knob rather than re-deriving at paste time (01-01)
 - NoOp is the safe fallback for all inconclusive detection cases including None input, API errors, and unknown channel types (01-01)
-- Channel-inspection heuristic uses prefix matching on rgba/depth/forward to distinguish 2D from 3D/geo streams (01-01)
+- Channel-inspection heuristic (rgba/depth/forward prefix matching) has been superseded by canSetInput probe (01-03)
 - [Phase 01-copy-paste-semantics]: LINK_CLASSES branch ordered before HIDDEN_INPUT_CLASSES in copy_hidden() to prevent mis-routing of file nodes with hide_input set (01-02)
 - [Phase 01-copy-paste-semantics]: Silent continue for unresolvable FQNNs in paste_hidden() — matches existing cross-script behavior in find_anchor_node() (01-02)
+- [Phase 01-copy-paste-semantics]: canSetInput probe replaces channel-prefix heuristic for stream type detection: Nuke API answers definitively for any node class (01-03)
+- [Phase 01-copy-paste-semantics]: _store_link_class_on_anchor resolves node_to_classify via anchor.input(0) when input_node is None (01-03)
 
 ### Pending Todos
 
@@ -76,5 +78,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 01-02-PLAN.md — copy/paste three-path routing (paste_hidden.py)
+Stopped at: Completed 01-03-PLAN.md — canSetInput stream probe (link.py + anchor.py)
 Resume file: None
