@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 1 of 4 (Copy-Paste Semantics)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-03 — Roadmap created
+Plan: 1 of ? in current phase
+Status: In progress
+Last activity: 2026-03-04 — Completed 01-01 (stream-type detection infrastructure)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 2 min
+- Total execution time: 2 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-copy-paste-semantics | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 2 min
 - Trend: —
 
 *Updated after each plan completion*
@@ -46,10 +46,13 @@ Recent decisions affecting current work:
 - PostageStamp preferred for 2D links; NoOp fallback for all others (pending implementation)
 - Color propagation only from our color picker, not raw tile_color changes (pending implementation)
 - Cross-script reconnection for Links by name; Dots left disconnected (pending implementation)
+- Detect link class once at anchor creation time and cache on hidden knob rather than re-deriving at paste time (01-01)
+- NoOp is the safe fallback for all inconclusive detection cases including None input, API errors, and unknown channel types (01-01)
+- Channel-inspection heuristic uses prefix matching on rgba/depth/forward to distinguish 2D from 3D/geo streams (01-01)
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -57,6 +60,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Roadmap created, all 19 v1 requirements mapped across 4 phases
+Last session: 2026-03-04
+Stopped at: Completed 01-01-PLAN.md — stream-type detection infrastructure (constants.py, link.py, anchor.py)
 Resume file: None

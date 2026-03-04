@@ -13,10 +13,10 @@
 
 ### Link Node Types
 
-- [ ] **LINK-01**: 2D stream nodes use PostageStamp as the link node class
-- [ ] **LINK-02**: Deep and 3D stream nodes (e.g. Camera) use NoOp as the link node class
-- [ ] **LINK-03**: Camera links no longer incorrectly produce PostageStamp nodes when pasted
-- [ ] **LINK-04**: Fallback: if stream-type detection is not simple and performant, all non-Dot links use NoOp
+- [x] **LINK-01**: 2D stream nodes use PostageStamp as the link node class
+- [x] **LINK-02**: Deep and 3D stream nodes (e.g. Camera) use NoOp as the link node class
+- [x] **LINK-03**: Camera links no longer incorrectly produce PostageStamp nodes when pasted
+- [x] **LINK-04**: Fallback: if stream-type detection is not simple and performant, all non-Dot links use NoOp
 
 ### Cross-Script Paste
 
@@ -68,10 +68,10 @@
 | PASTE-01 | Phase 1 | Pending |
 | PASTE-03 | Phase 1 | Pending |
 | PASTE-04 | Phase 1 | Pending |
-| LINK-01 | Phase 1 | Pending |
-| LINK-02 | Phase 1 | Pending |
-| LINK-03 | Phase 1 | Pending |
-| LINK-04 | Phase 1 | Pending |
+| LINK-01 | Phase 1 | Complete (01-01) |
+| LINK-02 | Phase 1 | Complete (01-01) |
+| LINK-03 | Phase 1 | Complete (01-01) |
+| LINK-04 | Phase 1 | Complete (01-01) |
 | XSCRIPT-01 | Phase 2 | Pending |
 | XSCRIPT-02 | Phase 2 | Pending |
 | NAV-01 | Phase 4 | Pending |
@@ -91,4 +91,4 @@
 
 ---
 *Requirements defined: 2026-03-03*
-*Last updated: 2026-03-03 after roadmap creation*
+*Last updated: 2026-03-04 after 01-01 completion (LINK-01, LINK-02, LINK-03, LINK-04 marked complete)*

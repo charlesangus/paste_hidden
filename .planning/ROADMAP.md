@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Foundation: stream detection, link class stored on anchor, lookup helpers
+- [x] 01-01-PLAN.md — Foundation: stream detection, link class stored on anchor, lookup helpers
 - [ ] 01-02-PLAN.md — Routing: copy_hidden() and paste_hidden() new three-path classification
 
 ### Phase 2: Cross-Script Paste
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Copy-Paste Semantics | 0/2 | Not started | - |
+| 1. Copy-Paste Semantics | 1/2 | In progress | - |
 | 2. Cross-Script Paste | 0/? | Not started | - |
 | 3. Anchor Color System | 0/? | Not started | - |
 | 4. Anchor Navigation | 0/? | Not started | - |
