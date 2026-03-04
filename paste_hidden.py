@@ -29,28 +29,51 @@ def copy_hidden(cut=False):
     for node in selected_nodes:
         if is_link(node):
             continue
-        if is_anchor(node):
-            input_node_name = get_fully_qualified_node_name(node)
+
+        # Path A — LINK_CLASSES file node: scan for an anchor whose input is this
+        # node and store the anchor's FQNN so paste can read the correct link class
+        # from the anchor's hidden knob. Falls back to the file node's own FQNN when
+        # no anchor points at it (legacy direct-file-node path).
+        if node.Class() in LINK_CLASSES.keys():
             if cut:
-                input_node_name = ""
+                stored_fqnn = ""
+            else:
+                anchor_for_node = None
+                for candidate in nuke.allNodes():
+                    if is_anchor(candidate) and candidate.input(0) is node:
+                        anchor_for_node = candidate
+                        break
+                if anchor_for_node is not None:
+                    stored_fqnn = get_fully_qualified_node_name(anchor_for_node)
+                else:
+                    # Legacy fallback: no anchor found, store the file node's own FQNN
+                    stored_fqnn = get_fully_qualified_node_name(node)
             add_input_knob(node)
-            node[KNOB_NAME].setText(input_node_name)
+            node[KNOB_NAME].setText(stored_fqnn)
+
+        # Path B — hidden-input Dot (or PostageStamp/NoOp with hide_input set):
+        # split on whether the upstream input is an anchor or a plain node.
         elif node.Class() in HIDDEN_INPUT_CLASSES and node['hide_input'].getValue():
             input_node = node.input(0)
             if input_node is None or input_node in selected_nodes:
-                input_node_name = ""
+                stored_fqnn = ""
+            elif is_anchor(input_node):
+                # Dot/link node whose input IS an anchor → treat as a Link node;
+                # store the anchor's FQNN so paste can reconnect via setup_link_node.
+                stored_fqnn = get_fully_qualified_node_name(input_node)
+                setup_link_node(input_node, node)
             else:
-                input_node_name = get_fully_qualified_node_name(input_node)
+                # Legacy: non-anchor input — identity reconnect path on paste.
+                stored_fqnn = get_fully_qualified_node_name(input_node)
                 setup_link_node(input_node, node)
             add_input_knob(node)
-            node[KNOB_NAME].setText(input_node_name)
-        elif node.Class() in LINK_CLASSES.keys():
-            input_node_name = get_fully_qualified_node_name(node)
-            if cut:
-                # don't store the link name, we do not want to replace
-                input_node_name = ""
+            node[KNOB_NAME].setText(stored_fqnn)
+
+        # Path C — existing anchor node (e.g. a NoOp named Anchor_*) being copied.
+        elif is_anchor(node):
+            stored_fqnn = "" if cut else get_fully_qualified_node_name(node)
             add_input_knob(node)
-            node[KNOB_NAME].setText(input_node_name)
+            node[KNOB_NAME].setText(stored_fqnn)
 
     # now that we've stored the info we need on the nodes, do a regular copy
     nuke.nodeCopy(nukescripts.cut_paste_file())
