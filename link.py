@@ -54,19 +54,57 @@ def find_smallest_containing_backdrop(node):
     return min(containing, key=lambda bd: bd['bdwidth'].value() * bd['bdheight'].value())
 
 
-_2D_CHANNEL_PREFIXES = ('rgba', 'depth', 'forward')
+def probe_stream_type_via_can_set_input(node_to_probe):
+    """Determine stream type by probing with scratch nodes via canSetInput().
+
+    Creates temporary NoOp (2D), Scene (3D/geo), and DeepMerge (Deep) scratch
+    nodes and tests whether node_to_probe can accept each as an input at slot 0.
+    All scratch nodes are deleted immediately in a finally block regardless of
+    result or exception.
+
+    Returns:
+        'PostageStamp' if node_to_probe accepts a NoOp (2D stream),
+        'NoOp'         if node_to_probe accepts a Scene or DeepMerge (3D/Deep),
+        'NoOp'         if no scratch is accepted or any exception occurs.
+
+    This implements LINK-04: any inconclusive result falls back to 'NoOp'.
+    """
+    scratch_noop = None
+    scratch_scene = None
+    scratch_deep_merge = None
+    try:
+        scratch_noop = nuke.createNode('NoOp')
+        scratch_scene = nuke.createNode('Scene')
+        scratch_deep_merge = nuke.createNode('DeepMerge')
+        if node_to_probe.canSetInput(0, scratch_noop):
+            return 'PostageStamp'
+        if node_to_probe.canSetInput(0, scratch_scene):
+            return 'NoOp'
+        if node_to_probe.canSetInput(0, scratch_deep_merge):
+            return 'NoOp'
+        return 'NoOp'
+    except Exception:
+        return 'NoOp'
+    finally:
+        if scratch_noop is not None:
+            nuke.delete(scratch_noop)
+        if scratch_scene is not None:
+            nuke.delete(scratch_scene)
+        if scratch_deep_merge is not None:
+            nuke.delete(scratch_deep_merge)
 
 
 def detect_link_class_for_node(source_node):
     """Detect the correct link node class for a given source node.
 
-    Uses Nuke API channel inspection for unknown node classes so that the
-    detection result is accurate rather than a static dict lookup.
+    Uses canSetInput() probing for unknown node classes so that the
+    detection result is accurate for arbitrary 2D, 3D/geo, and Deep node
+    types — not just the static LINK_CLASSES entries.
 
     Returns 'Dot' for Dot nodes, a value from LINK_CLASSES for known
-    file-node classes, 'PostageStamp' when 2D channels are detected, and
-    'NoOp' in all other cases (including None input and Nuke API errors).
-    This implements LINK-04: fall back to NoOp when detection is inconclusive.
+    file-node classes, and a probe result for everything else.
+    Falls back to 'NoOp' in all inconclusive cases (including None input
+    and Nuke API errors). This implements LINK-04.
     """
     if source_node is None:
         return 'NoOp'
@@ -75,16 +113,7 @@ def detect_link_class_for_node(source_node):
         return 'Dot'
     if node_class in LINK_CLASSES:
         return LINK_CLASSES[node_class]
-    try:
-        channels = source_node.channels()
-        if not channels:
-            return 'NoOp'
-        for channel_name in channels:
-            if channel_name.startswith(_2D_CHANNEL_PREFIXES):
-                return 'PostageStamp'
-        return 'NoOp'
-    except Exception:
-        return 'NoOp'
+    return probe_stream_type_via_can_set_input(source_node)
 
 
 def get_link_class_for_anchor(anchor_node):
