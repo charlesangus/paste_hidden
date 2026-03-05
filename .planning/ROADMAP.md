@@ -81,3 +81,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Cross-Script Paste | 1/1 | Complete    | 2026-03-05 |
 | 3. Anchor Color System | 0/? | Not started | - |
 | 4. Anchor Navigation | 0/? | Not started | - |
+
+### Phase 5: Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 5 to break down)

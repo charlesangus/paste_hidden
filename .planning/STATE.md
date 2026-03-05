@@ -75,6 +75,10 @@ Recent decisions affecting current work:
 
 None.
 
+### Roadmap Evolution
+
+- Phase 5 added: Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction
+
 ### Blockers/Concerns
 
 - NAV-03 (browser-style forward/back history) is a stretch goal; if scope expands it may be deferred to v2 during planning
