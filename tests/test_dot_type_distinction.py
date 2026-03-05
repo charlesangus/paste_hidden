@@ -834,5 +834,199 @@ class TestPasteHiddenSameScriptDotTypeBehavior(unittest.TestCase):
             )
 
 
+# ---------------------------------------------------------------------------
+# Tests for LOCAL_DOT_COLOR constant value
+# ---------------------------------------------------------------------------
+
+class TestLocalDotColorValue(unittest.TestCase):
+    """Test that LOCAL_DOT_COLOR has the expected darkened burnt-orange value."""
+
+    def test_local_dot_color_is_darkened_burnt_orange(self):
+        """LOCAL_DOT_COLOR must equal 0x7A3A00FF (darker than the old 0xB35A00FF)."""
+        from constants import LOCAL_DOT_COLOR
+        self.assertEqual(
+            LOCAL_DOT_COLOR,
+            0x7A3A00FF,
+            f"LOCAL_DOT_COLOR must be 0x7A3A00FF (darkened burnt orange), got 0x{LOCAL_DOT_COLOR:08X}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tests for paste_hidden() Path B same-script DOT_TYPE knob preservation
+# ---------------------------------------------------------------------------
+
+class TestPasteHiddenSameScriptDotTypeKnobPreservation(unittest.TestCase):
+    """Test that paste_hidden() Path B same-script re-stamps the DOT_TYPE knob
+    after calling setup_link_node(), which strips it via add_input_knob()."""
+
+    def _make_hidden_dot_node(self, name='Dot1', stored_fqnn='', dot_type=None):
+        """Return a Dot StubNode with KNOB_NAME and optional DOT_TYPE_KNOB_NAME."""
+        import nuke as _nuke
+        from constants import KNOB_NAME, DOT_TYPE_KNOB_NAME
+
+        knobs_dict = {
+            KNOB_NAME: _make_knob(stored_fqnn),
+            'selected': _make_knob(False),
+            'label': _make_knob(''),
+            'tile_color': _make_knob(0),
+        }
+        if dot_type is not None:
+            knobs_dict[DOT_TYPE_KNOB_NAME] = _make_knob(dot_type)
+
+        return _nuke.StubNode(name=name, node_class='Dot', knobs_dict=knobs_dict)
+
+    def test_local_dot_same_script_dot_type_knob_has_value_local_after_paste(self):
+        """paste_hidden() Path B same-script Local Dot must re-stamp DOT_TYPE knob
+        with 'local' after setup_link_node() strips it.
+
+        This test verifies that the saved_dot_type/re-stamp pattern works: even if
+        setup_link_node() strips the DOT_TYPE_KNOB_NAME knob via add_input_knob(),
+        paste_hidden() must call add_input_knob(node, dot_type='local') after the
+        setup_link_node() call, so the knob is present with value 'local' afterward.
+        """
+        from constants import DOT_TYPE_KNOB_NAME
+
+        # Same-script: stored FQNN stem 'shotA' matches current 'shotA'
+        dot_node = self._make_hidden_dot_node(
+            stored_fqnn='shotA.Blur1',
+            dot_type='local'
+        )
+
+        source_node = _make_stub_node(name='Blur1', node_class='Blur',
+                                      knobs_dict={'label': _make_knob('My Blur')})
+
+        with patch('paste_hidden.nuke') as mock_nuke, \
+             patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.find_anchor_node', return_value=source_node), \
+             patch('paste_hidden.setup_link_node') as mock_setup_link_node, \
+             patch('paste_hidden.add_input_knob') as mock_add_input_knob, \
+             patch('paste_hidden.is_anchor', return_value=False):
+
+            root_obj = MagicMock()
+            root_obj.name.return_value = 'shotA.nk'
+            mock_nuke.root.return_value = root_obj
+            mock_nuke.nodePaste.return_value = None
+            mock_nuke.selectedNodes.return_value = [dot_node]
+
+            from paste_hidden import paste_hidden
+            paste_hidden()
+
+            # add_input_knob must be called with dot_type='local' to re-stamp the knob
+            mock_add_input_knob.assert_called_once_with(dot_node, dot_type='local')
+
+
+# ---------------------------------------------------------------------------
+# Tests for paste_hidden() Path A/C link class selection
+# ---------------------------------------------------------------------------
+
+class TestPasteHiddenPathACLinkClass(unittest.TestCase):
+    """Test that paste_hidden() Path A/C creates Dot link nodes for Dot sources
+    and NoOp link nodes for all other sources, via get_link_class_for_source()."""
+
+    def _make_anchor_node(self, name='Anchor_Footage', node_class='NoOp', stored_fqnn=''):
+        """Return an anchor StubNode with KNOB_NAME set."""
+        import nuke as _nuke
+        from constants import KNOB_NAME
+
+        knobs_dict = {
+            KNOB_NAME: _make_knob(stored_fqnn),
+            'selected': _make_knob(False),
+            'label': _make_knob(''),
+            'tile_color': _make_knob(0),
+        }
+        return _nuke.StubNode(name=name, node_class=node_class, knobs_dict=knobs_dict)
+
+    def test_path_ac_dot_anchor_source_creates_dot_link_node(self):
+        """paste_hidden() Path A/C: when the resolved source is a Dot node,
+        nuke.createNode must be called with 'Dot' (not hardcoded 'NoOp')."""
+        import nuke as _nuke
+
+        # Anchor node (LINK_SOURCE_CLASSES-style: is_anchor returns True)
+        # stored FQNN matches same-script so find_anchor_node returns a Dot source
+        anchor_node = self._make_anchor_node(
+            name='Anchor_MyDot', node_class='NoOp',
+            stored_fqnn='shotA.Anchor_MyDot'
+        )
+
+        # The resolved input_node is a Dot (e.g. a Dot anchor used as a link source)
+        dot_source_node = _make_stub_node(name='Dot1', node_class='Dot',
+                                          knobs_dict={
+                                              'label': _make_knob(''),
+                                              'tile_color': _make_knob(0),
+                                          })
+
+        created_link_node = _make_stub_node(name='Dot2', node_class='Dot',
+                                            knobs_dict={
+                                                'label': _make_knob(''),
+                                                'tile_color': _make_knob(0),
+                                                'hide_input': _make_knob(False),
+                                                'note_font_size': _make_knob(0),
+                                                'selected': _make_knob(False),
+                                            })
+
+        with patch('paste_hidden.nuke') as mock_nuke, \
+             patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.find_anchor_node', return_value=dot_source_node), \
+             patch('paste_hidden.is_anchor', return_value=True), \
+             patch('paste_hidden.setup_link_node') as mock_setup_link_node:
+
+            root_obj = MagicMock()
+            root_obj.name.return_value = 'shotA.nk'
+            mock_nuke.root.return_value = root_obj
+            mock_nuke.nodePaste.return_value = None
+            mock_nuke.selectedNodes.return_value = [anchor_node]
+            mock_nuke.createNode.return_value = created_link_node
+
+            from paste_hidden import paste_hidden
+            paste_hidden()
+
+            # Must call createNode with 'Dot' since dot_source_node.Class() == 'Dot'
+            mock_nuke.createNode.assert_called_once_with('Dot')
+
+    def test_path_ac_noop_anchor_source_creates_noop_link_node(self):
+        """paste_hidden() Path A/C: when the resolved source is a NoOp anchor,
+        nuke.createNode must be called with 'NoOp'."""
+        import nuke as _nuke
+
+        anchor_node = self._make_anchor_node(
+            name='Anchor_Footage', node_class='NoOp',
+            stored_fqnn='shotA.Anchor_Footage'
+        )
+
+        noop_source_node = _make_stub_node(name='Anchor_Footage', node_class='NoOp',
+                                           knobs_dict={
+                                               'label': _make_knob(''),
+                                               'tile_color': _make_knob(0),
+                                           })
+
+        created_link_node = _make_stub_node(name='NoOp1', node_class='NoOp',
+                                            knobs_dict={
+                                                'label': _make_knob(''),
+                                                'tile_color': _make_knob(0),
+                                                'hide_input': _make_knob(False),
+                                                'note_font_size': _make_knob(0),
+                                                'selected': _make_knob(False),
+                                            })
+
+        with patch('paste_hidden.nuke') as mock_nuke, \
+             patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.find_anchor_node', return_value=noop_source_node), \
+             patch('paste_hidden.is_anchor', return_value=True), \
+             patch('paste_hidden.setup_link_node') as mock_setup_link_node:
+
+            root_obj = MagicMock()
+            root_obj.name.return_value = 'shotA.nk'
+            mock_nuke.root.return_value = root_obj
+            mock_nuke.nodePaste.return_value = None
+            mock_nuke.selectedNodes.return_value = [anchor_node]
+            mock_nuke.createNode.return_value = created_link_node
+
+            from paste_hidden import paste_hidden
+            paste_hidden()
+
+            # Must call createNode with 'NoOp' since noop_source_node.Class() == 'NoOp'
+            mock_nuke.createNode.assert_called_once_with('NoOp')
+
+
 if __name__ == '__main__':
     unittest.main()
