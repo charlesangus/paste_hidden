@@ -78,6 +78,12 @@ def make_stub_nuke_module():
         def setVisible(self, visible):
             self._visible = visible
 
+        def setFlag(self, flag):
+            pass
+
+        def setText(self, value):
+            self._value = value
+
     class StubNode:
         def __init__(self, name='Node', node_class='NoOp', xpos=0, ypos=0, knobs_dict=None):
             self._name = name
@@ -308,7 +314,12 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
     """Test copy_hidden() Path B sets DOT_TYPE, label, and color correctly."""
 
     def _make_dot_node_with_hide_input(self, name='Dot1', knobs_dict=None):
-        """Return a Dot StubNode with hide_input=True and required knobs."""
+        """Return a Dot StubNode with hide_input=True and required knobs.
+
+        KNOB_NAME is included so that copy_hidden()'s final setText call succeeds.
+        The copy_hidden() tests must also patch 'paste_hidden.is_link' to return False
+        so copy_hidden() does not skip the node (is_link checks KNOB_NAME presence).
+        """
         import nuke as _nuke
         from constants import KNOB_NAME
 
@@ -332,6 +343,7 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.is_link', return_value=False), \
              patch('paste_hidden.is_anchor', return_value=True) as mock_is_anchor, \
              patch('paste_hidden.setup_link_node') as mock_setup_link_node, \
              patch('paste_hidden.add_input_knob') as mock_add_input_knob, \
@@ -355,6 +367,7 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.is_link', return_value=False), \
              patch('paste_hidden.is_anchor', return_value=True), \
              patch('paste_hidden.setup_link_node'), \
              patch('paste_hidden.add_input_knob'), \
@@ -381,6 +394,7 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.is_link', return_value=False), \
              patch('paste_hidden.is_anchor', return_value=False), \
              patch('paste_hidden.setup_link_node'), \
              patch('paste_hidden.add_input_knob') as mock_add_input_knob, \
@@ -403,6 +417,7 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.is_link', return_value=False), \
              patch('paste_hidden.is_anchor', return_value=False), \
              patch('paste_hidden.setup_link_node'), \
              patch('paste_hidden.add_input_knob'), \
@@ -431,6 +446,7 @@ class TestCopyHiddenDotTypeBehavior(unittest.TestCase):
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.is_link', return_value=False), \
              patch('paste_hidden.is_anchor', return_value=False), \
              patch('paste_hidden.setup_link_node'), \
              patch('paste_hidden.add_input_knob'), \

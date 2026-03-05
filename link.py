@@ -11,6 +11,7 @@ from constants import (
     TAB_NAME, KNOB_NAME, LINK_RECONNECT_KNOB_NAME,
     HIDDEN_INPUT_CLASSES, ANCHOR_PREFIX,
     DOT_ANCHOR_KNOB_NAME, DOT_LINK_LABEL_FONT_SIZE,
+    DOT_TYPE_KNOB_NAME,
 )
 
 
@@ -104,11 +105,17 @@ link.reconnect_link_node(nuke.thisNode())""")
     node.addKnob(knob)
 
 
-def add_input_knob(node):
+def add_input_knob(node, dot_type=None):
     if not is_anchor(node):
         add_link_reconnect_knob(node)
 
-    # remove our custom knobs to make sure they're at the end
+    # Remove our custom knobs to make sure they're at the end.
+    # DOT_TYPE_KNOB_NAME is removed first so it can be re-added last (keeping correct order:
+    # TAB_NAME → KNOB_NAME → DOT_TYPE_KNOB_NAME).
+    try:
+        node.removeKnob(node[DOT_TYPE_KNOB_NAME])
+    except Exception:
+        pass
     try:
         node.removeKnob(node[KNOB_NAME])
     except Exception:
@@ -126,6 +133,12 @@ def add_input_knob(node):
     k = nuke.String_Knob(KNOB_NAME)
     k.setVisible(False)
     node.addKnob(k)
+
+    if dot_type is not None:
+        dot_type_knob = nuke.String_Knob(DOT_TYPE_KNOB_NAME)
+        dot_type_knob.setVisible(False)
+        dot_type_knob.setValue(dot_type)
+        node.addKnob(dot_type_knob)
 
 
 def setup_link_node(input_node, link_node):

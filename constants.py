@@ -22,3 +22,5 @@ DOT_LINK_LABEL_FONT_SIZE = 33
 
 DOT_ANCHOR_KNOB_NAME = 'paste_hidden_dot_anchor'
 
+DOT_TYPE_KNOB_NAME = 'paste_hidden_dot_type'
+LOCAL_DOT_COLOR = 0xB35A00FF  # burnt orange: muted, not alarming, not close to Blur grey

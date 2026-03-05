@@ -8,7 +8,10 @@ in constants.py.
 import nuke
 import nukescripts
 
-from constants import KNOB_NAME, LINK_SOURCE_CLASSES, HIDDEN_INPUT_CLASSES
+from constants import (
+    KNOB_NAME, LINK_SOURCE_CLASSES, HIDDEN_INPUT_CLASSES,
+    DOT_TYPE_KNOB_NAME, LOCAL_DOT_COLOR, ANCHOR_DEFAULT_COLOR,
+)
 from anchor import find_anchor_by_name
 from link import (
     is_anchor, is_link,
@@ -53,21 +56,29 @@ def copy_hidden(cut=False):
             node[KNOB_NAME].setText(stored_fqnn)
 
         # Path B — hidden-input Dot (or PostageStamp/NoOp with hide_input set):
-        # split on whether the upstream input is an anchor or a plain node.
+        # split on whether the upstream input is an anchor (Link Dot) or a plain node (Local Dot).
         elif node.Class() in HIDDEN_INPUT_CLASSES and node['hide_input'].getValue():
             input_node = node.input(0)
             if input_node is None or input_node in selected_nodes:
                 stored_fqnn = ""
+                add_input_knob(node)
             elif is_anchor(input_node):
-                # Dot/link node whose input IS an anchor → treat as a Link node;
-                # store the anchor's FQNN so paste can reconnect via setup_link_node.
+                # Link Dot: anchor-backed, cross-script capable.
+                # Override tile_color to canonical purple — setup_link_node() may apply a
+                # custom anchor color via find_node_color(), which we do not want here.
                 stored_fqnn = get_fully_qualified_node_name(input_node)
                 setup_link_node(input_node, node)
+                node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)
+                add_input_knob(node, dot_type='link')
             else:
-                # Legacy: non-anchor input — identity reconnect path on paste.
+                # Local Dot: plain-node-backed, same-script only.
+                # Restore Local appearance after setup_link_node() overwrites label/color.
                 stored_fqnn = get_fully_qualified_node_name(input_node)
                 setup_link_node(input_node, node)
-            add_input_knob(node)
+                source_label = input_node['label'].getText() or input_node.name()
+                node['label'].setValue(f"Local: {source_label}")
+                node['tile_color'].setValue(LOCAL_DOT_COLOR)
+                add_input_knob(node, dot_type='local')
             node[KNOB_NAME].setText(stored_fqnn)
 
         # Path C — existing anchor node (e.g. a NoOp named Anchor_*) being copied.
@@ -153,14 +164,47 @@ def paste_hidden():
             nuke.delete(node)
 
         elif node.Class() in HIDDEN_INPUT_CLASSES:
-            # Path B: hidden-input Dot — reconnect to the stored source node.
-            # find_anchor_node() returns None for cross-script or unresolvable FQNNs.
-            if not input_node:
-                # Cross-script Dot: find_anchor_node() returns None when the
-                # stored FQNN belongs to a different script. Leave the Dot
-                # disconnected silently — satisfies XSCRIPT-02 and PASTE-04.
+            # Path B: hidden-input Dot (Link Dot or Local Dot).
+            # Determine DOT_TYPE from the explicit knob if present; fall back to FQNN inspection
+            # for pre-Phase-5 nodes that lack the knob.
+            stored_fqnn = node[KNOB_NAME].getText()
+            if DOT_TYPE_KNOB_NAME in node.knobs():
+                dot_type = node[DOT_TYPE_KNOB_NAME].getValue()
+            else:
+                # Backward compat: infer from FQNN — anchor-prefix last segment → 'link',
+                # else → 'local'.
+                display_name_for_compat = _extract_display_name_from_fqnn(stored_fqnn)
+                dot_type = 'link' if display_name_for_compat is not None else 'local'
+
+            # Detect cross-script: compare stored FQNN script stem against current script stem.
+            # Using FQNN stem comparison (not find_anchor_node() return value) as the cross-script
+            # gate prevents same-stem false positives where find_anchor_node() returns a same-named
+            # node from the destination script for a Local Dot.
+            current_stem = nuke.root().name().split('.')[0]
+            fqnn_stem = stored_fqnn.split('.')[0] if stored_fqnn else ''
+            is_cross_script = bool(fqnn_stem) and (fqnn_stem != current_stem)
+
+            if is_cross_script or not input_node:
+                # Cross-script (or unresolvable FQNN): gate on DOT_TYPE.
+                if dot_type == 'link':
+                    # Link Dot: attempt name-based reconnect to same-named anchor in destination.
+                    display_name = _extract_display_name_from_fqnn(stored_fqnn)
+                    if display_name:
+                        destination_anchor = find_anchor_by_name(display_name)
+                        if destination_anchor:
+                            setup_link_node(destination_anchor, node)
+                            node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)
+                # Local Dot: silent no-op — do not reconnect under any circumstances.
                 continue
+
+            # Same-script: reconnect to the original source by identity.
             setup_link_node(input_node, node)
+            # Restore Local Dot appearance — setup_link_node() overwrites label and color.
+            if (DOT_TYPE_KNOB_NAME in node.knobs()
+                    and node[DOT_TYPE_KNOB_NAME].getValue() == 'local'):
+                source_label = input_node['label'].getText() or input_node.name()
+                node['label'].setValue(f"Local: {source_label}")
+                node['tile_color'].setValue(LOCAL_DOT_COLOR)
 
     # it's possible we changed selection, reset it
     nukescripts.clear_selection_recursive()
