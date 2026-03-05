@@ -423,7 +423,11 @@ class TestRenameAnchorToDotPath(unittest.TestCase):
         )
 
     def test_rename_anchor_to_dot_with_name_that_sanitizes_to_empty_raises_value_error(self):
-        """rename_anchor_to() with a name that sanitizes to '' must raise ValueError for Dot anchors."""
+        """rename_anchor_to() with a name that sanitizes to '' must raise ValueError for Dot anchors.
+
+        The sanitize_anchor_name() regex keeps only [A-Za-z0-9_], so a name consisting
+        entirely of spaces (after strip() → '') produces an empty sanitized result.
+        """
         import nuke as _nuke
 
         dot_anchor = self._make_dot_anchor_with_label(name='Anchor_OldName', label='OldName')
@@ -435,7 +439,8 @@ class TestRenameAnchorToDotPath(unittest.TestCase):
                    return_value='myScript.Anchor_OldName'):
             from anchor import rename_anchor_to
             with self.assertRaises(ValueError):
-                rename_anchor_to(dot_anchor, '!!!')
+                # A name of only spaces: strip() → '', sanitize → '' → ValueError
+                rename_anchor_to(dot_anchor, '   ')
 
 
 # ---------------------------------------------------------------------------

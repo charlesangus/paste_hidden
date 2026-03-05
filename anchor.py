@@ -140,16 +140,25 @@ def suggest_anchor_name(input_node):
 def rename_anchor_to(anchor_node, name):
     """Rename an anchor to *name* and update all referencing link nodes.
 
-    Raises ValueError if *name* sanitizes to an empty string (NoOp anchors only).
-    For Dot anchors the label is updated directly; the node name (and FQNN) is
-    left unchanged because it is the stable identifier used in link tracking.
+    Raises ValueError if *name* sanitizes to an empty string.
+    For Dot anchors the node name is kept in sync with the label so that the
+    FQNN (which embeds the node name) reflects the new name.  Old FQNNs stored
+    on link nodes are updated to the new FQNN.
     """
     if anchor_node.Class() == 'Dot':
+        sanitized = sanitize_anchor_name(name)
+        if not sanitized:
+            raise ValueError(f"Anchor name {name!r} produces an empty sanitized name")
+
+        old_fqnn = get_fully_qualified_node_name(anchor_node)
+        anchor_node.setName(ANCHOR_PREFIX + sanitized)
         new_label = name.strip()
         anchor_node['label'].setValue(new_label)
-        dot_fqnn = get_fully_qualified_node_name(anchor_node)
+        new_fqnn = get_fully_qualified_node_name(anchor_node)
+
         for node in nuke.allNodes():
-            if is_link(node) and node[KNOB_NAME].getText() == dot_fqnn:
+            if is_link(node) and node[KNOB_NAME].getText() == old_fqnn:
+                node[KNOB_NAME].setValue(new_fqnn)
                 node['label'].setValue(f"Link: {new_label}")
     else:
         sanitized = sanitize_anchor_name(name)

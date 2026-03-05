@@ -122,6 +122,9 @@ def make_stub_nuke_module():
             self._xpos = x
             self._ypos = y
 
+        def setName(self, new_name):
+            self._name = new_name
+
         def addKnob(self, knob):
             # Store knob by its name if it has one; used in add_input_knob tests
             pass
