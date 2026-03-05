@@ -516,5 +516,81 @@ class TestAnchorDisplayNameDotPath(unittest.TestCase):
         )
 
 
+# ---------------------------------------------------------------------------
+# Regression: re-labelling a Dot anchor that has KNOB_NAME (from copy_hidden)
+# must not cause _update_dot_link_labels to overwrite the anchor's own label
+# ---------------------------------------------------------------------------
+
+class TestApplyLabelDoesNotTreatAnchorAsLink(unittest.TestCase):
+    """_update_dot_link_labels must skip anchor nodes even when they have KNOB_NAME."""
+
+    def test_relabelling_dot_anchor_with_knob_name_does_not_set_link_label_on_anchor(self):
+        """After copy_hidden adds KNOB_NAME to a Dot anchor, re-labelling it must not
+        cause _update_dot_link_labels to match the anchor as a link node and overwrite
+        its label with 'Link: bla bla'.
+
+        Regression for: copy dot → paste → re-label original → original gets 'Link: ' prefix.
+        """
+        import nuke as _nuke
+        from constants import KNOB_NAME, DOT_ANCHOR_KNOB_NAME
+
+        anchor_fqnn = 'myScript.Anchor_bla_bla'
+
+        # Original Dot anchor: has DOT_ANCHOR_KNOB_NAME (anchor) AND KNOB_NAME (added
+        # by copy_hidden Path C), with KNOB_NAME pointing to its own FQNN.
+        original_anchor = _nuke.StubNode(
+            name='Anchor_bla_bla',
+            node_class='Dot',
+            knobs_dict={
+                'label': _nuke.StubKnob('bla bla'),
+                'tile_color': _nuke.StubKnob(0),
+                'note_font_size': _nuke.StubKnob(0),
+                DOT_ANCHOR_KNOB_NAME: _nuke.StubKnob(True),
+                KNOB_NAME: _nuke.StubKnob(anchor_fqnn),
+            }
+        )
+
+        # Separate Dot link: legitimately points to the anchor.
+        link_dot = _nuke.StubNode(
+            name='Dot2',
+            node_class='Dot',
+            knobs_dict={
+                'label': _nuke.StubKnob('Link: bla bla'),
+                'note_font_size': _nuke.StubKnob(0),
+                KNOB_NAME: _nuke.StubKnob(anchor_fqnn),
+            }
+        )
+
+        stub_boolean_knob = _nuke.StubKnob()
+        _nuke.Boolean_Knob = MagicMock(return_value=stub_boolean_knob)
+
+        root_obj = MagicMock()
+        root_obj.name.return_value = 'myScript.nk'
+        _nuke.root = MagicMock(return_value=root_obj)
+
+        with patch('link.nuke', _nuke), \
+             patch('labels.nuke', _nuke), \
+             patch('labels.nuke.allNodes', return_value=[original_anchor, link_dot]), \
+             patch('labels.reconnect_link_node') as mock_reconnect:
+            from labels import _apply_label
+            _apply_label(original_anchor, 'bla bla')
+
+        # The anchor's label must remain 'bla bla', not become 'Link: bla bla'.
+        self.assertEqual(
+            original_anchor['label'].getValue(),
+            'bla bla',
+            "Re-labelling a Dot anchor must not set its label to 'Link: bla bla'"
+        )
+
+        # reconnect_link_node must NOT have been called on the anchor.
+        for call_args in mock_reconnect.call_args_list:
+            called_node = call_args[0][0]
+            self.assertIsNot(
+                called_node,
+                original_anchor,
+                "reconnect_link_node must not be called on an anchor node"
+            )
+
+
 if __name__ == '__main__':
     unittest.main()

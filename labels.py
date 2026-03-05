@@ -9,14 +9,14 @@ from constants import (
     DOT_LINK_LABEL_FONT_SIZE,
     NODE_LABEL_FONT_SIZE_LARGE,
 )
-from link import get_fully_qualified_node_name, is_link, reconnect_link_node, mark_dot_as_anchor
+from link import get_fully_qualified_node_name, is_anchor, is_link, reconnect_link_node, mark_dot_as_anchor
 
 
 def _update_dot_link_labels(dot_node, new_label):
     """Set the label on every link node pointing at dot_node and reconnect each one."""
     dot_fqnn = get_fully_qualified_node_name(dot_node)
     for candidate_node in nuke.allNodes():
-        if not is_link(candidate_node):
+        if not is_link(candidate_node) or is_anchor(candidate_node):
             continue
         if candidate_node[KNOB_NAME].getText() == dot_fqnn:
             candidate_node['label'].setValue(f"Link: {new_label}")
