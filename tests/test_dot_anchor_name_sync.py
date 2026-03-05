@@ -187,13 +187,14 @@ def _make_knob(value=''):
 
 
 def _make_dot_node(name='Dot1', label=''):
-    """Return a Dot StubNode with a label knob set to the given value."""
+    """Return a Dot StubNode with a label and tile_color knob set."""
     import nuke as _nuke
     return _nuke.StubNode(
         name=name,
         node_class='Dot',
         knobs_dict={
             'label': _nuke.StubKnob(label),
+            'tile_color': _nuke.StubKnob(0),
         }
     )
 
@@ -297,6 +298,26 @@ class TestMarkDotAsAnchorNameSync(unittest.TestCase):
             stub_anchor_knob.getValue(),
             True,
             "DOT_ANCHOR_KNOB_NAME knob must be set to True on second call"
+        )
+
+    def test_mark_dot_as_anchor_sets_tile_color_to_anchor_default_color(self):
+        """mark_dot_as_anchor() must set tile_color to ANCHOR_DEFAULT_COLOR (purple)."""
+        import nuke as _nuke
+        from constants import ANCHOR_DEFAULT_COLOR
+
+        dot_node = _make_dot_node(name='Dot1', label='My Footage')
+
+        stub_boolean_knob = _nuke.StubKnob()
+        _nuke.Boolean_Knob = MagicMock(return_value=stub_boolean_knob)
+
+        with patch('link.nuke', _nuke):
+            from link import mark_dot_as_anchor
+            mark_dot_as_anchor(dot_node)
+
+        self.assertEqual(
+            dot_node['tile_color'].getValue(),
+            ANCHOR_DEFAULT_COLOR,
+            "mark_dot_as_anchor() must set tile_color to ANCHOR_DEFAULT_COLOR"
         )
 
 
