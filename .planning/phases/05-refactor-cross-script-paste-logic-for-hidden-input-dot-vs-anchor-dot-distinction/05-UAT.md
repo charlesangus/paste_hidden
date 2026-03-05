@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-refactor-cross-script-paste-logic-for-hidden-input-dot-vs-anchor-dot-distinction
 source: [05-01-SUMMARY.md]
 started: 2026-03-05T14:00:00Z
-updated: 2026-03-05T14:20:00Z
+updated: 2026-03-05T14:30:00Z
 ---
 
 ## Current Test
@@ -54,38 +54,63 @@ skipped: 0
   reason: "User reported: copy-pasting a Dot anchor creates a NoOp, not a Dot. Need to fix that."
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "paste_hidden() Path A/C (lines 149, 159) unconditionally creates a NoOp via nuke.createNode('NoOp'), never calling get_link_class_for_source() which would return 'Dot' for a Dot anchor source"
+  artifacts:
+    - path: "paste_hidden.py"
+      issue: "lines 149 and 159 — nuke.createNode('NoOp') hardcoded; should be nuke.createNode(get_link_class_for_source(input_node or node))"
+  missing:
+    - "Call get_link_class_for_source() in Path A/C to pick Dot vs NoOp based on source class"
 
 - truth: "Local Dot tile_color should be a dark burnt orange, clearly distinct from Link Dot purple"
   status: failed
   reason: "User reported: let's go darker on the dot colour tho"
   severity: cosmetic
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "LOCAL_DOT_COLOR = 0xB35A00FF is mid-brightness burnt orange (R=179,G=90,B=0); user wants it darker"
+  artifacts:
+    - path: "constants.py"
+      issue: "line 26 — LOCAL_DOT_COLOR = 0xB35A00FF should be a darker value, e.g. 0x7A3A00FF"
+  missing:
+    - "Darken LOCAL_DOT_COLOR constant"
 
-- truth: "Pasting a Local Dot preserves its 'Local: {name}' label — label must not change to 'link' after paste"
+- truth: "Pasting a Local Dot preserves its 'Local: {name}' label and burnt orange color — not overwritten to 'Link: ...' and input node color"
   status: failed
-  reason: "User reported: when pasting the Local: dot, the label changes to link. that is wrong."
+  reason: "User reported: when pasting the Local: dot, the label changes to link / new dot is named Link: bla bla and takes on the colour of the input node."
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "setup_link_node() calls add_input_knob(link_node) without dot_type, which strips the DOT_TYPE_KNOB_NAME knob entirely (link.py line 116 removes it, line 137 only re-adds if dot_type is not None). The guard at paste_hidden.py line 203 then never fires because the knob is gone."
+  artifacts:
+    - path: "paste_hidden.py"
+      issue: "lines 200-207 — must read dot_type_value before calling setup_link_node(), then restore Local appearance unconditionally without relying on the knob surviving the call"
+    - path: "link.py"
+      issue: "setup_link_node() calls add_input_knob() with no dot_type, silently stripping the knob"
+  missing:
+    - "Read dot_type from node before setup_link_node(); re-apply Local appearance and re-stamp knob afterward if dot_type == 'local'"
 
 - truth: "Link Dot reconnects cross-script to the matching Anchor Dot by name"
   status: failed
   reason: "User reported: Doesn't work. The Link: dot does not re-connect to the Anchor dot. Probably because Anchor dots work by label. That's a misfeature. Let's rework anchor dots so the label and node name stay in sync."
   severity: major
   test: 3
-  root_cause: "find_anchor_by_name() searches by node name, but Anchor Dots are identified by label — label and node name are not kept in sync, so name-based lookup fails"
-  artifacts: []
-  missing: []
+  root_cause: "Two compounding issues: (1) _extract_display_name_from_fqnn() returns None for Dot anchors because their node names lack the ANCHOR_PREFIX ('Anchor_') prefix, so cross-script reconnect is never attempted. (2) Even if bypassed, anchor_display_name() for Dots returns node['label'] while the FQNN stores the node name — they are never guaranteed to match since rename_anchor_to() updates only the label for Dot anchors."
+  artifacts:
+    - path: "paste_hidden.py"
+      issue: "lines 114-116 — _extract_display_name_from_fqnn() ANCHOR_PREFIX guard silently excludes all Dot anchors"
+    - path: "anchor.py"
+      issue: "lines 147-153 — rename_anchor_to() updates only label for Dot anchors, leaving node name (used in FQNN) out of sync"
+  missing:
+    - "rename_anchor_to() must also rename the Dot node's Nuke name to a sanitized form matching the label (e.g. Anchor_<sanitized>) so FQNN and label-based lookup agree"
+    - "mark_dot_as_anchor() / creation path must apply the same node name sync"
+    - "Remove or relax ANCHOR_PREFIX guard in _extract_display_name_from_fqnn() for Dot anchors once node names carry the prefix"
 
 - truth: "Pasting a Local Dot same-script produces a Dot with 'Local: {name}' label and burnt orange color — not 'Link: ...' and input node color"
   status: failed
   reason: "User reported: fail. when copy-pasting a Local: dot, the new dot is named Link: bla bla and takes on the colour of the input node. incorrect behaviour, not to spec."
   severity: major
   test: 5
-  artifacts: []
-  missing: []
+  root_cause: "Same root cause as test 2 gap — setup_link_node() strips the DOT_TYPE knob, so Local appearance restoration guard never fires. setup_link_node() also sets label to 'Link: ...' and tile_color to input node color, which is never corrected."
+  artifacts:
+    - path: "paste_hidden.py"
+      issue: "Same fix location as test 2 gap — lines 200-207"
+  missing:
+    - "Same fix as test 2 gap — read and restore dot_type before/after setup_link_node()"
