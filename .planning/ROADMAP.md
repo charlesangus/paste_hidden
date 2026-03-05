@@ -13,7 +13,7 @@ This milestone clarifies the boundary between hidden-input Dot nodes and named L
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Copy-Paste Semantics** - Define clear behavior for file node anchoring and hidden-input Dot reconnection; fix link node type selection (completed 2026-03-04)
-- [ ] **Phase 2: Cross-Script Paste** - Link nodes reconnect by name across scripts; Dot nodes leave disconnected cleanly
+- [x] **Phase 2: Cross-Script Paste** - Link nodes reconnect by name across scripts; Dot nodes leave disconnected cleanly (completed 2026-03-05)
 - [ ] **Phase 3: Anchor Color System** - Color picker in creation/rename dialogs and on anchor node; propagation to linked nodes
 - [ ] **Phase 4: Anchor Navigation** - DAG position history with back shortcut; Backdrops included in navigation picker
 
@@ -46,7 +46,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Cross-script reconnect (XSCRIPT-01/02), LINK_CLASSES dead code removal, PASTE-04 confirmed
+- [x] 02-01-PLAN.md — Cross-script reconnect (XSCRIPT-01/02), LINK_CLASSES dead code removal, PASTE-04 confirmed
 
 ### Phase 3: Anchor Color System
 **Goal**: Anchor color is set via an explicit color picker at creation and rename time, surfaced on the anchor node itself, and propagates to all linked nodes when changed through our picker
@@ -78,6 +78,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Copy-Paste Semantics | 3/3 | Complete   | 2026-03-04 |
-| 2. Cross-Script Paste | 0/? | Not started | - |
+| 2. Cross-Script Paste | 1/1 | Complete    | 2026-03-05 |
 | 3. Anchor Color System | 0/? | Not started | - |
 | 4. Anchor Navigation | 0/? | Not started | - |

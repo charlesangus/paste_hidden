@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-04T12:59:03.263Z"
+last_updated: "2026-03-05T03:52:53Z"
 progress:
-  total_phases: 1
+  total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
-**Current focus:** Phase 1 — Copy-Paste Semantics
+**Current focus:** Phase 2 — Cross-Script Paste (complete)
 
 ## Current Position
 
-Phase: 1 of 4 (Copy-Paste Semantics)
-Plan: 3 of 3 in current phase (phase complete)
-Status: Phase 1 complete
-Last activity: 2026-03-04 — Completed 01-03 (canSetInput stream probe replacing channel-prefix heuristic)
+Phase: 2 of 4 (Cross-Script Paste)
+Plan: 1 of 1 in current phase (phase complete)
+Status: Phase 2 complete
+Last activity: 2026-03-05 — Completed 02-01 (cross-script NoOp anchor reconnect via name lookup; LINK_CLASSES replaced with LINK_SOURCE_CLASSES)
 
-Progress: [████░░░░░░] 30%
+Progress: [████████░░] 50%
 
 ## Performance Metrics
 
@@ -41,6 +41,7 @@ Progress: [████░░░░░░] 30%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-copy-paste-semantics | 3 | 7 min | 2.3 min |
+| 02-cross-script-paste | 1 | 3 min | 3 min |
 
 **Recent Trend:**
 - Last 5 plans: 2.3 min avg
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Phase 01-copy-paste-semantics]: Silent continue for unresolvable FQNNs in paste_hidden() — matches existing cross-script behavior in find_anchor_node() (01-02)
 - [Phase 01-copy-paste-semantics]: canSetInput probe replaces channel-prefix heuristic for stream type detection: Nuke API answers definitively for any node class (01-03)
 - [Phase 01-copy-paste-semantics]: _store_link_class_on_anchor resolves node_to_classify via anchor.input(0) when input_node is None (01-03)
+- [Phase 02-cross-script-paste]: Dot anchors excluded from cross-script name lookup — Dot identity is positional, not name-stable across scripts (02-01)
+- [Phase 02-cross-script-paste]: LINK_SOURCE_CLASSES frozenset replaces LINK_CLASSES dict; link class is determined at anchor creation time, not paste time (02-01)
+- [Phase 02-cross-script-paste]: Qt/tabtabtab stub pattern established for offline tests that transitively import anchor.py (02-01)
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: Completed 01-03-PLAN.md — canSetInput stream probe (link.py + anchor.py)
+Last session: 2026-03-05
+Stopped at: Completed 02-01-PLAN.md — cross-script reconnect and LINK_CLASSES cleanup
 Resume file: None
