@@ -84,10 +84,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 ### Phase 5: Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 4
-**Plans:** 0 plans
+**Goal:** Fix two UAT-confirmed bugs from Phase 2 — Link Dots not reconnecting cross-script and Local Dots erroneously reconnecting cross-script — by introducing a formal DOT_TYPE knob distinction between the two Dot subtypes
+**Requirements**: XSCRIPT-01, XSCRIPT-02
+**Depends on:** Phase 2
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 5 to break down)
+- [ ] 05-01-PLAN.md — TDD: DOT_TYPE knob distinction (constants, add_input_knob extension, copy_hidden/paste_hidden Path B refactor)
