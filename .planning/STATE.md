@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-05T13:42:24.869Z"
+last_updated: "2026-03-05T15:26:12.107Z"
 progress:
   total_phases: 3
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -49,6 +49,7 @@ Progress: [██████████] 100%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 05 P02 | 3 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase 02-cross-script-paste]: Qt/tabtabtab stub pattern established for offline tests that transitively import anchor.py (02-01)
 - [Phase 05]: FQNN stem comparison used as cross-script gate for paste_hidden() Path B to prevent same-stem false positives (Bug 2 root cause)
 - [Phase 05]: DOT_TYPE knob stamped at copy time (dot_type='link' for anchor-backed, dot_type='local' for plain-node-backed) gates all paste reconnect behavior
+- [Phase 05]: rename_anchor_to Dot branch raises ValueError for empty sanitized name — consistent with NoOp path guard
+- [Phase 05]: mark_dot_as_anchor() sets Dot node name to Anchor_<sanitized_label> on first call only; idempotent path (knob already present) returns early
 
 ### Pending Todos
 
