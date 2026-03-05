@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 **Goal:** Fix two UAT-confirmed bugs from Phase 2 — Link Dots not reconnecting cross-script and Local Dots erroneously reconnecting cross-script — by introducing a formal DOT_TYPE knob distinction between the two Dot subtypes
 **Requirements**: XSCRIPT-01, XSCRIPT-02
 **Depends on:** Phase 2
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 05-01-PLAN.md — TDD: DOT_TYPE knob distinction (constants, add_input_knob extension, copy_hidden/paste_hidden Path B refactor)
