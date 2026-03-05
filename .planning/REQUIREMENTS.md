@@ -9,7 +9,7 @@
 
 - [x] **PASTE-01**: When a LINK_CLASSES file node is copied, paste creates a Link node: pointing to the existing anchor if one exists, or pointing directly to the file node if no anchor exists (legacy fallback). When a hidden-input Dot whose input(0) is an anchor is copied, paste creates a Link node pointing to that anchor (cross-script capable).
 - [x] **PASTE-03**: A hidden-input Dot whose input(0) is a non-anchor node reconnects to that source by identity on paste (same-script only); no anchor is created and no Link behavior applies
-- [ ] **PASTE-04**: A hidden-input Dot whose input(0) is a non-anchor node, pasted into a different script, is left disconnected silently (no reconnection attempt)
+- [x] **PASTE-04**: A hidden-input Dot whose input(0) is a non-anchor node, pasted into a different script, is left disconnected silently (no reconnection attempt)
 
 ### Link Node Types
 
@@ -20,8 +20,8 @@
 
 ### Cross-Script Paste
 
-- [ ] **XSCRIPT-01**: Link nodes pasted into another script reconnect to an anchor of the same name in the destination script
-- [ ] **XSCRIPT-02**: Hidden-input Dot nodes pasted into another script do not reconnect (distinct from Link behavior)
+- [x] **XSCRIPT-01**: Link nodes pasted into another script reconnect to an anchor of the same name in the destination script
+- [x] **XSCRIPT-02**: Hidden-input Dot nodes pasted into another script do not reconnect (distinct from Link behavior)
 
 ### Anchor Navigation History
 
@@ -67,13 +67,13 @@
 |-------------|-------|--------|
 | PASTE-01 | Phase 1 | Complete |
 | PASTE-03 | Phase 1 | Complete |
-| PASTE-04 | Phase 1 | Pending |
+| PASTE-04 | Phase 1 | Complete (02-01) |
 | LINK-01 | Phase 1 | Complete (01-01) |
 | LINK-02 | Phase 1 | Complete (01-01) |
 | LINK-03 | Phase 1 | Complete (01-01) |
 | LINK-04 | Phase 1 | Complete (01-01) |
-| XSCRIPT-01 | Phase 2 | Pending |
-| XSCRIPT-02 | Phase 2 | Pending |
+| XSCRIPT-01 | Phase 2 | Complete (02-01) |
+| XSCRIPT-02 | Phase 2 | Complete (02-01) |
 | NAV-01 | Phase 4 | Pending |
 | NAV-02 | Phase 4 | Pending |
 | NAV-03 | Phase 4 | Pending |

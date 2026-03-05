@@ -15,6 +15,38 @@ from unittest.mock import MagicMock, patch, call
 
 
 # ---------------------------------------------------------------------------
+# Stub Qt and tabtabtab modules — anchor.py imports these at module level.
+# These stubs must be installed before any local imports so the import chain
+# does not fail in an offline environment without PySide6/PySide2.
+# ---------------------------------------------------------------------------
+
+def _make_stub_qt_module(name):
+    """Return a minimal Qt sub-module stub with common attribute placeholders."""
+    stub = types.ModuleType(name)
+    stub.Qt = MagicMock()
+    stub.QtCore = MagicMock()
+    stub.QtGui = MagicMock()
+    stub.QtWidgets = MagicMock()
+    return stub
+
+
+_pyside6_stub = _make_stub_qt_module('PySide6')
+_pyside6_stub.QtCore = _make_stub_qt_module('PySide6.QtCore')
+_pyside6_stub.QtGui = _make_stub_qt_module('PySide6.QtGui')
+_pyside6_stub.QtWidgets = _make_stub_qt_module('PySide6.QtWidgets')
+_pyside6_stub.QtCore.Qt = MagicMock()
+sys.modules['PySide6'] = _pyside6_stub
+sys.modules['PySide6.QtCore'] = _pyside6_stub.QtCore
+sys.modules['PySide6.QtGui'] = _pyside6_stub.QtGui
+sys.modules['PySide6.QtWidgets'] = _pyside6_stub.QtWidgets
+
+_tabtabtab_stub = types.ModuleType('tabtabtab')
+_tabtabtab_stub.TabTabTabPlugin = MagicMock
+_tabtabtab_stub.TabTabTabWidget = MagicMock
+sys.modules['tabtabtab'] = _tabtabtab_stub
+
+
+# ---------------------------------------------------------------------------
 # Stub nuke and nukescripts modules — must be inserted before any local imports
 # ---------------------------------------------------------------------------
 

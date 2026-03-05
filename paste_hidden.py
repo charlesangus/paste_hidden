@@ -1,14 +1,15 @@
 """Replace default copy-cut-paste behaviour to re-connect hidden inputs
 and replace input-type nodes with hidden-inputted NoOp link nodes.
 
-Configure which node classes trigger link replacement by editing LINK_CLASSES
+Configure which node classes trigger link replacement by editing LINK_SOURCE_CLASSES
 in constants.py.
 """
 
 import nuke
 import nukescripts
 
-from constants import KNOB_NAME, LINK_CLASSES, HIDDEN_INPUT_CLASSES
+from constants import KNOB_NAME, LINK_SOURCE_CLASSES, HIDDEN_INPUT_CLASSES
+from anchor import find_anchor_by_name
 from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
@@ -21,7 +22,7 @@ def copy_hidden(cut=False):
     """Add a hidden knob storing the original name of the node/node's input. We
     can then, when pasting, replace the node or reconnect its inputs.
 
-    Setting cut to True does not store the original name on nodes in LINK_CLASSES,
+    Setting cut to True does not store the original name on nodes in LINK_SOURCE_CLASSES,
     causing our paste routine to do a normal paste without replacement. This is required
     for cuts, as the original node will have been deleted.
     """
@@ -30,11 +31,11 @@ def copy_hidden(cut=False):
         if is_link(node):
             continue
 
-        # Path A — LINK_CLASSES file node: scan for an anchor whose input is this
+        # Path A — LINK_SOURCE_CLASSES file node: scan for an anchor whose input is this
         # node and store the anchor's FQNN so paste can read the correct link class
         # from the anchor's hidden knob. Falls back to the file node's own FQNN when
         # no anchor points at it (legacy direct-file-node path).
-        if node.Class() in LINK_CLASSES.keys():
+        if node.Class() in LINK_SOURCE_CLASSES:
             if cut:
                 stored_fqnn = ""
             else:
@@ -89,6 +90,22 @@ def cut_hidden():
         nuke.delete(node)
 
 
+def _extract_display_name_from_fqnn(stored_fqnn):
+    """Extract the anchor display name from a stored FQNN for cross-script lookup.
+
+    Returns the display name string (with ANCHOR_PREFIX stripped) if the last
+    segment of the FQNN starts with ANCHOR_PREFIX, or None otherwise.
+    Returns None for empty or blank FQNNs.
+    """
+    from constants import ANCHOR_PREFIX
+    if not stored_fqnn:
+        return None
+    node_full_name = stored_fqnn.split('.')[-1]
+    if node_full_name.startswith(ANCHOR_PREFIX):
+        return node_full_name[len(ANCHOR_PREFIX):]
+    return None
+
+
 def paste_hidden():
     last_pasted_node = nuke.nodePaste(nukescripts.cut_paste_file())
     selected_nodes = nuke.selectedNodes()
@@ -100,11 +117,31 @@ def paste_hidden():
 
         input_node = find_anchor_node(node)
 
-        if node.Class() in LINK_CLASSES.keys() or is_anchor(node):
+        if node.Class() in LINK_SOURCE_CLASSES or is_anchor(node):
             # Path A/C: file node or anchor node pasted → replace with a link node.
             # find_anchor_node() resolves the stored FQNN; None means cross-script or
-            # deleted — skip silently so the pasted placeholder node remains as-is.
+            # deleted.
             if not input_node:
+                # Cross-script case: find_anchor_node() returned None because the
+                # stored FQNN belongs to a different script. Attempt name-based
+                # reconnect for NoOp anchors (XSCRIPT-01). Dot anchors and file
+                # nodes are left disconnected as placeholders.
+                if is_anchor(node) and node.Class() != 'Dot':
+                    display_name = _extract_display_name_from_fqnn(
+                        node[KNOB_NAME].getText()
+                    )
+                    if display_name:
+                        destination_anchor = find_anchor_by_name(display_name)
+                        if destination_anchor:
+                            nukescripts.clear_selection_recursive()
+                            node["selected"].setValue(True)
+                            link_node = nuke.createNode('NoOp')
+                            setup_link_node(destination_anchor, link_node)
+                            link_node.setXYpos(node.xpos(), node.ypos())
+                            selected_nodes.remove(node)
+                            selected_nodes.append(link_node)
+                            nuke.delete(node)
+                            continue
                 continue
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
@@ -117,9 +154,11 @@ def paste_hidden():
 
         elif node.Class() in HIDDEN_INPUT_CLASSES:
             # Path B: hidden-input Dot — reconnect to the stored source node.
-            # find_anchor_node() returns None for cross-script or unresolvable FQNNs;
-            # skip silently in that case (PASTE-03/PASTE-04 legacy Dot cross-script).
+            # find_anchor_node() returns None for cross-script or unresolvable FQNNs.
             if not input_node:
+                # Cross-script Dot: find_anchor_node() returns None when the
+                # stored FQNN belongs to a different script. Leave the Dot
+                # disconnected silently — satisfies XSCRIPT-02 and PASTE-04.
                 continue
             setup_link_node(input_node, node)
 
