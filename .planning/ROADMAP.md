@@ -87,7 +87,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 **Goal:** Fix two UAT-confirmed bugs from Phase 2 — Link Dots not reconnecting cross-script and Local Dots erroneously reconnecting cross-script — by introducing a formal DOT_TYPE knob distinction between the two Dot subtypes
 **Requirements**: XSCRIPT-01, XSCRIPT-02
 **Depends on:** Phase 2
-**Plans:** 1/1 plans complete
+**Plans:** 3 plans (1 complete, 2 gap-closure)
 
 Plans:
-- [ ] 05-01-PLAN.md — TDD: DOT_TYPE knob distinction (constants, add_input_knob extension, copy_hidden/paste_hidden Path B refactor)
+- [x] 05-01-PLAN.md — TDD: DOT_TYPE knob distinction (constants, add_input_knob extension, copy_hidden/paste_hidden Path B refactor)
+- [ ] 05-02-PLAN.md — Gap closure: Dot anchor node name sync (mark_dot_as_anchor + rename_anchor_to set Anchor_ prefix on node name)
+- [ ] 05-03-PLAN.md — Gap closure: LOCAL_DOT_COLOR darkened; DOT_TYPE preserved across setup_link_node(); Path A/C Dot link class fix
