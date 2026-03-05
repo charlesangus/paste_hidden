@@ -16,6 +16,7 @@ from anchor import find_anchor_by_name
 from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
+    get_link_class_for_source,
     setup_link_node, add_input_knob,
     find_anchor_node,
 )
@@ -146,7 +147,7 @@ def paste_hidden():
                         if destination_anchor:
                             nukescripts.clear_selection_recursive()
                             node["selected"].setValue(True)
-                            link_node = nuke.createNode('NoOp')
+                            link_node = nuke.createNode(get_link_class_for_source(destination_anchor))
                             setup_link_node(destination_anchor, link_node)
                             link_node.setXYpos(node.xpos(), node.ypos())
                             selected_nodes.remove(node)
@@ -156,7 +157,7 @@ def paste_hidden():
                 continue
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
-            link_node = nuke.createNode('NoOp')
+            link_node = nuke.createNode(get_link_class_for_source(input_node))
             setup_link_node(input_node, link_node)
             link_node.setXYpos(node.xpos(), node.ypos())
             selected_nodes.remove(node)
@@ -198,10 +199,20 @@ def paste_hidden():
                 continue
 
             # Same-script: reconnect to the original source by identity.
+            # Read dot_type before calling setup_link_node() because setup_link_node()
+            # calls add_input_knob() without dot_type, which strips the DOT_TYPE_KNOB_NAME
+            # knob. Saving the value here makes the restoration guard reliable regardless
+            # of whether the knob survives setup_link_node().
+            saved_dot_type = (
+                node[DOT_TYPE_KNOB_NAME].getValue()
+                if DOT_TYPE_KNOB_NAME in node.knobs()
+                else None
+            )
             setup_link_node(input_node, node)
-            # Restore Local Dot appearance — setup_link_node() overwrites label and color.
-            if (DOT_TYPE_KNOB_NAME in node.knobs()
-                    and node[DOT_TYPE_KNOB_NAME].getValue() == 'local'):
+            if saved_dot_type == 'local':
+                # Re-add the DOT_TYPE knob that setup_link_node stripped, then restore
+                # Local Dot appearance (label and color overwritten by setup_link_node).
+                add_input_knob(node, dot_type='local')
                 source_label = input_node['label'].getText() or input_node.name()
                 node['label'].setValue(f"Local: {source_label}")
                 node['tile_color'].setValue(LOCAL_DOT_COLOR)
