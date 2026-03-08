@@ -31,11 +31,11 @@
 
 ### Anchor Color System
 
-- [ ] **COLOR-01**: Tabtabtab picker reads the anchor's actual `tile_color` knob value at invocation time (not re-derived from backdrop/input logic)
-- [ ] **COLOR-02**: Anchor creation dialog includes a color picker
-- [ ] **COLOR-03**: Anchor rename dialog includes a color picker
-- [ ] **COLOR-04**: Anchor node has a color picker button/knob in its properties panel
-- [ ] **COLOR-05**: When anchor color is changed via our color picker, all linked nodes update their color to match
+- [x] **COLOR-01**: Tabtabtab picker reads the anchor's actual `tile_color` knob value at invocation time (not re-derived from backdrop/input logic)
+- [x] **COLOR-02**: Anchor creation dialog includes a color picker
+- [x] **COLOR-03**: Anchor rename dialog includes a color picker
+- [x] **COLOR-04**: Anchor node has a color picker button/knob in its properties panel
+- [x] **COLOR-05**: When anchor color is changed via our color picker, all linked nodes update their color to match
 
 ### Anchor Find
 
@@ -77,11 +77,11 @@
 | NAV-01 | Phase 4 | Pending |
 | NAV-02 | Phase 4 | Pending |
 | NAV-03 | Phase 4 | Pending |
-| COLOR-01 | Phase 3 | Pending |
-| COLOR-02 | Phase 3 | Pending |
-| COLOR-03 | Phase 3 | Pending |
-| COLOR-04 | Phase 3 | Pending |
-| COLOR-05 | Phase 3 | Pending |
+| COLOR-01 | Phase 3 | Complete |
+| COLOR-02 | Phase 3 | Complete |
+| COLOR-03 | Phase 3 | Complete |
+| COLOR-04 | Phase 3 | Complete |
+| COLOR-05 | Phase 3 | Complete |
 | FIND-01 | Phase 4 | Pending |
 
 **Coverage:**
