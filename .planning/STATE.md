@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-05T15:27:04.747Z"
+last_updated: "2026-03-08T03:30:13.573Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
-**Current focus:** Phase 5 — Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction (complete)
+**Current focus:** Phase 3 — Anchor Color System (plan 1 of 2 complete)
 
 ## Current Position
 
-Phase: 5 of 5 (Refactor Cross-Script Paste Logic for DOT_TYPE Distinction)
-Plan: 1 of 1 in current phase (phase complete)
-Status: Phase 5 complete
-Last activity: 2026-03-05 — Completed 05-03 (LOCAL_DOT_COLOR darkened to 0x7A3A00FF; DOT_TYPE knob re-stamped after setup_link_node() via saved_dot_type; Path A/C uses get_link_class_for_source())
+Phase: 3 of 4 (Anchor Color System)
+Plan: 1 of 2 complete in current phase
+Status: Phase 3 in progress
+Last activity: 2026-03-08 — Completed 03-01 (colors.py, constants updated, COLOR-01 fixed, propagate_anchor_color, add_set_color_anchor_knob)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 85%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 *Updated after each plan completion*
 | Phase 05 P02 | 3 | 2 tasks | 4 files |
 | Phase 05-refactor-cross-script-paste-logic-for-hidden-input-dot-vs-anchor-dot-distinction P03 | 8 | 2 tasks | 3 files |
+| Phase 03 P01 | 490 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,10 @@ Recent decisions affecting current work:
 - [Phase 05]: mark_dot_as_anchor() sets Dot node name to Anchor_<sanitized_label> on first call only; idempotent path (knob already present) returns early
 - [Phase 05]: DOT_TYPE preservation via saved_dot_type before setup_link_node() — safer than changing setup_link_node() which is shared with anchor.py
 - [Phase 05]: get_link_class_for_source() at paste time in Path A/C determines Dot vs NoOp link node class for Dot-anchor sources
+- [Phase 03-01]: ColorPaletteDialog defined as None when Qt unavailable; callers guard with 'if ColorPaletteDialog is None: return'
+- [Phase 03-01]: propagate_anchor_color() returns early for Dot anchors — Dot colors are system-managed
+- [Phase 03-01]: create_anchor_named(color=None) falls back to find_anchor_color() for backward compatibility with create_anchor_silent()
+- [Phase 03-01]: rename_anchor_to(color=None) skips propagation — explicit color opt-in only
 
 ### Pending Todos
 
@@ -94,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-05
-Stopped at: Completed 05-03-PLAN.md — LOCAL_DOT_COLOR darkened, DOT_TYPE re-stamp, Path A/C link class fix
+Last session: 2026-03-08
+Stopped at: Completed 03-01-PLAN.md — colors.py, ANCHOR_SET_COLOR_KNOB_NAME/USER_PALETTE_PATH constants, COLOR-01 fix, propagate_anchor_color, add_set_color_anchor_knob
 Resume file: None
