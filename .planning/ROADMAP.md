@@ -58,7 +58,11 @@ Plans:
   3. The anchor rename dialog includes a color picker; the chosen color is applied to the anchor on save
   4. The anchor node's properties panel contains a color picker button that changes the anchor's color
   5. After changing anchor color via any of our color pickers, all Link nodes for that anchor immediately update their tile_color to match
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — colors.py module (ColorPaletteDialog widget + palette helpers), constants, COLOR-01 fix in anchor.py
+- [ ] 03-02-PLAN.md — anchor.py wiring: propagate_anchor_color(), Set Color knob (COLOR-04/05), create/rename dialog integration (COLOR-02/03)
 
 ### Phase 4: Anchor Navigation
 **Goal**: The artist can jump back to where they were after navigating to an anchor, and Backdrops appear alongside anchor nodes in the navigation picker
