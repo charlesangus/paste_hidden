@@ -238,19 +238,43 @@ def rename_anchor_to(anchor_node, name, color=None):
 
 
 def rename_anchor(anchor_node):
-    """Prompt the user for a new name and rename the anchor."""
+    """Prompt the user for a new name (and optionally a new color) and rename the anchor."""
     if anchor_node.Class() == 'Dot':
         suggested = anchor_display_name(anchor_node)
     else:
         input_node = anchor_node.input(0)
         suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
-    name = nuke.getInput("Rename anchor:", suggested)
-    if not name or not name.strip():
+
+    if ColorPaletteDialog is None:
+        # Qt unavailable — fall back to plain text input
+        name = nuke.getInput("Rename anchor:", suggested)
+        if not name or not name.strip():
+            return
+        try:
+            rename_anchor_to(anchor_node, name)
+        except ValueError:
+            pass
         return
+
+    current_color = int(anchor_node['tile_color'].value())
+    dialog = ColorPaletteDialog(
+        initial_color=current_color,
+        show_name_field=True,
+        initial_name=suggested,
+    )
+    if dialog.exec_() != QtWidgets.QDialog.Accepted:
+        return
+    chosen_name = dialog.chosen_name
+    if not chosen_name or not chosen_name.strip():
+        return
+    chosen_color = dialog.selected_color_int()
     try:
-        rename_anchor_to(anchor_node, name)
+        rename_anchor_to(anchor_node, chosen_name)
     except ValueError:
-        pass
+        nuke.message(f"Invalid anchor name: {chosen_name!r}")
+        return
+    if chosen_color is not None:
+        propagate_anchor_color(anchor_node, chosen_color)
 
 
 def rename_selected_anchor():
@@ -279,12 +303,36 @@ def create_anchor():
     input_node = selected[0] if len(selected) == 1 else None
 
     suggested = suggest_anchor_name(input_node) if input_node is not None else ""
-    name = nuke.getInput("Anchor name:", suggested)
-    if not name or not name.strip():
+
+    if ColorPaletteDialog is None:
+        # Qt unavailable — fall back to plain text input
+        name = nuke.getInput("Anchor name:", suggested)
+        if not name or not name.strip():
+            return
+        try:
+            create_anchor_named(name, input_node)
+        except ValueError:
+            pass
         return
 
+    if input_node is not None:
+        pre_color = find_anchor_color(input_node)
+    else:
+        pre_color = ANCHOR_DEFAULT_COLOR
+
+    dialog = ColorPaletteDialog(
+        initial_color=int(pre_color),
+        show_name_field=True,
+        initial_name=suggested,
+    )
+    if dialog.exec_() != QtWidgets.QDialog.Accepted:
+        return
+    chosen_name = dialog.chosen_name
+    if not chosen_name or not chosen_name.strip():
+        return
+    chosen_color = dialog.selected_color_int()
     try:
-        create_anchor_named(name, input_node)
+        create_anchor_named(chosen_name, input_node, color=chosen_color)
     except ValueError:
         pass
 
