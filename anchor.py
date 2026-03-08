@@ -23,8 +23,10 @@ import tabtabtab as _tabtabtab
 from constants import (
     ANCHOR_PREFIX, KNOB_NAME,
     ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
+    ANCHOR_SET_COLOR_KNOB_NAME,
     DOT_LABEL_FONT_SIZE_MEDIUM, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE,
 )
+from colors import ColorPaletteDialog
 from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
@@ -88,6 +90,51 @@ anchor.rename_anchor(nuke.thisNode())""")
     node.addKnob(knob)
 
 
+def add_set_color_anchor_knob(node):
+    """Add a 'Set Color' PyScript_Knob to *node* if it does not already have one.
+
+    Dot anchors are excluded from the color system — this function is a no-op for them.
+    """
+    if node.Class() == 'Dot':
+        return
+    if ANCHOR_SET_COLOR_KNOB_NAME in node.knobs():
+        return
+    knob = nuke.PyScript_Knob(ANCHOR_SET_COLOR_KNOB_NAME, "Set Color",
+        """import anchor
+anchor.set_anchor_color(nuke.thisNode())""")
+    node.addKnob(knob)
+
+
+def propagate_anchor_color(anchor_node, color_int):
+    """Set *anchor_node* tile_color to *color_int* and propagate to all referencing Link nodes.
+
+    Dot anchors have fixed colors managed by the system — this function returns
+    early without making any changes for Dot anchors.
+    """
+    if anchor_node.Class() == 'Dot':
+        return
+    anchor_node['tile_color'].setValue(color_int)
+    for link_node in get_links_for_anchor(anchor_node):
+        link_node['tile_color'].setValue(color_int)
+
+
+def set_anchor_color(anchor_node):
+    """Open the color palette dialog and apply the chosen color to *anchor_node*.
+
+    This is the entry point called by the 'Set Color' PyScript_Knob on the anchor node.
+    """
+    if ColorPaletteDialog is None:
+        return
+    if anchor_node.Class() == 'Dot':
+        return
+    current_color = anchor_node['tile_color'].value()
+    dialog = ColorPaletteDialog(initial_color=current_color, show_name_field=False)
+    if dialog.exec_() == ColorPaletteDialog.Accepted:
+        chosen_color = dialog.selected_color_int()
+        if chosen_color is not None:
+            propagate_anchor_color(anchor_node, chosen_color)
+
+
 def anchor_display_name(node):
     if node.Class() == 'Dot':
         return node['label'].getValue().strip()
@@ -137,13 +184,23 @@ def suggest_anchor_name(input_node):
     return suggestion
 
 
-def rename_anchor_to(anchor_node, name):
+def rename_anchor_to(anchor_node, name, color=None):
     """Rename an anchor to *name* and update all referencing link nodes.
 
     Raises ValueError if *name* sanitizes to an empty string.
     For Dot anchors the node name is kept in sync with the label so that the
     FQNN (which embeds the node name) reflects the new name.  Old FQNNs stored
     on link nodes are updated to the new FQNN.
+
+    Parameters
+    ----------
+    anchor_node : nuke.Node
+        The anchor node to rename.
+    name : str
+        New display name for the anchor.
+    color : int or None
+        If provided, propagate this color to the anchor and all its Link nodes
+        after renaming.
     """
     if anchor_node.Class() == 'Dot':
         sanitized = sanitize_anchor_name(name)
@@ -175,6 +232,9 @@ def rename_anchor_to(anchor_node, name):
             if is_link(node) and node[KNOB_NAME].getText() == old_fqn:
                 node[KNOB_NAME].setValue(new_fqn)
                 node['label'].setValue(f"Link: {new_label}")
+
+    if color is not None:
+        propagate_anchor_color(anchor_node, color)
 
 
 def rename_anchor(anchor_node):
@@ -238,11 +298,21 @@ def create_from_anchor(anchor_node):
     return link
 
 
-def create_anchor_named(name, input_node=None):
+def create_anchor_named(name, input_node=None, color=None):
     """Create an anchor with the given *name* without any user prompt.
 
     Returns the new anchor node.
     Raises ValueError if *name* sanitizes to an empty string.
+
+    Parameters
+    ----------
+    name : str
+        Display name for the anchor.
+    input_node : nuke.Node or None
+        Optional input node to connect the anchor to.
+    color : int or None
+        Explicit tile color as 0xRRGGBBAA int.  If None, falls back to
+        find_anchor_color() for backward-compatible color derivation.
     """
     sanitized = sanitize_anchor_name(name)
     if not sanitized:
@@ -260,9 +330,13 @@ def create_anchor_named(name, input_node=None):
             input_node.ypos() + input_node.screenHeight() + 20
         )
 
-    anchor['tile_color'].setValue(find_anchor_color(anchor))
+    if color is not None:
+        anchor['tile_color'].setValue(color)
+    else:
+        anchor['tile_color'].setValue(find_anchor_color(anchor))
     add_reconnect_anchor_knob(anchor)
     add_rename_anchor_knob(anchor)
+    add_set_color_anchor_knob(anchor)
     return anchor
 
 
@@ -326,7 +400,7 @@ class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
         return None
 
     def get_color(self, menuobj):
-        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        color_int = menuobj['tile_color'].value()  # 0xRRGGBBAA — reads what was actually set
         r = (color_int >> 24) & 0xFF
         g = (color_int >> 16) & 0xFF
         b = (color_int >> 8) & 0xFF
@@ -430,7 +504,7 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
         return None
 
     def get_color(self, menuobj):
-        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        color_int = menuobj['tile_color'].value()  # 0xRRGGBBAA — reads what was actually set
         r = (color_int >> 24) & 0xFF
         g = (color_int >> 16) & 0xFF
         b = (color_int >> 8) & 0xFF

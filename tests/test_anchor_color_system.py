@@ -34,9 +34,12 @@ def _make_stub_qt_module(name):
 
 
 _pyside6_stub = _make_stub_qt_module('PySide6')
-_pyside6_stub.QtCore = _make_stub_qt_module('PySide6.QtCore')
-_pyside6_stub.QtGui = _make_stub_qt_module('PySide6.QtGui')
-_pyside6_stub.QtWidgets = _make_stub_qt_module('PySide6.QtWidgets')
+# Use MagicMock for sub-modules so attribute access (e.g. QtWidgets.QDialog)
+# returns a MagicMock automatically — this allows colors.py to subclass
+# QtWidgets.QDialog without AttributeError.
+_pyside6_stub.QtCore = MagicMock()
+_pyside6_stub.QtGui = MagicMock()
+_pyside6_stub.QtWidgets = MagicMock()
 _pyside6_stub.QtCore.Qt = MagicMock()
 sys.modules['PySide6'] = _pyside6_stub
 sys.modules['PySide6.QtCore'] = _pyside6_stub.QtCore
@@ -156,6 +159,7 @@ def make_stub_nuke_module():
     stub.exists = MagicMock(return_value=False)
     stub.delete = MagicMock()
     stub.INVISIBLE = 0
+    stub.NUKE_VERSION_MAJOR = 16  # triggers PySide6 import path in anchor.py
     stub.PyScript_Knob = MagicMock(side_effect=lambda knob_name, label, script: _make_pyscript_knob(knob_name, label, script))
 
     return stub
@@ -175,16 +179,59 @@ sys.modules['nukescripts'] = types.ModuleType('nukescripts')
 sys.modules['nukescripts'].cut_paste_file = lambda: '/tmp/nuke_stub_clipboard.nk'
 sys.modules['nukescripts'].clear_selection_recursive = MagicMock()
 
+# ---------------------------------------------------------------------------
+# Now that nuke stub is in place, load the real colors module and replace the
+# placeholder stub.  The palette helper functions (load_user_palette,
+# save_user_palette) do not need Qt — they will be importable even with the
+# Qt guard falling back to None.
+# ---------------------------------------------------------------------------
+import importlib
+# Remove the placeholder so importlib loads the real file from /workspace/colors.py
+del sys.modules['colors']
+import colors as _real_colors_module
+sys.modules['colors'] = _real_colors_module
+
 
 # ---------------------------------------------------------------------------
 # COLOR-01: AnchorPlugin.get_color() reads tile_color directly
 # ---------------------------------------------------------------------------
+
+def _ensure_qt_stubs_support_mock_attributes():
+    """Ensure Qt stub modules support auto-attribute access for the anchor tests.
+
+    When the full test suite is discovered, test_cross_script_paste.py installs
+    Qt sub-module stubs as plain types.ModuleType objects.  These do NOT create
+    attributes on access (unlike MagicMock), so calls like QtGui.QColor(...) raise
+    AttributeError.  This helper patches the current stubs to be MagicMock-based
+    if they are plain ModuleType instances.
+
+    Also ensures the nuke stub has NUKE_VERSION_MAJOR = 16 so anchor.py takes
+    the PySide6 import path on reload (not PySide2 → ImportError → QtGui = None).
+    """
+    import nuke as current_nuke
+    if not hasattr(current_nuke, 'NUKE_VERSION_MAJOR'):
+        current_nuke.NUKE_VERSION_MAJOR = 16
+
+    # Patch Qt sub-module stubs if they are plain ModuleType (not MagicMock)
+    for module_key in ('PySide6.QtGui', 'PySide6.QtWidgets', 'PySide6.QtCore'):
+        existing = sys.modules.get(module_key)
+        if existing is not None and not isinstance(existing, MagicMock):
+            mock_replacement = MagicMock()
+            sys.modules[module_key] = mock_replacement
+            # Also update the parent stub's attribute
+            parent_key = 'PySide6'
+            attr_name = module_key.split('.')[-1]
+            parent_stub = sys.modules.get(parent_key)
+            if parent_stub is not None:
+                setattr(parent_stub, attr_name, mock_replacement)
+
 
 class TestAnchorPickerColorReadsFromKnob(unittest.TestCase):
     """COLOR-01: AnchorPlugin.get_color() calls tile_color.value(), not find_anchor_color()."""
 
     def setUp(self):
         import importlib
+        _ensure_qt_stubs_support_mock_attributes()
         import anchor as anchor_mod
         importlib.reload(anchor_mod)
         self.anchor_mod = anchor_mod
@@ -236,6 +283,7 @@ class TestAnchorNavigatePickerColorReadsFromKnob(unittest.TestCase):
 
     def setUp(self):
         import importlib
+        _ensure_qt_stubs_support_mock_attributes()
         import anchor as anchor_mod
         importlib.reload(anchor_mod)
         self.anchor_mod = anchor_mod
