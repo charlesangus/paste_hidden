@@ -41,6 +41,33 @@
 
 - [x] **FIND-01**: Anchor navigation picker (Alt+A) includes labelled BackdropNodes as navigable targets alongside anchor nodes
 
+## v1.1 Requirements
+
+### Preferences Infrastructure
+
+- [ ] **PREFS-01**: Preferences are persisted to `~/.nuke/paste_hidden_prefs.json` with keys: `plugin_enabled`, `link_classes_paste_mode`, `custom_colors`
+- [ ] **PREFS-02**: On first run with no prefs file, existing `paste_hidden_user_palette.json` custom colors migrate into the new prefs file; old file is never written again
+- [ ] **PREFS-03**: When plugin is disabled, `copy_hidden()`, `cut_hidden()`, and `paste_hidden()` fall through to Nuke's default clipboard behavior silently
+- [ ] **PREFS-04**: When `link_classes_paste_mode` is set to `passthrough`, copying a LINK_CLASSES node (Read, Camera, etc.) produces a plain Nuke copy with no anchor creation and no FQNN stamp — identical to default Nuke copy behavior
+
+### Preferences Panel
+
+- [ ] **PANEL-01**: User can open a preferences dialog from the Anchors menu
+- [ ] **PANEL-02**: User can toggle the plugin enabled/disabled in the preferences dialog; change persists across sessions
+- [ ] **PANEL-03**: User can toggle LINK_CLASSES paste mode between "Create link" and "Paste copy" in the preferences dialog; change persists across sessions
+- [ ] **PANEL-04**: User can view the list of saved custom colors in the preferences dialog
+- [ ] **PANEL-05**: User can add a new custom color to the saved list via the color picker in the preferences dialog
+- [ ] **PANEL-06**: User can remove a custom color from the saved list in the preferences dialog
+- [ ] **PANEL-07**: User can edit (replace) an existing custom color in the saved list via the color picker in the preferences dialog
+
+### Color Picker Redesign
+
+- [ ] **PICKER-01**: Clicking a color swatch selects/highlights it without closing the dialog
+- [ ] **PICKER-02**: User confirms selection with Enter key or OK button; dialog closes and returns chosen color
+- [ ] **PICKER-03**: The pre-selected color (`initial_color`) is visually highlighted when the dialog opens
+- [ ] **PICKER-04**: Swatch groups are ordered: custom colors → backdrop colors → Nuke defaults, with visual separation between groups
+- [ ] **PICKER-05**: Custom colors chosen via "Custom Color..." are staged in memory and only persisted to disk when the dialog is accepted (not on Cancel)
+
 ## v2 Requirements
 
 ### Navigation
@@ -60,6 +87,7 @@
 | Cross-script reconnection for Dot hidden inputs | Ad-hoc Dots are positional; cross-script reconnection is for named Links only |
 | External persistence (database, remote API) | Local-only plugin |
 | Multi-user / shared anchor libraries | Out of scope for single-artist tool |
+| NAV-03 full history stack | Deferred to v2 — single-slot back covers primary use case |
 
 ## Traceability
 
@@ -83,12 +111,29 @@
 | COLOR-04 | Phase 3 | Complete |
 | COLOR-05 | Phase 3 | Complete |
 | FIND-01 | Phase 4 | Complete |
+| PREFS-01 | Phase 6 | Pending |
+| PREFS-02 | Phase 6 | Pending |
+| PREFS-03 | Phase 6 | Pending |
+| PREFS-04 | Phase 6 | Pending |
+| PANEL-01 | Phase 7 | Pending |
+| PANEL-02 | Phase 7 | Pending |
+| PANEL-03 | Phase 7 | Pending |
+| PANEL-04 | Phase 7 | Pending |
+| PANEL-05 | Phase 7 | Pending |
+| PANEL-06 | Phase 7 | Pending |
+| PANEL-07 | Phase 7 | Pending |
+| PICKER-01 | Phase 7 | Pending |
+| PICKER-02 | Phase 7 | Pending |
+| PICKER-03 | Phase 7 | Pending |
+| PICKER-04 | Phase 7 | Pending |
+| PICKER-05 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 complete, 1 deferred (NAV-03 → v2)
-- Mapped to phases: 18
+- v1.1 requirements: 13 pending
+- Mapped to phases: 31
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-03*
-*Last updated: 2026-03-04 after 01-01 completion (LINK-01, LINK-02, LINK-03, LINK-04 marked complete)*
+*Last updated: 2026-03-10 after v1.1 milestone start*
