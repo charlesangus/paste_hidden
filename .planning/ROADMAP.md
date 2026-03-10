@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Copy-Paste Semantics** - Define clear behavior for file node anchoring and hidden-input Dot reconnection; fix link node type selection (completed 2026-03-04)
 - [x] **Phase 2: Cross-Script Paste** - Link nodes reconnect by name across scripts; Dot nodes leave disconnected cleanly (completed 2026-03-05)
 - [ ] **Phase 3: Anchor Color System** - Color picker in creation/rename dialogs and on anchor node; propagation to linked nodes
-- [ ] **Phase 4: Anchor Navigation** - DAG position history with back shortcut; Backdrops included in navigation picker
+- [x] **Phase 4: Anchor Navigation** - DAG position history with back shortcut; Backdrops included in navigation picker (completed 2026-03-10)
 
 ## Phase Details
 
@@ -89,14 +89,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Copy-Paste Semantics | 3/3 | Complete   | 2026-03-04 |
 | 2. Cross-Script Paste | 1/1 | Complete    | 2026-03-05 |
 | 3. Anchor Color System | 0/? | Not started | - |
-| 4. Anchor Navigation | 2/3 | In Progress|  |
+| 4. Anchor Navigation | 3/3 | Complete   | 2026-03-10 |
 
 ### Phase 5: Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction
 
 **Goal:** Fix two UAT-confirmed bugs from Phase 2 — Link Dots not reconnecting cross-script and Local Dots erroneously reconnecting cross-script — by introducing a formal DOT_TYPE knob distinction between the two Dot subtypes
 **Requirements**: XSCRIPT-01, XSCRIPT-02
 **Depends on:** Phase 2
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — TDD: DOT_TYPE knob distinction (constants, add_input_knob extension, copy_hidden/paste_hidden Path B refactor)
