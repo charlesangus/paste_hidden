@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-10T03:25:49.134Z"
+last_updated: "2026-03-10T03:38:52.050Z"
 progress:
   total_phases: 5
   completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 13
+  completed_plans: 13
 ---
 
 # Project State
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 04 PW0 | 2 | 1 tasks | 1 files |
 | Phase 04 P01 | 2 | 2 tasks | 2 files |
 | Phase 04-anchor-navigation P02 | 5 | 1 tasks | 1 files |
+| Phase 04-anchor-navigation P03 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,7 @@ Recent decisions affecting current work:
 - [Phase 04-01]: navigate_back() sets _back_position = None before calling nuke.zoom() to prevent double-restore on raise
 - [Phase 04-anchor-navigation]: navigate_to_backdrop() body and invoke() BackdropNode dispatch were already in place from Plan 01 stub — no re-implementation needed in Plan 02
 - [Phase 04-anchor-navigation]: get_items() uses for-loop append pattern for Backdrop entries to keep anchor/backdrop logic visually separate and readable
+- [Phase 04-anchor-navigation]: NAV-03 (full browser-style forward/back history stack) formally recorded as deferred to v2 — single-slot back (NAV-01/02) is what shipped in Phase 4
 
 ### Pending Todos
 
