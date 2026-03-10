@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 4 of 5 (Anchor Navigation)
-Plan: W0 of 3 complete in current phase (W0=scaffold, 01=back-position, 02=backdrop picker)
-Status: Phase 4 in progress — W0 test scaffold complete; Plans 01 and 02 pending
-Last activity: 2026-03-10 — Completed 04-W0 (RED test scaffold for NAV-01/02 and FIND-01)
+Plan: 01 of 3 complete in current phase (W0=scaffold, 01=back-position, 02=backdrop picker)
+Status: Phase 4 in progress — W0 and Plan 01 complete; Plan 02 pending
+Last activity: 2026-03-10 — Completed 04-01 (NAV-01/02 back-position implementation)
 
 Progress: [█████████░] 95%
 
@@ -54,6 +54,7 @@ Progress: [█████████░] 95%
 | Phase 03 P01 | 490 | 2 tasks | 4 files |
 | Phase 03 P02 | 5 | 2 tasks | 1 files |
 | Phase 04 PW0 | 2 | 1 tasks | 1 files |
+| Phase 04 P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 03]: create_anchor() pre-selects ANCHOR_DEFAULT_COLOR when no input_node, or find_anchor_color(input_node) otherwise
 - [Phase 03]: rename_anchor() reads current tile_color for ColorPaletteDialog initial_color pre-selection; calls propagate_anchor_color() when chosen_color is not None
 - [Phase 04-W0]: nuke.zoom/center stubs return 1.0 and [0.0, 0.0] matching Nuke API call signatures; allNodes side_effect dispatches by class_name for BackdropNode vs anchor queries
+- [Phase 04-01]: invoke() variable renamed from anchor_node to node to accommodate BackdropNode dispatch; navigate_to_backdrop() stub added for test patchability before Plan 02 body
+- [Phase 04-01]: navigate_back() sets _back_position = None before calling nuke.zoom() to prevent double-restore on raise
 
 ### Pending Todos
 
@@ -105,5 +108,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 04-W0-PLAN.md — RED test scaffold for Phase 4 anchor navigation (16 tests, 6 classes covering NAV-01/02 and FIND-01)
+Stopped at: Completed 04-01-PLAN.md — NAV-01/02 back-position implementation (_save_dag_position, navigate_back, invoke update, Alt+Z menu)
 Resume file: None
