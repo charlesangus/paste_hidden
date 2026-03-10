@@ -514,6 +514,31 @@ def select_anchor_and_create():
     _anchor_picker_widget.raise_()
 
 
+def _save_dag_position():
+    """Capture the current DAG viewport state into the back-navigation slot.
+
+    Called before every navigate-to-anchor or navigate-to-backdrop jump.
+    Overwrites any previously saved position — single-slot, no history stack.
+    """
+    global _back_position
+    _back_position = (nuke.zoom(), nuke.center())
+
+
+def navigate_back():
+    """Restore the DAG to the position saved before the last Alt+A jump.
+
+    Silent no-op if no position has been saved yet. Consumes the slot —
+    subsequent calls are no-ops until the next navigate-to-anchor jump.
+    """
+    global _back_position
+    if _back_position is None:
+        return
+    zoom_level, center_xy = _back_position
+    _back_position = None
+    nuke.zoom(zoom_level, center_xy)
+    nukescripts.clear_selection_recursive()
+
+
 def navigate_to_anchor(anchor_node):
     """Zoom the DAG to fit *anchor_node* and its visible-path upstream nodes."""
     from util import upstream_ignoring_hidden
@@ -561,6 +586,7 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
 
 
 _anchor_navigate_widget = None
+_back_position = None  # (zoom_level, center_xy) tuple or None — session-only back-navigation slot
 
 
 def select_anchor_and_navigate():
