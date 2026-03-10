@@ -38,7 +38,13 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
   2. On first run when an old `paste_hidden_user_palette.json` exists, its colors appear in the new prefs file and the old file is never written to again
   3. When `plugin_enabled` is false, Ctrl+C/X/V pass through to Nuke's default clipboard behavior with no anchor or FQNN activity
   4. When `link_classes_paste_mode` is `passthrough`, copying a Read or Camera node produces a plain Nuke copy with no FQNN stamp on the node
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — prefs.py singleton module + PREFS_PATH constant in constants.py
+- [ ] 06-02-PLAN.md — colors.py transition: remove palette funcs, add custom_colors constructor param
+- [ ] 06-03-PLAN.md — paste_hidden.py plugin_enabled and passthrough gates
+- [ ] 06-04-PLAN.md — anchor.py + labels.py entry point gates + menu.py gating infrastructure
 
 ### Phase 7: Color Picker Redesign and Preferences Panel
 **Goal**: Users can configure plugin settings from the Anchors menu and the color picker behaves as a standard selection dialog
@@ -61,5 +67,5 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 | 3. Anchor Color System | v1.0 | 2/2 | Complete | 2026-03-07 |
 | 4. Anchor Navigation | v1.0 | 4/4 | Complete | 2026-03-10 |
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
-| 6. Preferences Infrastructure | v1.1 | 0/? | Not started | - |
+| 6. Preferences Infrastructure | v1.1 | 0/4 | Not started | - |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 0/? | Not started | - |
