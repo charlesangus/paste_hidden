@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: complete
-stopped_at: v1.0 milestone archived
+milestone: v1.1
+milestone_name: Polish
+status: planning
+stopped_at: ~
 last_updated: "2026-03-10"
-last_activity: 2026-03-10 — v1.0 milestone archived; planning next milestone
+last_activity: 2026-03-10 — Milestone v1.1 started; defining requirements
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 
 ## Current Position
 
-Phase: 4 of 5 (Anchor Navigation) — COMPLETE
-Plan: 03 of 3 complete in current phase (W0=scaffold, 01=back-position, 02=backdrop picker)
-Status: Phase 4 complete — all plans done; human-verified all 7 NAV-01/NAV-02/FIND-01 behaviors
-Last activity: 2026-03-10 — Completed 04-02 Task 2 (human-verify approved); Phase 4 done
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-10 — Milestone v1.1 started
 
 Progress: [██████████] 100%
 

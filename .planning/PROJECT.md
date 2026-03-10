@@ -38,6 +38,8 @@ Copy and paste must reconnect predictably — anchors provide stable, navigable 
 
 ### Active
 
+- [ ] Color picker dialog redesigned: Enter accepts, click-to-select without closing, custom colors persisted, swatch order (custom→backdrop→Nuke defaults), default color highlighted — v1.1
+- [ ] Preferences panel (enable/disable plugin, LINK_CLASSES paste mode, custom color management) — v1.1
 - [ ] Full browser-style forward/back navigation history stack (NAV-03, promoted from v2 if prioritized)
 - [ ] Manual tile_color changes by user propagate to links (Color-V2-01 — currently by-design out of scope)
 
@@ -83,5 +85,13 @@ Known issue: Test suite flat-discovery (`python3 -m unittest discover`) has Qt s
 | NAV-03 (full forward/back history stack) deferred to v2 | Single-slot back covers primary use case; full stack adds complexity | — Pending v2 decision |
 | FQNN stem comparison as cross-script gate for Dot paste | Prevents same-stem false positives (Bug 2) that find_anchor_node() misses | ✓ Good |
 
+## Current Milestone: v1.1 Polish
+
+**Goal:** Redesign the color picker dialog for usability, and add a preferences panel for plugin-wide settings.
+
+**Target features:**
+- Color picker redesign (Enter key, click-to-select, custom colors persisted, swatch order, default highlight)
+- Preferences panel with enable/disable toggle, LINK_CLASSES paste mode, and custom color management
+
 ---
-*Last updated: 2026-03-10 after v1.0 milestone*
+*Last updated: 2026-03-10 after v1.1 milestone start*
