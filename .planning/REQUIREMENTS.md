@@ -27,7 +27,7 @@
 
 - [x] **NAV-01**: DAG position is saved when navigate-to-anchor (Alt+A) is invoked
 - [x] **NAV-02**: A keyboard shortcut jumps the DAG view back to the saved position
-- [x] **NAV-03**: Full browser-style forward/back navigation history stack (stretch goal)
+- [ ] **NAV-03**: Full browser-style forward/back navigation history stack (stretch goal — deferred to v2)
 
 ### Anchor Color System
 
@@ -76,7 +76,7 @@
 | XSCRIPT-02 | Phase 2 | Complete (02-01) |
 | NAV-01 | Phase 4 | Complete |
 | NAV-02 | Phase 4 | Complete |
-| NAV-03 | Phase 4 | Complete |
+| NAV-03 | Phase 4 | Deferred (v2) — single-slot back implemented (NAV-01/02); full stack not shipped |
 | COLOR-01 | Phase 3 | Complete |
 | COLOR-02 | Phase 3 | Complete |
 | COLOR-03 | Phase 3 | Complete |
@@ -85,7 +85,7 @@
 | FIND-01 | Phase 4 | Complete |
 
 **Coverage:**
-- v1 requirements: 18 total
+- v1 requirements: 17 complete, 1 deferred (NAV-03 → v2)
 - Mapped to phases: 18
 - Unmapped: 0 ✓
 
