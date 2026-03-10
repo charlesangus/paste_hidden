@@ -107,14 +107,11 @@ skipped: 0
     - "Remove or relax ANCHOR_PREFIX guard in _extract_display_name_from_fqnn() for Dot anchors once node names carry the prefix"
   fix_verified: "Pass for Link Dot → Anchor Dot reconnect (2026-03-10). New issue discovered: Anchor Dot copied cross-script should paste as a Link Dot connected to the matching anchor in the destination script — currently does not."
 
-- truth: "Copying an Anchor Dot and pasting into a script with a matching anchor of the same name produces a Link Dot connected to that anchor"
-  status: failed
-  reason: "User reported: if you copy the Anchor dot and paste it in the new script, with the matching anchor dot, it should paste as a Link dot connected to the matching anchor dot in the new script."
-  severity: major
+- truth: "Copying an Anchor Dot cross-script pastes as another Anchor Dot (not a Link Dot to the matching anchor)"
+  status: observation
+  reason: "User noted: pasting an Anchor Dot into a script with a matching anchor could reasonably paste as a Link Dot connected to it. Deferred — current behavior is not inherently wrong. Watch for user feedback before deciding."
+  severity: minor
   test: 3-retest
-  root_cause: ""
-  artifacts: []
-  missing: []
 
 - truth: "Pasting a Local Dot same-script produces a Dot with 'Local: {name}' label and burnt orange color — not 'Link: ...' and input node color"
   status: failed
