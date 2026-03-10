@@ -31,6 +31,7 @@ anchors_menu.addCommand("Create Link",         "anchor.select_anchor_and_create(
 anchors_menu.addCommand("Anchor",              "anchor.anchor_shortcut()", "A")
 anchors_menu.addCommand("Reconnect All Links", "anchor.reconnect_all_links()")
 anchors_menu.addCommand("Anchor Find",         "anchor.select_anchor_and_navigate()", "alt+A")
+anchors_menu.addCommand("Anchor Back",         "anchor.navigate_back()",              "alt+Z")
 
 anchors_menu.addSeparator()
 

@@ -23,8 +23,10 @@ import tabtabtab as _tabtabtab
 from constants import (
     ANCHOR_PREFIX, KNOB_NAME,
     ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
+    ANCHOR_SET_COLOR_KNOB_NAME,
     DOT_LABEL_FONT_SIZE_MEDIUM, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE,
 )
+from colors import ColorPaletteDialog
 from link import (
     is_anchor, is_link,
     get_fully_qualified_node_name,
@@ -88,6 +90,51 @@ anchor.rename_anchor(nuke.thisNode())""")
     node.addKnob(knob)
 
 
+def add_set_color_anchor_knob(node):
+    """Add a 'Set Color' PyScript_Knob to *node* if it does not already have one.
+
+    Dot anchors are excluded from the color system — this function is a no-op for them.
+    """
+    if node.Class() == 'Dot':
+        return
+    if ANCHOR_SET_COLOR_KNOB_NAME in node.knobs():
+        return
+    knob = nuke.PyScript_Knob(ANCHOR_SET_COLOR_KNOB_NAME, "Set Color",
+        """import anchor
+anchor.set_anchor_color(nuke.thisNode())""")
+    node.addKnob(knob)
+
+
+def propagate_anchor_color(anchor_node, color_int):
+    """Set *anchor_node* tile_color to *color_int* and propagate to all referencing Link nodes.
+
+    Dot anchors have fixed colors managed by the system — this function returns
+    early without making any changes for Dot anchors.
+    """
+    if anchor_node.Class() == 'Dot':
+        return
+    anchor_node['tile_color'].setValue(color_int)
+    for link_node in get_links_for_anchor(anchor_node):
+        link_node['tile_color'].setValue(color_int)
+
+
+def set_anchor_color(anchor_node):
+    """Open the color palette dialog and apply the chosen color to *anchor_node*.
+
+    This is the entry point called by the 'Set Color' PyScript_Knob on the anchor node.
+    """
+    if ColorPaletteDialog is None:
+        return
+    if anchor_node.Class() == 'Dot':
+        return
+    current_color = anchor_node['tile_color'].value()
+    dialog = ColorPaletteDialog(initial_color=current_color, show_name_field=False)
+    if dialog.exec_() == ColorPaletteDialog.Accepted:
+        chosen_color = dialog.selected_color_int()
+        if chosen_color is not None:
+            propagate_anchor_color(anchor_node, chosen_color)
+
+
 def anchor_display_name(node):
     if node.Class() == 'Dot':
         return node['label'].getValue().strip()
@@ -137,13 +184,23 @@ def suggest_anchor_name(input_node):
     return suggestion
 
 
-def rename_anchor_to(anchor_node, name):
+def rename_anchor_to(anchor_node, name, color=None):
     """Rename an anchor to *name* and update all referencing link nodes.
 
     Raises ValueError if *name* sanitizes to an empty string.
     For Dot anchors the node name is kept in sync with the label so that the
     FQNN (which embeds the node name) reflects the new name.  Old FQNNs stored
     on link nodes are updated to the new FQNN.
+
+    Parameters
+    ----------
+    anchor_node : nuke.Node
+        The anchor node to rename.
+    name : str
+        New display name for the anchor.
+    color : int or None
+        If provided, propagate this color to the anchor and all its Link nodes
+        after renaming.
     """
     if anchor_node.Class() == 'Dot':
         sanitized = sanitize_anchor_name(name)
@@ -176,21 +233,48 @@ def rename_anchor_to(anchor_node, name):
                 node[KNOB_NAME].setValue(new_fqn)
                 node['label'].setValue(f"Link: {new_label}")
 
+    if color is not None:
+        propagate_anchor_color(anchor_node, color)
+
 
 def rename_anchor(anchor_node):
-    """Prompt the user for a new name and rename the anchor."""
+    """Prompt the user for a new name (and optionally a new color) and rename the anchor."""
     if anchor_node.Class() == 'Dot':
         suggested = anchor_display_name(anchor_node)
     else:
         input_node = anchor_node.input(0)
         suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
-    name = nuke.getInput("Rename anchor:", suggested)
-    if not name or not name.strip():
+
+    if ColorPaletteDialog is None:
+        # Qt unavailable — fall back to plain text input
+        name = nuke.getInput("Rename anchor:", suggested)
+        if not name or not name.strip():
+            return
+        try:
+            rename_anchor_to(anchor_node, name)
+        except ValueError:
+            pass
         return
+
+    current_color = int(anchor_node['tile_color'].value())
+    dialog = ColorPaletteDialog(
+        initial_color=current_color,
+        show_name_field=True,
+        initial_name=suggested,
+    )
+    if dialog.exec_() != QtWidgets.QDialog.Accepted:
+        return
+    chosen_name = dialog.chosen_name
+    if not chosen_name or not chosen_name.strip():
+        return
+    chosen_color = dialog.selected_color_int()
     try:
-        rename_anchor_to(anchor_node, name)
+        rename_anchor_to(anchor_node, chosen_name)
     except ValueError:
-        pass
+        nuke.message(f"Invalid anchor name: {chosen_name!r}")
+        return
+    if chosen_color is not None:
+        propagate_anchor_color(anchor_node, chosen_color)
 
 
 def rename_selected_anchor():
@@ -219,12 +303,36 @@ def create_anchor():
     input_node = selected[0] if len(selected) == 1 else None
 
     suggested = suggest_anchor_name(input_node) if input_node is not None else ""
-    name = nuke.getInput("Anchor name:", suggested)
-    if not name or not name.strip():
+
+    if ColorPaletteDialog is None:
+        # Qt unavailable — fall back to plain text input
+        name = nuke.getInput("Anchor name:", suggested)
+        if not name or not name.strip():
+            return
+        try:
+            create_anchor_named(name, input_node)
+        except ValueError:
+            pass
         return
 
+    if input_node is not None:
+        pre_color = find_anchor_color(input_node)
+    else:
+        pre_color = ANCHOR_DEFAULT_COLOR
+
+    dialog = ColorPaletteDialog(
+        initial_color=int(pre_color),
+        show_name_field=True,
+        initial_name=suggested,
+    )
+    if dialog.exec_() != QtWidgets.QDialog.Accepted:
+        return
+    chosen_name = dialog.chosen_name
+    if not chosen_name or not chosen_name.strip():
+        return
+    chosen_color = dialog.selected_color_int()
     try:
-        create_anchor_named(name, input_node)
+        create_anchor_named(chosen_name, input_node, color=chosen_color)
     except ValueError:
         pass
 
@@ -238,11 +346,21 @@ def create_from_anchor(anchor_node):
     return link
 
 
-def create_anchor_named(name, input_node=None):
+def create_anchor_named(name, input_node=None, color=None):
     """Create an anchor with the given *name* without any user prompt.
 
     Returns the new anchor node.
     Raises ValueError if *name* sanitizes to an empty string.
+
+    Parameters
+    ----------
+    name : str
+        Display name for the anchor.
+    input_node : nuke.Node or None
+        Optional input node to connect the anchor to.
+    color : int or None
+        Explicit tile color as 0xRRGGBBAA int.  If None, falls back to
+        find_anchor_color() for backward-compatible color derivation.
     """
     sanitized = sanitize_anchor_name(name)
     if not sanitized:
@@ -260,9 +378,13 @@ def create_anchor_named(name, input_node=None):
             input_node.ypos() + input_node.screenHeight() + 20
         )
 
-    anchor['tile_color'].setValue(find_anchor_color(anchor))
+    if color is not None:
+        anchor['tile_color'].setValue(color)
+    else:
+        anchor['tile_color'].setValue(find_anchor_color(anchor))
     add_reconnect_anchor_knob(anchor)
     add_rename_anchor_knob(anchor)
+    add_set_color_anchor_knob(anchor)
     return anchor
 
 
@@ -326,7 +448,7 @@ class AnchorPlugin(_tabtabtab.TabTabTabPlugin):
         return None
 
     def get_color(self, menuobj):
-        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        color_int = menuobj['tile_color'].value()  # 0xRRGGBBAA — reads what was actually set
         r = (color_int >> 24) & 0xFF
         g = (color_int >> 16) & 0xFF
         b = (color_int >> 8) & 0xFF
@@ -392,6 +514,43 @@ def select_anchor_and_create():
     _anchor_picker_widget.raise_()
 
 
+def _save_dag_position():
+    """Capture the current DAG viewport state into the back-navigation slot.
+
+    Called before every navigate-to-anchor or navigate-to-backdrop jump.
+    Overwrites any previously saved position — single-slot, no history stack.
+    """
+    global _back_position
+    _back_position = (nuke.zoom(), nuke.center())
+
+
+def navigate_back():
+    """Restore the DAG to the position saved before the last Alt+A jump.
+
+    Silent no-op if no position has been saved yet. Consumes the slot —
+    subsequent calls are no-ops until the next navigate-to-anchor jump.
+    """
+    global _back_position
+    if _back_position is None:
+        return
+    zoom_level, center_xy = _back_position
+    _back_position = None
+    nuke.zoom(zoom_level, center_xy)
+    nukescripts.clear_selection_recursive()
+
+
+def navigate_to_backdrop(backdrop_node):
+    """Zoom the DAG to fit *backdrop_node*.
+
+    Selects the backdrop and calls nuke.zoomToFitSelected().
+    Implemented in Plan 04-02 — stub present here for invoke() dispatch.
+    """
+    nukescripts.clear_selection_recursive()
+    backdrop_node['selected'].setValue(True)
+    nuke.zoomToFitSelected()
+    nukescripts.clear_selection_recursive()
+
+
 def navigate_to_anchor(anchor_node):
     """Zoom the DAG to fit *anchor_node* and its visible-path upstream nodes."""
     from util import upstream_ignoring_hidden
@@ -410,27 +569,40 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
     """tabtabtab plugin that lists all anchor nodes for DAG navigation."""
 
     def get_items(self):
-        return [
+        items = [
             {
                 'menuobj': anchor_node,
                 'menupath': 'Anchors/' + anchor_display_name(anchor_node),
             }
             for anchor_node in all_anchors()
         ]
+        for backdrop_node in nuke.allNodes('BackdropNode'):
+            label = backdrop_node['label'].value().strip()
+            if label:
+                items.append({
+                    'menuobj': backdrop_node,
+                    'menupath': 'Backdrops/' + label,
+                })
+        return items
 
     def get_weights_file(self):
         return os.path.expanduser('~/.nuke/paste_hidden_anchor_navigate_weights.json')
 
     def invoke(self, thing):
-        anchor_node = thing['menuobj']
-        if nuke.exists(anchor_node.name()):
-            navigate_to_anchor(anchor_node)
+        node = thing['menuobj']
+        if not nuke.exists(node.name()):
+            return
+        _save_dag_position()
+        if node.Class() == 'BackdropNode':
+            navigate_to_backdrop(node)
+            return
+        navigate_to_anchor(node)
 
     def get_icon(self, menuobj):
         return None
 
     def get_color(self, menuobj):
-        color_int = find_anchor_color(menuobj)  # 0xRRGGBBAA
+        color_int = menuobj['tile_color'].value()  # 0xRRGGBBAA — reads what was actually set
         r = (color_int >> 24) & 0xFF
         g = (color_int >> 16) & 0xFF
         b = (color_int >> 8) & 0xFF
@@ -439,12 +611,17 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
 
 
 _anchor_navigate_widget = None
+_back_position = None  # (zoom_level, center_xy) tuple or None — session-only back-navigation slot
 
 
 def select_anchor_and_navigate():
     if QtWidgets is None:
         return
-    if not all_anchors():
+    labelled_backdrops = [
+        bd for bd in nuke.allNodes('BackdropNode')
+        if bd['label'].value().strip()
+    ]
+    if not all_anchors() and not labelled_backdrops:
         return
     global _anchor_navigate_widget
     if _anchor_navigate_widget is not None:

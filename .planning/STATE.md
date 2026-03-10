@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-05T15:27:04.747Z"
+last_updated: "2026-03-10T03:41:41.471Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 13
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
-**Current focus:** Phase 5 — Refactor cross-script paste logic for hidden-input Dot vs Anchor Dot distinction (complete)
+**Current focus:** Phase 4 — Anchor Navigation (complete)
 
 ## Current Position
 
-Phase: 5 of 5 (Refactor Cross-Script Paste Logic for DOT_TYPE Distinction)
-Plan: 1 of 1 in current phase (phase complete)
-Status: Phase 5 complete
-Last activity: 2026-03-05 — Completed 05-03 (LOCAL_DOT_COLOR darkened to 0x7A3A00FF; DOT_TYPE knob re-stamped after setup_link_node() via saved_dot_type; Path A/C uses get_link_class_for_source())
+Phase: 4 of 5 (Anchor Navigation) — COMPLETE
+Plan: 03 of 3 complete in current phase (W0=scaffold, 01=back-position, 02=backdrop picker)
+Status: Phase 4 complete — all plans done; human-verified all 7 NAV-01/NAV-02/FIND-01 behaviors
+Last activity: 2026-03-10 — Completed 04-02 Task 2 (human-verify approved); Phase 4 done
 
 Progress: [██████████] 100%
 
@@ -51,6 +51,12 @@ Progress: [██████████] 100%
 *Updated after each plan completion*
 | Phase 05 P02 | 3 | 2 tasks | 4 files |
 | Phase 05-refactor-cross-script-paste-logic-for-hidden-input-dot-vs-anchor-dot-distinction P03 | 8 | 2 tasks | 3 files |
+| Phase 03 P01 | 490 | 2 tasks | 4 files |
+| Phase 03 P02 | 5 | 2 tasks | 1 files |
+| Phase 04 PW0 | 2 | 1 tasks | 1 files |
+| Phase 04 P01 | 2 | 2 tasks | 2 files |
+| Phase 04-anchor-navigation P02 | 5 | 1 tasks | 1 files |
+| Phase 04-anchor-navigation P03 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -79,6 +85,18 @@ Recent decisions affecting current work:
 - [Phase 05]: mark_dot_as_anchor() sets Dot node name to Anchor_<sanitized_label> on first call only; idempotent path (knob already present) returns early
 - [Phase 05]: DOT_TYPE preservation via saved_dot_type before setup_link_node() — safer than changing setup_link_node() which is shared with anchor.py
 - [Phase 05]: get_link_class_for_source() at paste time in Path A/C determines Dot vs NoOp link node class for Dot-anchor sources
+- [Phase 03-01]: ColorPaletteDialog defined as None when Qt unavailable; callers guard with 'if ColorPaletteDialog is None: return'
+- [Phase 03-01]: propagate_anchor_color() returns early for Dot anchors — Dot colors are system-managed
+- [Phase 03-01]: create_anchor_named(color=None) falls back to find_anchor_color() for backward compatibility with create_anchor_silent()
+- [Phase 03-01]: rename_anchor_to(color=None) skips propagation — explicit color opt-in only
+- [Phase 03]: create_anchor() pre-selects ANCHOR_DEFAULT_COLOR when no input_node, or find_anchor_color(input_node) otherwise
+- [Phase 03]: rename_anchor() reads current tile_color for ColorPaletteDialog initial_color pre-selection; calls propagate_anchor_color() when chosen_color is not None
+- [Phase 04-W0]: nuke.zoom/center stubs return 1.0 and [0.0, 0.0] matching Nuke API call signatures; allNodes side_effect dispatches by class_name for BackdropNode vs anchor queries
+- [Phase 04-01]: invoke() variable renamed from anchor_node to node to accommodate BackdropNode dispatch; navigate_to_backdrop() stub added for test patchability before Plan 02 body
+- [Phase 04-01]: navigate_back() sets _back_position = None before calling nuke.zoom() to prevent double-restore on raise
+- [Phase 04-anchor-navigation]: navigate_to_backdrop() body and invoke() BackdropNode dispatch were already in place from Plan 01 stub — no re-implementation needed in Plan 02
+- [Phase 04-anchor-navigation]: get_items() uses for-loop append pattern for Backdrop entries to keep anchor/backdrop logic visually separate and readable
+- [Phase 04-anchor-navigation]: NAV-03 (full browser-style forward/back history stack) formally recorded as deferred to v2 — single-slot back (NAV-01/02) is what shipped in Phase 4
 
 ### Pending Todos
 
@@ -94,6 +112,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-05
-Stopped at: Completed 05-03-PLAN.md — LOCAL_DOT_COLOR darkened, DOT_TYPE re-stamp, Path A/C link class fix
+Last session: 2026-03-10
+Stopped at: Completed 04-02-PLAN.md (Phase 4 complete — human-verified all 7 NAV-01/NAV-02/FIND-01 behaviors)
 Resume file: None

@@ -1,5 +1,7 @@
 """Shared constants for the paste_hidden package."""
 
+import os
+
 TAB_NAME = 'copy_hidden_tab'
 KNOB_NAME = 'copy_hidden_input_node'
 LINK_RECONNECT_KNOB_NAME = "reconnect_link"
@@ -24,3 +26,6 @@ DOT_ANCHOR_KNOB_NAME = 'paste_hidden_dot_anchor'
 
 DOT_TYPE_KNOB_NAME = 'paste_hidden_dot_type'
 LOCAL_DOT_COLOR = 0x7A3A00FF  # darkened burnt orange: R=122,G=58,B=0 (~30% darker than previous 0xB35A00FF)
+
+ANCHOR_SET_COLOR_KNOB_NAME = "set_anchor_color"
+USER_PALETTE_PATH = os.path.expanduser('~/.nuke/paste_hidden_user_palette.json')
