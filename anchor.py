@@ -569,13 +569,21 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
     """tabtabtab plugin that lists all anchor nodes for DAG navigation."""
 
     def get_items(self):
-        return [
+        items = [
             {
                 'menuobj': anchor_node,
                 'menupath': 'Anchors/' + anchor_display_name(anchor_node),
             }
             for anchor_node in all_anchors()
         ]
+        for backdrop_node in nuke.allNodes('BackdropNode'):
+            label = backdrop_node['label'].value().strip()
+            if label:
+                items.append({
+                    'menuobj': backdrop_node,
+                    'menupath': 'Backdrops/' + label,
+                })
+        return items
 
     def get_weights_file(self):
         return os.path.expanduser('~/.nuke/paste_hidden_anchor_navigate_weights.json')
@@ -609,7 +617,11 @@ _back_position = None  # (zoom_level, center_xy) tuple or None — session-only 
 def select_anchor_and_navigate():
     if QtWidgets is None:
         return
-    if not all_anchors():
+    labelled_backdrops = [
+        bd for bd in nuke.allNodes('BackdropNode')
+        if bd['label'].value().strip()
+    ]
+    if not all_anchors() and not labelled_backdrops:
         return
     global _anchor_navigate_widget
     if _anchor_navigate_widget is not None:
