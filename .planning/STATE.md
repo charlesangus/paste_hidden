@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-08T04:37:24.193Z"
+last_updated: "2026-03-10T03:18:22.973Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 12
+  completed_plans: 10
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
-**Current focus:** Phase 3 — Anchor Color System (complete)
+**Current focus:** Phase 4 — Anchor Navigation (in progress)
 
 ## Current Position
 
-Phase: 3 of 4 (Anchor Color System)
-Plan: 2 of 2 complete in current phase
-Status: Phase 3 complete — all COLOR requirements implemented
-Last activity: 2026-03-07 — Completed 03-02 (ColorPaletteDialog wired into create_anchor() and rename_anchor())
+Phase: 4 of 5 (Anchor Navigation)
+Plan: W0 of 3 complete in current phase (W0=scaffold, 01=back-position, 02=backdrop picker)
+Status: Phase 4 in progress — W0 test scaffold complete; Plans 01 and 02 pending
+Last activity: 2026-03-10 — Completed 04-W0 (RED test scaffold for NAV-01/02 and FIND-01)
 
 Progress: [█████████░] 95%
 
@@ -53,6 +53,7 @@ Progress: [█████████░] 95%
 | Phase 05-refactor-cross-script-paste-logic-for-hidden-input-dot-vs-anchor-dot-distinction P03 | 8 | 2 tasks | 3 files |
 | Phase 03 P01 | 490 | 2 tasks | 4 files |
 | Phase 03 P02 | 5 | 2 tasks | 1 files |
+| Phase 04 PW0 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,7 @@ Recent decisions affecting current work:
 - [Phase 03-01]: rename_anchor_to(color=None) skips propagation — explicit color opt-in only
 - [Phase 03]: create_anchor() pre-selects ANCHOR_DEFAULT_COLOR when no input_node, or find_anchor_color(input_node) otherwise
 - [Phase 03]: rename_anchor() reads current tile_color for ColorPaletteDialog initial_color pre-selection; calls propagate_anchor_color() when chosen_color is not None
+- [Phase 04-W0]: nuke.zoom/center stubs return 1.0 and [0.0, 0.0] matching Nuke API call signatures; allNodes side_effect dispatches by class_name for BackdropNode vs anchor queries
 
 ### Pending Todos
 
@@ -102,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-07
-Stopped at: Completed 03-02-PLAN.md — ColorPaletteDialog wired into create_anchor() and rename_anchor(); all COLOR-01 through COLOR-05 requirements implemented
+Last session: 2026-03-10
+Stopped at: Completed 04-W0-PLAN.md — RED test scaffold for Phase 4 anchor navigation (16 tests, 6 classes covering NAV-01/02 and FIND-01)
 Resume file: None
