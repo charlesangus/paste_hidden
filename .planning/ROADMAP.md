@@ -67,7 +67,7 @@ Plans:
 ### Phase 4: Anchor Navigation
 **Goal**: The artist can jump back to where they were after navigating to an anchor, and Backdrops appear alongside anchor nodes in the navigation picker
 **Depends on**: Phase 1
-**Requirements**: NAV-01, NAV-02, NAV-03, FIND-01
+**Requirements**: NAV-01, NAV-02, FIND-01 (NAV-03 deferred to v2)
 **Success Criteria** (what must be TRUE):
   1. Invoking navigate-to-anchor (Alt+A) saves the current DAG position before jumping
   2. A keyboard shortcut returns the DAG view to the position saved before the last navigate-to-anchor
@@ -77,7 +77,7 @@ Plans:
 Plans:
 - [x] 04-W0-PLAN.md — Test scaffold: tests/test_anchor_navigation.py (NAV-01, NAV-02, FIND-01 offline coverage)
 - [x] 04-01-PLAN.md — Navigation history: _back_position slot, _save_dag_position(), navigate_back(), Alt+Z menu (NAV-01, NAV-02)
-- [x] 04-02-PLAN.md — Backdrop picker: navigate_to_backdrop(), get_items() extension, invoke() dispatch, guard update (FIND-01)
+- [x] 04-02-PLAN.md — Backdrop picker: navigate_to_backdrop(), get_items() extension, invoke() dispatch, guard update (FIND-01) [NAV-03 stretch goal deferred to v2 — single-slot back shipped only]
 
 ## Progress
 
