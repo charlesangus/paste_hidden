@@ -539,6 +539,18 @@ def navigate_back():
     nukescripts.clear_selection_recursive()
 
 
+def navigate_to_backdrop(backdrop_node):
+    """Zoom the DAG to fit *backdrop_node*.
+
+    Selects the backdrop and calls nuke.zoomToFitSelected().
+    Implemented in Plan 04-02 — stub present here for invoke() dispatch.
+    """
+    nukescripts.clear_selection_recursive()
+    backdrop_node['selected'].setValue(True)
+    nuke.zoomToFitSelected()
+    nukescripts.clear_selection_recursive()
+
+
 def navigate_to_anchor(anchor_node):
     """Zoom the DAG to fit *anchor_node* and its visible-path upstream nodes."""
     from util import upstream_ignoring_hidden
@@ -569,9 +581,14 @@ class AnchorNavigatePlugin(_tabtabtab.TabTabTabPlugin):
         return os.path.expanduser('~/.nuke/paste_hidden_anchor_navigate_weights.json')
 
     def invoke(self, thing):
-        anchor_node = thing['menuobj']
-        if nuke.exists(anchor_node.name()):
-            navigate_to_anchor(anchor_node)
+        node = thing['menuobj']
+        if not nuke.exists(node.name()):
+            return
+        _save_dag_position()
+        if node.Class() == 'BackdropNode':
+            navigate_to_backdrop(node)
+            return
+        navigate_to_anchor(node)
 
     def get_icon(self, menuobj):
         return None
