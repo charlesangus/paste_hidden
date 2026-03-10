@@ -49,7 +49,7 @@ completed: 2026-03-09
 - **Duration:** ~5 min
 - **Started:** 2026-03-09T00:00:00Z
 - **Completed:** 2026-03-09T00:05:00Z
-- **Tasks:** 1 of 2 complete (Task 2 = human-verify checkpoint, awaiting user)
+- **Tasks:** 2 of 2 complete
 - **Files modified:** 1
 
 ## Accomplishments
@@ -57,10 +57,12 @@ completed: 2026-03-09
 - `select_anchor_and_navigate()` guard updated: picker opens when only labelled Backdrops exist (no anchors)
 - `navigate_to_backdrop()` body (clear-select-zoom-clear) was already correct from Plan 01 stub
 - All 16 tests in `test_anchor_navigation` pass (including 4 new FIND-01 tests that were RED before)
+- Human-verified: all 7 NAV-01/NAV-02/FIND-01 behaviors confirmed in a running Nuke session
 
 ## Task Commits
 
 1. **Task 1: Add Backdrop navigation support to Alt+A picker** - `588dc04` (feat)
+2. **Task 2: Human verify Anchor Navigation in Nuke** - approved (human checkpoint — no code commit)
 
 ## Files Created/Modified
 - `/workspace/anchor.py` - Extended `get_items()` with BackdropNode iteration; updated `select_anchor_and_navigate()` guard
@@ -82,10 +84,10 @@ The `navigate_to_backdrop()` function body and `invoke()` dispatch were already 
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- Task 1 complete, committed at `588dc04`
-- Awaiting human verification (Task 2 checkpoint) in Nuke with plugin loaded
-- All 7 NAV-01/NAV-02/FIND-01 behaviors need human sign-off before phase is marked complete
+- Phase 4 requirements NAV-01, NAV-02, FIND-01 all delivered and human-verified
+- NAV-03 (browser-style forward/back history) was a stretch goal; not implemented; deferred to v2 if needed
+- Phase 5 (refactor cross-script paste logic) is the final planned phase; no blockers from Phase 4
 
 ---
 *Phase: 04-anchor-navigation*
-*Completed: 2026-03-09 (partial — pending human checkpoint)*
+*Completed: 2026-03-10*

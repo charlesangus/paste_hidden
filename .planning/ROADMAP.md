@@ -75,9 +75,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-W0-PLAN.md — Test scaffold: tests/test_anchor_navigation.py (NAV-01, NAV-02, FIND-01 offline coverage)
-- [ ] 04-01-PLAN.md — Navigation history: _back_position slot, _save_dag_position(), navigate_back(), Alt+Z menu (NAV-01, NAV-02)
-- [ ] 04-02-PLAN.md — Backdrop picker: navigate_to_backdrop(), get_items() extension, invoke() dispatch, guard update (FIND-01)
+- [x] 04-W0-PLAN.md — Test scaffold: tests/test_anchor_navigation.py (NAV-01, NAV-02, FIND-01 offline coverage)
+- [x] 04-01-PLAN.md — Navigation history: _back_position slot, _save_dag_position(), navigate_back(), Alt+Z menu (NAV-01, NAV-02)
+- [x] 04-02-PLAN.md — Backdrop picker: navigate_to_backdrop(), get_items() extension, invoke() dispatch, guard update (FIND-01)
 
 ## Progress
 

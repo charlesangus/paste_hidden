@@ -25,9 +25,9 @@
 
 ### Anchor Navigation History
 
-- [ ] **NAV-01**: DAG position is saved when navigate-to-anchor (Alt+A) is invoked
-- [ ] **NAV-02**: A keyboard shortcut jumps the DAG view back to the saved position
-- [ ] **NAV-03**: Full browser-style forward/back navigation history stack (stretch goal)
+- [x] **NAV-01**: DAG position is saved when navigate-to-anchor (Alt+A) is invoked
+- [x] **NAV-02**: A keyboard shortcut jumps the DAG view back to the saved position
+- [x] **NAV-03**: Full browser-style forward/back navigation history stack (stretch goal)
 
 ### Anchor Color System
 
@@ -39,7 +39,7 @@
 
 ### Anchor Find
 
-- [ ] **FIND-01**: Anchor navigation picker (Alt+A) includes labelled BackdropNodes as navigable targets alongside anchor nodes
+- [x] **FIND-01**: Anchor navigation picker (Alt+A) includes labelled BackdropNodes as navigable targets alongside anchor nodes
 
 ## v2 Requirements
 
@@ -74,15 +74,15 @@
 | LINK-04 | Phase 1 | Complete (01-01) |
 | XSCRIPT-01 | Phase 2 | Complete (02-01) |
 | XSCRIPT-02 | Phase 2 | Complete (02-01) |
-| NAV-01 | Phase 4 | Pending |
-| NAV-02 | Phase 4 | Pending |
-| NAV-03 | Phase 4 | Pending |
+| NAV-01 | Phase 4 | Complete |
+| NAV-02 | Phase 4 | Complete |
+| NAV-03 | Phase 4 | Complete |
 | COLOR-01 | Phase 3 | Complete |
 | COLOR-02 | Phase 3 | Complete |
 | COLOR-03 | Phase 3 | Complete |
 | COLOR-04 | Phase 3 | Complete |
 | COLOR-05 | Phase 3 | Complete |
-| FIND-01 | Phase 4 | Pending |
+| FIND-01 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 18 total
