@@ -60,6 +60,7 @@ skipped: 0
       issue: "lines 149 and 159 — nuke.createNode('NoOp') hardcoded; should be nuke.createNode(get_link_class_for_source(input_node or node))"
   missing:
     - "Call get_link_class_for_source() in Path A/C to pick Dot vs NoOp based on source class"
+  fix_verified: "Pass (2026-03-10) — get_link_class_for_source() added to Path A/C in 05-03. Gap closed."
 
 - truth: "Local Dot tile_color should be a dark burnt orange, clearly distinct from Link Dot purple"
   status: failed
@@ -72,6 +73,7 @@ skipped: 0
       issue: "line 26 — LOCAL_DOT_COLOR = 0xB35A00FF should be a darker value, e.g. 0x7A3A00FF"
   missing:
     - "Darken LOCAL_DOT_COLOR constant"
+  fix_verified: "Pass (2026-03-10) — darkened to 0x7A3A00FF in 05-03. Gap closed."
 
 - truth: "Pasting a Local Dot preserves its 'Local: {name}' label and burnt orange color — not overwritten to 'Link: ...' and input node color"
   status: failed
@@ -86,6 +88,7 @@ skipped: 0
       issue: "setup_link_node() calls add_input_knob() with no dot_type, silently stripping the knob"
   missing:
     - "Read dot_type from node before setup_link_node(); re-apply Local appearance and re-stamp knob afterward if dot_type == 'local'"
+  fix_verified: "Pass (2026-03-10) — saved_dot_type re-stamp pattern implemented in 05-03. Gap closed."
 
 - truth: "Link Dot reconnects cross-script to the matching Anchor Dot by name"
   status: failed
@@ -102,6 +105,16 @@ skipped: 0
     - "rename_anchor_to() must also rename the Dot node's Nuke name to a sanitized form matching the label (e.g. Anchor_<sanitized>) so FQNN and label-based lookup agree"
     - "mark_dot_as_anchor() / creation path must apply the same node name sync"
     - "Remove or relax ANCHOR_PREFIX guard in _extract_display_name_from_fqnn() for Dot anchors once node names carry the prefix"
+  fix_verified: "Pass for Link Dot → Anchor Dot reconnect (2026-03-10). New issue discovered: Anchor Dot copied cross-script should paste as a Link Dot connected to the matching anchor in the destination script — currently does not."
+
+- truth: "Copying an Anchor Dot and pasting into a script with a matching anchor of the same name produces a Link Dot connected to that anchor"
+  status: failed
+  reason: "User reported: if you copy the Anchor dot and paste it in the new script, with the matching anchor dot, it should paste as a Link dot connected to the matching anchor dot in the new script."
+  severity: major
+  test: 3-retest
+  root_cause: ""
+  artifacts: []
+  missing: []
 
 - truth: "Pasting a Local Dot same-script produces a Dot with 'Local: {name}' label and burnt orange color — not 'Link: ...' and input node color"
   status: failed
@@ -114,3 +127,4 @@ skipped: 0
       issue: "Same fix location as test 2 gap — lines 200-207"
   missing:
     - "Same fix as test 2 gap — read and restore dot_type before/after setup_link_node()"
+  fix_verified: "Pass (2026-03-10) — covered by re-test 2 above. Gap closed."

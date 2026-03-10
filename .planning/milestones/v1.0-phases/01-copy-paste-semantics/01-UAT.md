@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 01-copy-paste-semantics
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md
 started: 2026-03-04T12:45:00Z
@@ -18,6 +18,7 @@ expected: Create a Camera node. Run the paste_hidden anchor workflow to attach i
 result: issue
 reported: "Works for camera nodes, but only camera nodes. We need a generic solution. I suggest that at anchor creation, we create some temp nodes - a 3d node, a Deep node, and a 2d node, and either actually try to wire them in to the anchor's input, or use canSetInput to determine whether the anchor is wired into a 2d, 3d, or Deep stream. Then we need to store that on the anchor, so we can make the correct link type."
 severity: major
+fix_verified: "Pass (2026-03-10) — canSetInput probe implemented in 01-03. All node types (Camera, ScanlineRender, Read) now produce NoOp links by design. Generic, correct."
 
 ### 2. Read anchor paste creates PostageStamp link
 expected: Create a Read node with media loaded. Run the paste_hidden anchor workflow to attach it. Copy the Read node. Paste it — a new link node should be created using the PostageStamp class (not NoOp), because Read nodes produce 2D image streams.
@@ -60,3 +61,4 @@ skipped: 0
     - "Replace channel-inspection fallback in detect_link_class_for_node() with canSetInput probe; retain LINK_CLASSES fast-path for known types"
     - "Update _store_link_class_on_anchor() to use probe against anchor.input(0) when input_node is None"
   debug_session: ""
+  fix_verified: "Pass (2026-03-10) — 01-03 replaced heuristic with canSetInput probe. All node types correctly produce NoOp. Gap closed."
