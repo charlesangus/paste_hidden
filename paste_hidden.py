@@ -21,6 +21,8 @@ from link import (
     find_anchor_node,
 )
 
+import prefs
+
 
 def copy_hidden(cut=False):
     """Add a hidden knob storing the original name of the node/node's input. We
@@ -30,6 +32,9 @@ def copy_hidden(cut=False):
     causing our paste routine to do a normal paste without replacement. This is required
     for cuts, as the original node will have been deleted.
     """
+    if not prefs.plugin_enabled:
+        nuke.nodeCopy(nukescripts.cut_paste_file())
+        return
     selected_nodes = nuke.selectedNodes()
     for node in selected_nodes:
         if is_link(node):
@@ -40,6 +45,8 @@ def copy_hidden(cut=False):
         # from the anchor's hidden knob. Falls back to the file node's own FQNN when
         # no anchor points at it (legacy direct-file-node path).
         if node.Class() in LINK_SOURCE_CLASSES:
+            if prefs.link_classes_paste_mode == 'passthrough':
+                continue  # skip stamping; node copies plainly via nuke.nodeCopy() at end of function
             if cut:
                 stored_fqnn = ""
             else:
@@ -96,6 +103,12 @@ def cut_hidden():
     """Cut selected nodes (i.e. copy then delete). Do not store the original
     name in KNOB_NAME. This will disable replacement on paste.
     """
+    if not prefs.plugin_enabled:
+        selected_nodes = nuke.selectedNodes()
+        nuke.nodeCopy(nukescripts.cut_paste_file())
+        for node in selected_nodes:
+            nuke.delete(node)
+        return
     selected_nodes = nuke.selectedNodes()
     copy_hidden(cut=True)
     for node in selected_nodes:
@@ -119,6 +132,8 @@ def _extract_display_name_from_fqnn(stored_fqnn):
 
 
 def paste_hidden():
+    if not prefs.plugin_enabled:
+        return nuke.nodePaste(nukescripts.cut_paste_file())
     last_pasted_node = nuke.nodePaste(nukescripts.cut_paste_file())
     selected_nodes = nuke.selectedNodes()
 
