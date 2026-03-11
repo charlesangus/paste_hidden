@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
-status: in-progress
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-11T12:23:14Z"
+status: executing
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-03-11T12:27:21.279Z"
 last_activity: 2026-03-11 — Phase 6 Plan 01 complete; prefs.py singleton and PREFS_PATH created
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 12
 ---
 
@@ -48,6 +48,7 @@ Progress: [█░░░░░░░░░] 12% (1 of 8 plans complete — v1.1)
 | 7 (v1.1) | TBD | - | - |
 
 *Updated after each plan completion*
+| Phase 06 P03 | 3min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,7 @@ Key decisions affecting v1.1 work:
 - [v1.1 Architecture]: `QPushButton.setAutoDefault(False)` on all swatch buttons prevents Enter interception; Enter is handled by a dialog-level key event to confirm selection
 - [06-01 Prefs]: Migration reads only from old palette file; new prefs written only on explicit save() from Phase 7 PrefsDialog — prevents accidental early writes
 - [06-01 Prefs]: save() is never called within prefs.py itself; Phase 7 PrefsDialog owns the persistence lifecycle
+- [Phase 06-03]: plugin_enabled guard placed as first statement in each clipboard function; link_classes_paste_mode uses continue (not return) in Path A loop; copy_old/cut_old/paste_old left ungated
 
 ### Pending Todos
 
@@ -73,6 +75,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T12:23:14Z
-Stopped at: Completed 06-01-PLAN.md
-Resume file: .planning/phases/06-preferences-infrastructure/06-02-PLAN.md
+Last session: 2026-03-11T12:27:21.276Z
+Stopped at: Completed 06-03-PLAN.md
+Resume file: None
