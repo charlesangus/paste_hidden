@@ -29,3 +29,4 @@ LOCAL_DOT_COLOR = 0x7A3A00FF  # darkened burnt orange: R=122,G=58,B=0 (~30% dark
 
 ANCHOR_SET_COLOR_KNOB_NAME = "set_anchor_color"
 USER_PALETTE_PATH = os.path.expanduser('~/.nuke/paste_hidden_user_palette.json')
+PREFS_PATH = os.path.expanduser('~/.nuke/paste_hidden_prefs.json')
