@@ -1,0 +1,85 @@
+"""Plugin-wide preferences singleton for paste_hidden.
+
+Loads from ~/.nuke/paste_hidden_prefs.json at import time (once per Nuke session).
+Writes via explicit save() call only — called by Phase 7 PrefsDialog on accept.
+
+Module-level variables (read these directly after import):
+    plugin_enabled          bool  — True if the plugin is active
+    link_classes_paste_mode str   — 'create_link' or 'passthrough'
+    custom_colors           list  — list of 0xRRGGBBAA color ints
+"""
+
+import json
+import os
+
+from constants import PREFS_PATH, USER_PALETTE_PATH
+
+# ---------------------------------------------------------------------------
+# Defaults — overwritten by _load() at module import time
+# ---------------------------------------------------------------------------
+plugin_enabled = True
+link_classes_paste_mode = "create_link"
+custom_colors = []
+
+
+def _migrate_from_old_palette():
+    """One-way migration: read custom colors from old palette file into custom_colors.
+
+    Called only when paste_hidden_prefs.json does not exist.
+    Never writes to the old palette file. Silent no-op if old file is absent or corrupt.
+    """
+    global custom_colors
+    try:
+        with open(USER_PALETTE_PATH) as file_handle:
+            data = json.load(file_handle)
+        custom_colors = [int(color_value) for color_value in data
+                         if isinstance(color_value, (int, float))]
+    except (OSError, ValueError, json.JSONDecodeError):
+        custom_colors = []
+
+
+def _load():
+    """Load preferences from disk. Called once at module import time.
+
+    If the prefs file does not exist, attempts migration from the old palette
+    file. If the prefs file exists but is corrupt or unreadable, silently falls
+    back to defaults. Per-key type validation ensures corrupt individual values
+    do not poison valid ones.
+    """
+    global plugin_enabled, link_classes_paste_mode, custom_colors
+    if not os.path.exists(PREFS_PATH):
+        _migrate_from_old_palette()
+        return
+    try:
+        with open(PREFS_PATH) as file_handle:
+            data = json.load(file_handle)
+        if isinstance(data.get('plugin_enabled'), bool):
+            plugin_enabled = data['plugin_enabled']
+        if data.get('link_classes_paste_mode') in ('create_link', 'passthrough'):
+            link_classes_paste_mode = data['link_classes_paste_mode']
+        if isinstance(data.get('custom_colors'), list):
+            custom_colors = [int(color_value) for color_value in data['custom_colors']
+                             if isinstance(color_value, (int, float))]
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass  # silent fallback — module-level defaults remain
+
+
+def save():
+    """Persist current preference values to disk.
+
+    Creates ~/.nuke/ directory if it does not exist.
+    Called by Phase 7 PrefsDialog on accept — never called automatically.
+    """
+    os.makedirs(os.path.dirname(PREFS_PATH), exist_ok=True)
+    with open(PREFS_PATH, 'w') as file_handle:
+        json.dump(
+            {
+                'plugin_enabled': plugin_enabled,
+                'link_classes_paste_mode': link_classes_paste_mode,
+                'custom_colors': custom_colors,
+            },
+            file_handle,
+        )
+
+
+_load()  # execute at import time — single load per Nuke session
