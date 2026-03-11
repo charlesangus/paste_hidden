@@ -45,8 +45,8 @@
 
 ### Preferences Infrastructure
 
-- [ ] **PREFS-01**: Preferences are persisted to `~/.nuke/paste_hidden_prefs.json` with keys: `plugin_enabled`, `link_classes_paste_mode`, `custom_colors`
-- [ ] **PREFS-02**: On first run with no prefs file, existing `paste_hidden_user_palette.json` custom colors migrate into the new prefs file; old file is never written again
+- [x] **PREFS-01**: Preferences are persisted to `~/.nuke/paste_hidden_prefs.json` with keys: `plugin_enabled`, `link_classes_paste_mode`, `custom_colors`
+- [x] **PREFS-02**: On first run with no prefs file, existing `paste_hidden_user_palette.json` custom colors migrate into the new prefs file; old file is never written again
 - [ ] **PREFS-03**: When plugin is disabled, `copy_hidden()`, `cut_hidden()`, and `paste_hidden()` fall through to Nuke's default clipboard behavior silently
 - [ ] **PREFS-04**: When `link_classes_paste_mode` is set to `passthrough`, copying a LINK_CLASSES node (Read, Camera, etc.) produces a plain Nuke copy with no anchor creation and no FQNN stamp — identical to default Nuke copy behavior
 
@@ -111,8 +111,8 @@
 | COLOR-04 | Phase 3 | Complete |
 | COLOR-05 | Phase 3 | Complete |
 | FIND-01 | Phase 4 | Complete |
-| PREFS-01 | Phase 6 | Pending |
-| PREFS-02 | Phase 6 | Pending |
+| PREFS-01 | Phase 6 | Complete |
+| PREFS-02 | Phase 6 | Complete |
 | PREFS-03 | Phase 6 | Pending |
 | PREFS-04 | Phase 6 | Pending |
 | PANEL-01 | Phase 7 | Pending |
