@@ -37,6 +37,7 @@ from link import (
     get_link_class_for_source,
     setup_link_node,
 )
+import prefs
 
 
 def sanitize_anchor_name(name):
@@ -128,7 +129,11 @@ def set_anchor_color(anchor_node):
     if anchor_node.Class() == 'Dot':
         return
     current_color = anchor_node['tile_color'].value()
-    dialog = ColorPaletteDialog(initial_color=current_color, show_name_field=False)
+    dialog = ColorPaletteDialog(
+        initial_color=current_color,
+        show_name_field=False,
+        custom_colors=prefs.custom_colors,
+    )
     if dialog.exec_() == ColorPaletteDialog.Accepted:
         chosen_color = dialog.selected_color_int()
         if chosen_color is not None:
@@ -261,6 +266,7 @@ def rename_anchor(anchor_node):
         initial_color=current_color,
         show_name_field=True,
         initial_name=suggested,
+        custom_colors=prefs.custom_colors,
     )
     if dialog.exec_() != QtWidgets.QDialog.Accepted:
         return
@@ -278,6 +284,8 @@ def rename_anchor(anchor_node):
 
 
 def rename_selected_anchor():
+    if not prefs.plugin_enabled:
+        return
     selected = nuke.selectedNodes()
     if len(selected) == 1 and is_anchor(selected[0]):
         rename_anchor(selected[0])
@@ -299,6 +307,8 @@ def reconnect_all_links():
 
 
 def create_anchor():
+    if not prefs.plugin_enabled:
+        return
     selected = nuke.selectedNodes()
     input_node = selected[0] if len(selected) == 1 else None
 
@@ -324,6 +334,7 @@ def create_anchor():
         initial_color=int(pre_color),
         show_name_field=True,
         initial_name=suggested,
+        custom_colors=prefs.custom_colors,
     )
     if dialog.exec_() != QtWidgets.QDialog.Accepted:
         return
@@ -478,6 +489,8 @@ def _offer_make_dot_anchor(dot_node):
 
 def anchor_shortcut():
     """If a node is selected, create an anchor from it. Otherwise, pick an anchor to create from."""
+    if not prefs.plugin_enabled:
+        return
     selected = nuke.selectedNodes()
     if len(selected) == 1 and is_anchor(selected[0]):
         rename_anchor(selected[0])
@@ -493,6 +506,8 @@ _anchor_picker_widget = None
 
 
 def select_anchor_and_create():
+    if not prefs.plugin_enabled:
+        return
     if QtWidgets is None:
         return
     if not all_anchors():
@@ -530,6 +545,8 @@ def navigate_back():
     Silent no-op if no position has been saved yet. Consumes the slot —
     subsequent calls are no-ops until the next navigate-to-anchor jump.
     """
+    if not prefs.plugin_enabled:
+        return
     global _back_position
     if _back_position is None:
         return
@@ -615,6 +632,8 @@ _back_position = None  # (zoom_level, center_xy) tuple or None — session-only 
 
 
 def select_anchor_and_navigate():
+    if not prefs.plugin_enabled:
+        return
     if QtWidgets is None:
         return
     labelled_backdrops = [

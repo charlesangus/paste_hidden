@@ -10,6 +10,7 @@ from constants import (
     NODE_LABEL_FONT_SIZE_LARGE,
 )
 from link import get_fully_qualified_node_name, is_anchor, is_link, reconnect_link_node, mark_dot_as_anchor
+import prefs
 
 
 def _update_dot_link_labels(dot_node, new_label):
@@ -43,6 +44,8 @@ def _apply_label(node, text, dot_font_size=None, node_font_size=None):
 
 def create_large_label():
     """Prompt for a label and apply it with large font sizing."""
+    if not prefs.plugin_enabled:
+        return
     selected_nodes = nuke.selectedNodes()
     if not selected_nodes:
         return
@@ -55,6 +58,8 @@ def create_large_label():
 
 def create_medium_label():
     """Prompt for a label and apply it; Dot nodes get medium font size, others unchanged."""
+    if not prefs.plugin_enabled:
+        return
     selected_nodes = nuke.selectedNodes()
     if not selected_nodes:
         return
@@ -67,6 +72,8 @@ def create_medium_label():
 
 def append_to_label():
     """Prompt for a suffix and append it to the node's existing label."""
+    if not prefs.plugin_enabled:
+        return
     selected_nodes = nuke.selectedNodes()
     if not selected_nodes:
         return
