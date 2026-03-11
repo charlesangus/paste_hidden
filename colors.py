@@ -1,7 +1,4 @@
-"""Color palette dialog and user palette helpers for the anchor color system."""
-
-import json
-import os
+"""Color palette dialog for the anchor color system."""
 
 import nuke
 
@@ -18,32 +15,9 @@ except ImportError:
     QtCore = None
     Qt = None
 
-from constants import USER_PALETTE_PATH
-
-
 # ---------------------------------------------------------------------------
 # Non-Qt helpers — always available
 # ---------------------------------------------------------------------------
-
-def load_user_palette():
-    """Return the saved user color palette as a list of ints (0xRRGGBBAA format).
-
-    Returns an empty list if the file does not exist or is invalid.
-    """
-    try:
-        with open(USER_PALETTE_PATH) as file_handle:
-            data = json.load(file_handle)
-        return [int(c) for c in data if isinstance(c, (int, float))]
-    except (FileNotFoundError, ValueError, json.JSONDecodeError):
-        return []
-
-
-def save_user_palette(colors):
-    """Save *colors* (list of ints) to the user palette JSON file."""
-    os.makedirs(os.path.dirname(USER_PALETTE_PATH), exist_ok=True)
-    with open(USER_PALETTE_PATH, 'w') as file_handle:
-        json.dump(colors, file_handle)
-
 
 def _get_nuke_pref_colors():
     """Return list of color ints from Nuke's Edit > Preferences > Colors.
@@ -109,11 +83,15 @@ else:
             If True, shows a name QLineEdit at the top (for creation/rename dialogs).
         initial_name : str
             Pre-filled value for the name field (only relevant when show_name_field=True).
+        custom_colors : list of int or None
+            User-defined palette colors injected by the caller (e.g. from prefs.custom_colors).
+            Defaults to an empty list if not provided.
         parent : QWidget or None
             Parent widget.
         """
 
-        def __init__(self, initial_color=None, show_name_field=False, initial_name="", parent=None):
+        def __init__(self, initial_color=None, show_name_field=False,
+                     initial_name="", custom_colors=None, parent=None):
             super().__init__(parent)
 
             self._selected_color = initial_color
@@ -121,6 +99,7 @@ else:
             self._hint_col = None
             self._swatch_cells = []  # list of (col_index, row_index, color_int, button)
             self.chosen_name = initial_name
+            self._custom_colors = custom_colors if custom_colors is not None else []
 
             # Map from (col_index, row_index) to button for hint navigation
             self._cell_map = {}
@@ -148,7 +127,7 @@ else:
             # Collect all color sources
             nuke_pref_colors = _get_nuke_pref_colors()
             backdrop_colors = _get_script_backdrop_colors()
-            user_palette_colors = load_user_palette()
+            user_palette_colors = self._custom_colors
 
             all_color_groups = [
                 group for group in [nuke_pref_colors, backdrop_colors, user_palette_colors]
