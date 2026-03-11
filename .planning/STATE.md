@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-11T12:28:25.590Z"
-last_activity: 2026-03-11 — Phase 6 Plan 01 complete; prefs.py singleton and PREFS_PATH created
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-03-11T12:32:01Z"
+last_activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 4
-  completed_plans: 3
-  percent: 12
+  total_plans: 8
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 6 of 7 (v1.1 scope — phases 6-7)
-Plan: 1 of 4 in current phase (plan 01 complete)
+Plan: 4 of 4 in current phase (plan 04 complete — Phase 6 done)
 Status: In progress
-Last activity: 2026-03-11 — Phase 6 Plan 01 complete; prefs.py singleton and PREFS_PATH created
+Last activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
 
-Progress: [█░░░░░░░░░] 12% (1 of 8 plans complete — v1.1)
+Progress: [█████░░░░░] 50% (4 of 8 plans complete — v1.1)
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [█░░░░░░░░░] 12% (1 of 8 plans complete — v1.1)
 *Updated after each plan completion*
 | Phase 06 P03 | 3min | 1 tasks | 1 files |
 | Phase 06-preferences-infrastructure P02 | 2min | 1 tasks | 2 files |
+| Phase 06-preferences-infrastructure P04 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Key decisions affecting v1.1 work:
 - [Phase 06-03]: plugin_enabled guard placed as first statement in each clipboard function; link_classes_paste_mode uses continue (not return) in Path A loop; copy_old/cut_old/paste_old left ungated
 - [Phase 06-02]: Unused json and os stdlib imports removed from colors.py along with palette functions — colors.py now has zero stdlib imports
 - [Phase 06-02]: Test classes for load_user_palette/save_user_palette deleted from test_anchor_color_system.py since the functions no longer exist
+- [Phase 06-04]: set_anchors_menu_enabled() uses hasattr guard for setEnabled for Nuke 13+ compatibility; called at startup with prefs.plugin_enabled to apply initial state
+- [Phase 06-04]: copy_old/cut_old/paste_old excluded from _gated_menu_items — always active as explicit fallback commands; Phase 7 Preferences item will also be excluded when added
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T12:28:25.588Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-11T12:32:01Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None

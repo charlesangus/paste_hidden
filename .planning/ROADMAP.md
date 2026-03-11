@@ -24,7 +24,7 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 **Milestone Goal:** Redesign the color picker dialog for usability, and add a preferences panel for plugin-wide settings.
 
-- [ ] **Phase 6: Preferences Infrastructure** - Prefs singleton, JSON persistence, migration from old palette file, and LINK_CLASSES paste-mode gate in copy_hidden()
+- [x] **Phase 6: Preferences Infrastructure** - Prefs singleton, JSON persistence, migration from old palette file, and LINK_CLASSES paste-mode gate in copy_hidden() (completed 2026-03-11)
 - [ ] **Phase 7: Color Picker Redesign and Preferences Panel** - ColorPaletteDialog state machine redesign, PrefsDialog UI with all controls, and menu entry point
 
 ## Phase Details
@@ -67,5 +67,5 @@ Plans:
 | 3. Anchor Color System | v1.0 | 2/2 | Complete | 2026-03-07 |
 | 4. Anchor Navigation | v1.0 | 4/4 | Complete | 2026-03-10 |
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
-| 6. Preferences Infrastructure | 3/4 | In Progress|  | - |
+| 6. Preferences Infrastructure | 4/4 | Complete   | 2026-03-11 | - |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 0/? | Not started | - |
