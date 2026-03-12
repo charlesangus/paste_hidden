@@ -141,10 +141,16 @@ else:
             ]
 
             grid_row = 0
-            # is_first_group tracks whether the current group is the custom
-            # colors group, so we can record the next available slot for
-            # dynamic swatch appending (PICKER-05).
-            is_first_group = True
+
+            # Initialise the custom colors next-slot tracker.  If
+            # user_palette_colors is non-empty, it will be the first group in
+            # all_color_groups and we update these counters after that group.
+            # If user_palette_colors is empty (filtered out by `if group`), we
+            # pre-set them to (0, 0) so dynamically appended swatches start at
+            # the top of the grid — before all other groups.
+            self._custom_group_next_col = 0
+            self._custom_group_next_row = 0
+            custom_group_tracker_set = False
 
             for color_group in all_color_groups:
                 group_col = 0
@@ -184,25 +190,16 @@ else:
                         group_col = 0
                         grid_row += 1
 
-                if is_first_group:
+                if not custom_group_tracker_set and color_group is user_palette_colors:
                     # Record the next available slot in the custom colors group
                     # for dynamic swatch appending via _append_swatch_to_custom_group.
                     self._custom_group_next_col = group_col
                     self._custom_group_next_row = grid_row
-                    is_first_group = False
+                    custom_group_tracker_set = True
 
                 # Move to next group row (creates a blank-row gap between groups)
                 if group_col > 0:
                     grid_row += 1
-
-            # If no custom colors were provided, the custom group is empty and
-            # the first group processed was a different one.  Initialise the
-            # custom group position so appended swatches start at row 0.
-            if is_first_group:
-                # all_color_groups was empty, or user_palette_colors was empty
-                # and was filtered out by `if group` — init to (0, 0).
-                self._custom_group_next_col = 0
-                self._custom_group_next_row = 0
 
             # "Custom Color..." button — opens nuke.getColor(), stages result
             custom_button = QtWidgets.QPushButton("Custom Color...")
