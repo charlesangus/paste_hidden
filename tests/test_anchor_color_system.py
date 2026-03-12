@@ -1349,12 +1349,15 @@ class TestPrefsDialogButtonsHaveAutoDefaultFalse(unittest.TestCase):
 
 
 class TestPrefsDialogSwatchTabFocusPolicy(unittest.TestCase):
-    """BUG 5 regression: PrefsDialog swatch buttons must use Qt.TabFocus so they
-    participate in the tab order and are reachable by keyboard navigation.
+    """BUG 5 / BUG 2 regression: PrefsDialog swatch buttons must use Qt.StrongFocus so
+    they participate in the tab order and are reachable by both Tab key and mouse click.
+
+    Qt.StrongFocus (focusable via Tab AND click) is correct for interactive buttons.
+    Qt.TabFocus only allows Tab navigation but prevents click-to-focus, which is wrong.
     """
 
-    def test_populate_swatch_grid_sets_tab_focus_not_no_focus(self):
-        """_populate_swatch_grid must set Qt.TabFocus on swatch buttons, not Qt.NoFocus."""
+    def test_populate_swatch_grid_sets_strong_focus_not_no_focus(self):
+        """_populate_swatch_grid must set Qt.StrongFocus on swatch buttons, not Qt.NoFocus."""
         with open('/workspace/colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
@@ -1374,9 +1377,9 @@ class TestPrefsDialogSwatchTabFocusPolicy(unittest.TestCase):
 
         self.assertIsNotNone(populate_source,
                              "PrefsDialog._populate_swatch_grid not found in colors.py")
-        self.assertIn('Qt.TabFocus', populate_source,
-                      "_populate_swatch_grid must set Qt.TabFocus on swatch buttons "
-                      "so they are reachable via Tab key navigation")
+        self.assertIn('Qt.StrongFocus', populate_source,
+                      "_populate_swatch_grid must set Qt.StrongFocus on swatch buttons "
+                      "so they are reachable via both Tab key and mouse click")
         self.assertNotIn('Qt.NoFocus', populate_source,
                          "_populate_swatch_grid must not set Qt.NoFocus on swatch buttons — "
                          "this prevents tab navigation to swatches")
@@ -1527,7 +1530,11 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
                         "to recolor anchor nodes when a custom color swatch is edited")
 
     def test_recolor_helper_calls_propagate_anchor_color_on_matching_nodes(self):
-        """_recolor_anchors_for_changed_custom_colors calls propagate_anchor_color for matching nodes."""
+        """_recolor_anchors_for_changed_custom_colors calls propagate_anchor_color for matching nodes.
+
+        The implementation uses anchor.all_anchors() (not nuke.allNodes()) so that
+        anchor nodes are correctly identified regardless of knob structure.
+        """
         recolor_method = _extract_prefs_dialog_method_from_source(
             '_recolor_anchors_for_changed_custom_colors'
         )
@@ -1537,23 +1544,18 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
         old_color = 0xFF0000FF
         new_color = 0x00FF00FF
 
-        # Build a matching anchor node stub
+        # Build a matching anchor node stub — identified via all_anchors(), no knob check needed
         tile_color_knob = MagicMock()
         tile_color_knob.value.return_value = old_color
 
-        anchor_knob = MagicMock()  # truthy — node.knob('anchor_name') returns this
+        matching_anchor = MagicMock()
+        matching_anchor.__getitem__ = MagicMock(side_effect=lambda key: tile_color_knob if key == 'tile_color' else MagicMock())
 
-        matching_node = MagicMock()
-        matching_node.Class.return_value = 'NoOp'
-        matching_node.knob = MagicMock(side_effect=lambda name: anchor_knob if name == 'anchor_name' else None)
-        matching_node.__getitem__ = MagicMock(side_effect=lambda key: tile_color_knob if key == 'tile_color' else MagicMock())
-
-        # Build a non-matching node (different class)
-        non_anchor_node = MagicMock()
-        non_anchor_node.Class.return_value = 'Blur'
-
-        import nuke as nuke_stub_module
-        nuke_stub_module.allNodes.return_value = [matching_node, non_anchor_node]
+        # A second anchor whose tile_color does NOT match old_color
+        non_matching_tile_color = MagicMock()
+        non_matching_tile_color.value.return_value = 0xAABBCCFF
+        non_matching_anchor = MagicMock()
+        non_matching_anchor.__getitem__ = MagicMock(side_effect=lambda key: non_matching_tile_color if key == 'tile_color' else MagicMock())
 
         propagate_calls = []
 
@@ -1564,22 +1566,24 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
 
         import anchor as anchor_module_real
         original_propagate = anchor_module_real.propagate_anchor_color
+        original_all_anchors = anchor_module_real.all_anchors
 
         try:
             anchor_module_real.propagate_anchor_color = lambda node, color: propagate_calls.append((node, color))
+            anchor_module_real.all_anchors = lambda: [matching_anchor, non_matching_anchor]
             # Patch the 'import anchor as anchor_module' that _recolor_anchors_for_changed_custom_colors uses
             import sys
-            original_anchor_in_modules = sys.modules.get('anchor')
             sys.modules['anchor'] = anchor_module_real
             recolor_method(harness, [old_color], [new_color])
         finally:
             anchor_module_real.propagate_anchor_color = original_propagate
+            anchor_module_real.all_anchors = original_all_anchors
 
         self.assertEqual(len(propagate_calls), 1,
                          "_recolor_anchors_for_changed_custom_colors must call propagate_anchor_color "
-                         "exactly once for the node whose tile_color matched the old custom color")
+                         "exactly once for the anchor whose tile_color matched the old custom color")
         called_node, called_color = propagate_calls[0]
-        self.assertIs(called_node, matching_node,
+        self.assertIs(called_node, matching_anchor,
                       "propagate_anchor_color must be called with the matching anchor node")
         self.assertEqual(called_color, new_color,
                          "propagate_anchor_color must be called with the new color value")
@@ -1596,15 +1600,9 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
 
         tile_color_knob = MagicMock()
         tile_color_knob.value.return_value = same_color
-        anchor_knob = MagicMock()
 
-        node = MagicMock()
-        node.Class.return_value = 'NoOp'
-        node.knob = MagicMock(return_value=anchor_knob)
-        node.__getitem__ = MagicMock(return_value=tile_color_knob)
-
-        import nuke as nuke_stub_module
-        nuke_stub_module.allNodes.return_value = [node]
+        anchor_node = MagicMock()
+        anchor_node.__getitem__ = MagicMock(return_value=tile_color_knob)
 
         propagate_calls = []
 
@@ -1615,16 +1613,177 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
 
         import anchor as anchor_module_real
         original_propagate = anchor_module_real.propagate_anchor_color
+        original_all_anchors = anchor_module_real.all_anchors
 
         try:
             anchor_module_real.propagate_anchor_color = lambda n, c: propagate_calls.append((n, c))
+            anchor_module_real.all_anchors = lambda: [anchor_node]
+            import sys
+            sys.modules['anchor'] = anchor_module_real
             recolor_method(harness, [same_color], [same_color])
         finally:
             anchor_module_real.propagate_anchor_color = original_propagate
+            anchor_module_real.all_anchors = original_all_anchors
 
         self.assertEqual(len(propagate_calls), 0,
                          "_recolor_anchors_for_changed_custom_colors must not call propagate_anchor_color "
                          "when the old and new color values are identical")
+
+
+# ---------------------------------------------------------------------------
+# Post-checkpoint bug fix regression tests (07-03)
+# ---------------------------------------------------------------------------
+
+
+class TestRecolorUsesAllAnchors(unittest.TestCase):
+    """BUG 1 regression: _recolor_anchors_for_changed_custom_colors must call
+    anchor.all_anchors() to find anchor nodes, NOT nuke.allNodes() + node.knob('anchor_name').
+
+    Anchor nodes have no 'anchor_name' knob — the old check silently skipped every
+    anchor node in the script, making recolor a no-op.
+    """
+
+    def test_recolor_source_uses_all_anchors_not_allnodes(self):
+        """_recolor_anchors_for_changed_custom_colors source must call all_anchors(), not nuke.allNodes()."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        recolor_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_recolor_anchors_for_changed_custom_colors'):
+                        lines = source_text.splitlines()
+                        recolor_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(recolor_source,
+                             "PrefsDialog._recolor_anchors_for_changed_custom_colors not found")
+        self.assertIn('all_anchors()', recolor_source,
+                      "_recolor_anchors_for_changed_custom_colors must call anchor_module.all_anchors() "
+                      "to iterate anchor nodes — nuke.allNodes() + knob('anchor_name') is wrong because "
+                      "anchor nodes have no 'anchor_name' knob")
+        self.assertNotIn("knob('anchor_name')", recolor_source,
+                         "_recolor_anchors_for_changed_custom_colors must not use knob('anchor_name') "
+                         "to identify anchor nodes — anchor nodes have no such knob; use all_anchors() instead")
+
+    def test_recolor_does_not_call_nuke_allnodes_directly(self):
+        """_recolor_anchors_for_changed_custom_colors source must not call nuke.allNodes()."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        recolor_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_recolor_anchors_for_changed_custom_colors'):
+                        lines = source_text.splitlines()
+                        recolor_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(recolor_source)
+        # The method must not call allNodes() — that was the old incorrect approach
+        self.assertNotIn('allNodes()', recolor_source,
+                         "_recolor_anchors_for_changed_custom_colors must not call nuke.allNodes() — "
+                         "use anchor_module.all_anchors() to correctly identify anchor nodes")
+
+
+class TestHintModeKeyAssignment(unittest.TestCase):
+    """BUG 3 regression: hint mode must use numbers for column selection and letters for rows.
+
+    Previously _COLUMN_KEYS was letters (a-z) and _ROW_KEYS was numbers (1234567890).
+    After the fix: _COLUMN_KEYS = '1234567890' and _ROW_KEYS = 'abcdefghijklmnopqrstuvwxyz'.
+    """
+
+    def _get_column_and_row_key_values(self):
+        """Read _COLUMN_KEYS and _ROW_KEYS values from colors.py source."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        column_keys_value = None
+        row_keys_value = None
+        import re
+        column_match = re.search(r"_COLUMN_KEYS\s*=\s*'([^']+)'", source_text)
+        row_match = re.search(r"_ROW_KEYS\s*=\s*'([^']+)'", source_text)
+        if column_match:
+            column_keys_value = column_match.group(1)
+        if row_match:
+            row_keys_value = row_match.group(1)
+        return column_keys_value, row_keys_value
+
+    def test_column_keys_are_digits(self):
+        """_COLUMN_KEYS must contain only digits (numbers select columns)."""
+        column_keys, _ = self._get_column_and_row_key_values()
+        self.assertIsNotNone(column_keys, "_COLUMN_KEYS not found in colors.py")
+        self.assertTrue(column_keys.isdigit(),
+                        f"_COLUMN_KEYS must be digits ('1234567890'), got {column_keys!r} — "
+                        "numbers should select columns in hint mode")
+
+    def test_row_keys_are_letters(self):
+        """_ROW_KEYS must contain only lowercase letters (letters select rows)."""
+        _, row_keys = self._get_column_and_row_key_values()
+        self.assertIsNotNone(row_keys, "_ROW_KEYS not found in colors.py")
+        self.assertTrue(row_keys.isalpha() and row_keys.islower(),
+                        f"_ROW_KEYS must be lowercase letters ('abcdefghijklmnopqrstuvwxyz'), got {row_keys!r} — "
+                        "letters should select rows in hint mode")
+
+    def test_column_keys_value_is_1234567890(self):
+        """_COLUMN_KEYS must equal '1234567890' exactly."""
+        column_keys, _ = self._get_column_and_row_key_values()
+        self.assertEqual(column_keys, '1234567890',
+                         "_COLUMN_KEYS must be '1234567890' (numbers for columns), "
+                         f"got {column_keys!r}")
+
+    def test_row_keys_value_is_alphabet(self):
+        """_ROW_KEYS must equal 'abcdefghijklmnopqrstuvwxyz' exactly."""
+        _, row_keys = self._get_column_and_row_key_values()
+        self.assertEqual(row_keys, 'abcdefghijklmnopqrstuvwxyz',
+                         "_ROW_KEYS must be 'abcdefghijklmnopqrstuvwxyz' (letters for rows), "
+                         f"got {row_keys!r}")
+
+    def test_hint_overlay_shows_number_then_letter(self):
+        """_update_hint_overlays must display number (column) then letter (row) on each swatch button."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+
+        # Extract _update_hint_overlays from ColorPaletteDialog
+        tree = ast.parse(source_text)
+        overlay_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'ColorPaletteDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_update_hint_overlays'):
+                        lines = source_text.splitlines()
+                        overlay_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(overlay_source,
+                             "ColorPaletteDialog._update_hint_overlays not found in colors.py")
+        # The label must be formed as col_label (number) then row_label (letter)
+        # i.e. f"{col_label}{row_label}" where col_label = _COLUMN_KEYS[grid_col]
+        self.assertIn('col_label', overlay_source,
+                      "_update_hint_overlays must use col_label variable")
+        self.assertIn('row_label', overlay_source,
+                      "_update_hint_overlays must use row_label variable")
+        # Column is first in the display string
+        import re
+        format_match = re.search(r'f["\'].*\{col_label\}.*\{row_label\}.*["\']', overlay_source)
+        self.assertIsNotNone(format_match,
+                             "_update_hint_overlays must display col_label (number) before row_label (letter) "
+                             "e.g. f'{col_label}{row_label}' — column-first matches the two-keypress order")
 
 
 if __name__ == '__main__':
