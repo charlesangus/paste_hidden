@@ -243,6 +243,7 @@ else:
         def _on_swatch_clicked(self, color_int):
             self._selected_color = color_int
             self._refresh_swatch_borders()
+            self.accept()
 
         def _highlight_color_name(self):
             """Return the CSS color name to use for the selected swatch border.
