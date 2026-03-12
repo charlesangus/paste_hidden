@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-preferences-infrastructure
 source: [06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md]
 started: 2026-03-11T12:40:00Z
@@ -58,7 +58,10 @@ skipped: 1
   reason: "User reported: No sign of it."
   severity: major
   test: 1
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "Design mismatch — _load() never calls save() when the file is absent; the plan deferred save() to Phase 7's PrefsDialog, but the ROADMAP success criterion requires the file to be created on first run. Fix: call save() in _load() after _migrate_from_old_palette() in the file-absent branch."
+  artifacts:
+    - path: "prefs.py"
+      issue: "save() not called in _load() when prefs file absent; add one line after _migrate_from_old_palette() call"
+  missing:
+    - "Call save() in _load() after _migrate_from_old_palette() to materialize the file with defaults on first run"
   debug_session: ""
