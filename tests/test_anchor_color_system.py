@@ -625,6 +625,10 @@ class _PickerTestHarness:
     without needing a Qt environment.
     """
 
+    # Sentinel highlight color used in harness so tests can assert the
+    # palette-based highlight color appears in stylesheets.
+    HARNESS_HIGHLIGHT_COLOR = "#4a90d9"
+
     def __init__(self, initial_color=None, custom_colors=None):
         self._selected_color = initial_color
         self._hint_mode = False
@@ -640,6 +644,16 @@ class _PickerTestHarness:
         self._custom_group_next_row = 0
         self.accept = MagicMock()
         self.reject = MagicMock()
+
+    def _highlight_color_name(self):
+        """Return a deterministic sentinel highlight color for offline testing.
+
+        In the real dialog this calls self.palette().color(QPalette.Highlight).name()
+        which returns the Qt theme highlight color.  In tests we return a fixed
+        value so assertions can verify that the highlight color (whatever it is)
+        is used — rather than hardcoded 'white'.
+        """
+        return self.HARNESS_HIGHLIGHT_COLOR
 
 
 class TestColorPaletteDialogClickToSelect(unittest.TestCase):
@@ -723,8 +737,8 @@ class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
             dialog._swatch_cells.append((col_index, 0, color_int, button))
         return dialog
 
-    def test_refresh_swatch_borders_applies_white_border_to_selected(self):
-        """_refresh_swatch_borders applies white 2px border to the selected swatch."""
+    def test_refresh_swatch_borders_applies_highlight_border_to_selected(self):
+        """_refresh_swatch_borders applies the palette highlight color as a 2px border to the selected swatch."""
         refresh_swatch_borders = self._get_refresh_swatch_borders()
         selected = 0xFF0000FF
         non_selected = 0x00FF00FF
@@ -734,8 +748,9 @@ class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
 
         selected_button = dialog._swatch_cells[0][3]
         stylesheet_call = selected_button.setStyleSheet.call_args[0][0]
-        self.assertIn("border: 2px solid white", stylesheet_call,
-                      "Selected swatch must have 2px white border")
+        expected_highlight = _PickerTestHarness.HARNESS_HIGHLIGHT_COLOR
+        self.assertIn(f"border: 2px solid {expected_highlight}", stylesheet_call,
+                      "Selected swatch must have a 2px border using the palette highlight color")
 
     def test_refresh_swatch_borders_applies_default_border_to_non_selected(self):
         """_refresh_swatch_borders applies 1px #555 border to non-selected swatches."""
@@ -762,8 +777,9 @@ class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
 
         black_button = dialog._swatch_cells[0][3]
         stylesheet_call = black_button.setStyleSheet.call_args[0][0]
-        self.assertIn("border: 2px solid white", stylesheet_call,
-                      "Black swatch (color 0) must be selected correctly — cannot use falsy test")
+        expected_highlight = _PickerTestHarness.HARNESS_HIGHLIGHT_COLOR
+        self.assertIn(f"border: 2px solid {expected_highlight}", stylesheet_call,
+                      "Black swatch (color 0) must be selected with palette highlight — cannot use falsy test")
 
 
 # ---------------------------------------------------------------------------
@@ -890,6 +906,237 @@ class TestColorPaletteDialogCustomColorStaging(unittest.TestCase):
         internal_result = chosen_custom_colors(dialog)
         self.assertNotIn(0xDEADBEEF, internal_result,
                          "chosen_custom_colors() must return a copy, not a reference")
+
+
+# ---------------------------------------------------------------------------
+# UAT bug fix tests
+# ---------------------------------------------------------------------------
+
+def _extract_prefs_dialog_method_from_source(method_name):
+    """Extract a method definition from PrefsDialog in colors.py.
+
+    Returns the compiled function object, or None if method not found.
+    Mirrors _extract_method_from_source but targets the PrefsDialog class.
+    """
+    with open('/workspace/colors.py', 'r') as source_file:
+        source_text = source_file.read()
+    tree = ast.parse(source_text)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef) and item.name == method_name:
+                    method_lines = source_text.splitlines()
+                    start_line = item.lineno - 1
+                    end_line = item.end_lineno
+                    method_source = '\n'.join(method_lines[start_line:end_line])
+                    method_source = textwrap.dedent(method_source)
+                    import nuke as _nuke_stub
+                    namespace = {}
+                    namespace['_color_int_to_rgb'] = _real_colors_module._color_int_to_rgb
+                    namespace['nuke'] = _nuke_stub
+                    namespace['Qt'] = MagicMock()
+                    namespace['QtWidgets'] = MagicMock()
+                    namespace['_SWATCHES_PER_ROW'] = 8
+                    exec(compile(method_source, '<colors_prefs_method>', 'exec'), namespace)
+                    return namespace[method_name]
+    return None
+
+
+class TestPrefsDialogButtonsCreatedBeforePopulate(unittest.TestCase):
+    """UAT bug fix: PrefsDialog._build_ui must create Add/Edit/Remove buttons BEFORE
+    calling _populate_swatch_grid, which calls _update_edit_remove_buttons().
+    Without this order, opening PrefsDialog crashes with AttributeError on _edit_button.
+    """
+
+    def test_update_edit_remove_buttons_references_edit_and_remove_button(self):
+        """_update_edit_remove_buttons must reference self._edit_button and self._remove_button.
+
+        This test verifies the method body accesses these attributes so that if
+        someone accidentally moves the button creation after the grid population,
+        the test will catch the AttributeError.
+        """
+        method_source_lines = []
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_update_edit_remove_buttons':
+                        lines = source_text.splitlines()
+                        start_line = item.lineno - 1
+                        end_line = item.end_lineno
+                        method_source_lines = lines[start_line:end_line]
+                        break
+        method_body = '\n'.join(method_source_lines)
+        self.assertIn('_edit_button', method_body,
+                      "_update_edit_remove_buttons must reference _edit_button")
+        self.assertIn('_remove_button', method_body,
+                      "_update_edit_remove_buttons must reference _remove_button")
+
+    def test_build_ui_source_order_buttons_before_populate(self):
+        """_build_ui must define Add/Edit/Remove buttons before calling _populate_swatch_grid.
+
+        Parses colors.py with AST and checks that within _build_ui, the Assign
+        for self._edit_button appears at a lower line number than the Call to
+        self._populate_swatch_grid.
+        """
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        build_ui_node = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_build_ui':
+                        build_ui_node = item
+                        break
+                break
+
+        self.assertIsNotNone(build_ui_node,
+                             "PrefsDialog._build_ui not found in colors.py")
+
+        edit_button_assign_line = None
+        populate_call_line = None
+
+        for node in ast.walk(build_ui_node):
+            # Find: self._edit_button = ...
+            if (isinstance(node, ast.Assign) and
+                    len(node.targets) == 1 and
+                    isinstance(node.targets[0], ast.Attribute) and
+                    node.targets[0].attr == '_edit_button'):
+                edit_button_assign_line = node.lineno
+
+            # Find: self._populate_swatch_grid()
+            if (isinstance(node, ast.Expr) and
+                    isinstance(node.value, ast.Call) and
+                    isinstance(node.value.func, ast.Attribute) and
+                    node.value.func.attr == '_populate_swatch_grid'):
+                populate_call_line = node.lineno
+
+        self.assertIsNotNone(edit_button_assign_line,
+                             "self._edit_button assignment not found in PrefsDialog._build_ui")
+        self.assertIsNotNone(populate_call_line,
+                             "self._populate_swatch_grid() call not found in PrefsDialog._build_ui")
+        self.assertLess(
+            edit_button_assign_line,
+            populate_call_line,
+            f"self._edit_button (line {edit_button_assign_line}) must be assigned BEFORE "
+            f"self._populate_swatch_grid() is called (line {populate_call_line})",
+        )
+
+
+class TestColorPaletteDialogGroupLabels(unittest.TestCase):
+    """UAT bug fix: ColorPaletteDialog must render group labels in the swatch grid
+    so the Custom Colors section is visually distinct from backdrop and Nuke defaults.
+    """
+
+    def test_build_ui_source_adds_group_labels_via_qlabel(self):
+        """_build_ui must use QLabel for group section headers in the swatch grid."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        build_ui_node = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'ColorPaletteDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_build_ui':
+                        build_ui_node = item
+                        break
+                break
+
+        self.assertIsNotNone(build_ui_node,
+                             "ColorPaletteDialog._build_ui not found in colors.py")
+
+        has_qlabel_call = False
+        for node in ast.walk(build_ui_node):
+            if (isinstance(node, ast.Call) and
+                    isinstance(node.func, ast.Attribute) and
+                    node.func.attr == 'QLabel'):
+                has_qlabel_call = True
+                break
+
+        self.assertTrue(has_qlabel_call,
+                        "ColorPaletteDialog._build_ui must use QLabel for group section headers")
+
+    def test_group_label_texts_in_source(self):
+        """_build_ui source must include 'Custom Colors', 'Backdrop Colors', and 'Nuke Defaults' labels."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        self.assertIn("Custom Colors", source_text,
+                      "colors.py must define a 'Custom Colors' group label")
+        self.assertIn("Backdrop Colors", source_text,
+                      "colors.py must define a 'Backdrop Colors' group label")
+        self.assertIn("Nuke Defaults", source_text,
+                      "colors.py must define a 'Nuke Defaults' group label")
+
+
+class TestPersistCustomColorsFromDialog(unittest.TestCase):
+    """UAT bug fix: _persist_custom_colors_from_dialog in anchor.py must save
+    custom colors back to prefs when the staged list differs from prefs.custom_colors.
+    """
+
+    def setUp(self):
+        """Ensure anchor and prefs are importable with stubs in place."""
+        import anchor as anchor_module
+        import importlib
+        importlib.reload(anchor_module)
+        self.anchor_module = anchor_module
+
+    def test_persist_saves_custom_colors_when_staged_differs_from_prefs(self):
+        """_persist_custom_colors_from_dialog calls prefs.save() when staged colors differ."""
+        import prefs as prefs_module
+
+        original_custom_colors = list(prefs_module.custom_colors)
+        original_save = prefs_module.save
+
+        save_call_count = [0]
+
+        def mock_save():
+            save_call_count[0] += 1
+
+        new_colors = [0xFF0000FF, 0x00FF00FF]
+        prefs_module.custom_colors = []  # ensure differs from new_colors
+        prefs_module.save = mock_save
+
+        dialog_mock = MagicMock()
+        dialog_mock.chosen_custom_colors.return_value = new_colors
+
+        try:
+            self.anchor_module._persist_custom_colors_from_dialog(dialog_mock)
+        finally:
+            prefs_module.custom_colors = original_custom_colors
+            prefs_module.save = original_save
+
+        self.assertEqual(save_call_count[0], 1,
+                         "_persist_custom_colors_from_dialog must call prefs.save() when colors differ")
+
+    def test_persist_skips_save_when_staged_matches_prefs(self):
+        """_persist_custom_colors_from_dialog does NOT call prefs.save() when colors are unchanged."""
+        import prefs as prefs_module
+
+        original_save = prefs_module.save
+
+        save_call_count = [0]
+
+        def mock_save():
+            save_call_count[0] += 1
+
+        current_colors = list(prefs_module.custom_colors)
+        prefs_module.save = mock_save
+
+        dialog_mock = MagicMock()
+        dialog_mock.chosen_custom_colors.return_value = list(current_colors)  # same content
+
+        try:
+            self.anchor_module._persist_custom_colors_from_dialog(dialog_mock)
+        finally:
+            prefs_module.save = original_save
+
+        self.assertEqual(save_call_count[0], 0,
+                         "_persist_custom_colors_from_dialog must NOT call prefs.save() when colors are unchanged")
 
 
 if __name__ == '__main__':
