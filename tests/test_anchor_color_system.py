@@ -632,7 +632,7 @@ class _PickerTestHarness:
     def __init__(self, initial_color=None, custom_colors=None):
         self._selected_color = initial_color
         self._hint_mode = False
-        self._hint_col = None
+        self._hint_row = None  # stores logical row index after letter keypress
         self._swatch_cells = []
         self.chosen_name = ""
         self._custom_colors = list(custom_colors) if custom_colors else []
@@ -642,6 +642,7 @@ class _PickerTestHarness:
         self._grid_layout = MagicMock()
         self._custom_group_next_col = 0
         self._custom_group_next_row = 0
+        self._custom_group_next_logical_row = 0
         self.accept = MagicMock()
         self.reject = MagicMock()
 
@@ -684,8 +685,8 @@ class TestColorPaletteDialogClickToSelect(unittest.TestCase):
 
         self.assertEqual(dialog._selected_color, color_to_click)
 
-    def test_on_swatch_clicked_does_not_call_accept(self):
-        """_on_swatch_clicked must NOT call self.accept() (dialog stays open)."""
+    def test_on_swatch_clicked_calls_accept(self):
+        """_on_swatch_clicked must call self.accept() to immediately close the dialog."""
         on_swatch_clicked = self._get_on_swatch_clicked()
         dialog = _PickerTestHarness()
         dialog._refresh_swatch_borders = MagicMock()
@@ -693,7 +694,7 @@ class TestColorPaletteDialogClickToSelect(unittest.TestCase):
 
         on_swatch_clicked(dialog, color_to_click)
 
-        dialog.accept.assert_not_called()
+        dialog.accept.assert_called_once()
 
     def test_on_swatch_clicked_calls_refresh_swatch_borders(self):
         """_on_swatch_clicked must call _refresh_swatch_borders() after updating state."""
@@ -706,8 +707,8 @@ class TestColorPaletteDialogClickToSelect(unittest.TestCase):
 
         refresh_mock.assert_called_once()
 
-    def test_on_swatch_clicked_with_zero_color_does_not_call_accept(self):
-        """_on_swatch_clicked with color_int==0 (black) must not call accept() — 0 is valid."""
+    def test_on_swatch_clicked_with_zero_color_calls_accept(self):
+        """_on_swatch_clicked with color_int==0 (black) must call accept() — 0 is a valid color."""
         on_swatch_clicked = self._get_on_swatch_clicked()
         dialog = _PickerTestHarness()
         dialog._refresh_swatch_borders = MagicMock()
@@ -716,7 +717,7 @@ class TestColorPaletteDialogClickToSelect(unittest.TestCase):
         on_swatch_clicked(dialog, black_color)
 
         self.assertEqual(dialog._selected_color, 0)
-        dialog.accept.assert_not_called()
+        dialog.accept.assert_called_once()
 
 
 class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
@@ -1750,8 +1751,12 @@ class TestHintModeKeyAssignment(unittest.TestCase):
                          "_ROW_KEYS must be 'abcdefghijklmnopqrstuvwxyz' (letters for rows), "
                          f"got {row_keys!r}")
 
-    def test_hint_overlay_shows_number_then_letter(self):
-        """_update_hint_overlays must display number (column) then letter (row) on each swatch button."""
+    def test_hint_overlay_shows_letter_then_number(self):
+        """_update_hint_overlays must display letter (row) then number (column) on each swatch button.
+
+        The display format is row_label + col_label, e.g. "a1", "a2", "b1".
+        This matches the letter-first, number-second navigation order.
+        """
         with open('/workspace/colors.py', 'r') as source_file:
             source_text = source_file.read()
 
@@ -1772,18 +1777,18 @@ class TestHintModeKeyAssignment(unittest.TestCase):
 
         self.assertIsNotNone(overlay_source,
                              "ColorPaletteDialog._update_hint_overlays not found in colors.py")
-        # The label must be formed as col_label (number) then row_label (letter)
-        # i.e. f"{col_label}{row_label}" where col_label = _COLUMN_KEYS[grid_col]
+        # The label must be formed as row_label (letter) then col_label (number)
+        # i.e. f"{row_label}{col_label}" — letter first matches navigation order
         self.assertIn('col_label', overlay_source,
                       "_update_hint_overlays must use col_label variable")
         self.assertIn('row_label', overlay_source,
                       "_update_hint_overlays must use row_label variable")
-        # Column is first in the display string
+        # Row (letter) is first in the display string, column (number) is second
         import re
-        format_match = re.search(r'f["\'].*\{col_label\}.*\{row_label\}.*["\']', overlay_source)
+        format_match = re.search(r'f["\'].*\{row_label\}.*\{col_label\}.*["\']', overlay_source)
         self.assertIsNotNone(format_match,
-                             "_update_hint_overlays must display col_label (number) before row_label (letter) "
-                             "e.g. f'{col_label}{row_label}' — column-first matches the two-keypress order")
+                             "_update_hint_overlays must display row_label (letter) before col_label (number) "
+                             "e.g. f'{row_label}{col_label}' → 'a1', 'b2' — letter-first matches navigation order")
 
 
 if __name__ == '__main__':
