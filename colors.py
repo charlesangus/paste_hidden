@@ -97,8 +97,8 @@ else:
 
             self._selected_color = initial_color
             self._hint_mode = False
-            self._hint_col = None
-            self._swatch_cells = []  # list of (col_index, row_index, color_int, button)
+            self._hint_row = None  # stores logical row index after letter keypress
+            self._swatch_cells = []  # list of (group_col, logical_row, color_int, button)
             self.chosen_name = initial_name
             self._custom_colors = custom_colors if custom_colors is not None else []
             # Dialog-local working copy for staging newly added custom colors.
@@ -148,6 +148,10 @@ else:
             ]
 
             grid_row = 0
+            # logical_row counts only rows of swatches, ignoring section-label rows.
+            # This ensures hint-mode row letters always start at 'a' for the first
+            # swatch row regardless of how many label rows appear above it.
+            logical_row = 0
 
             # Initialise the custom colors next-slot tracker.  If
             # user_palette_colors is non-empty, it will be the first group in
@@ -157,6 +161,7 @@ else:
             # the top of the grid — before all other groups.
             self._custom_group_next_col = 0
             self._custom_group_next_row = 0
+            self._custom_group_next_logical_row = 0
             custom_group_tracker_set = False
 
             for color_group in all_color_groups:
@@ -164,10 +169,12 @@ else:
                 group_label_text = _GROUP_LABELS.get(id(color_group), "")
                 if group_label_text:
                     section_label = QtWidgets.QLabel(group_label_text)
+                    section_label.setFocusPolicy(Qt.NoFocus)
                     self._grid_layout.addWidget(
                         section_label, grid_row, 0, 1, _SWATCHES_PER_ROW
                     )
                     grid_row += 1
+                    # logical_row does NOT increment for label rows
 
                 group_col = 0
                 for color_int in color_group:
@@ -195,25 +202,28 @@ else:
                     button.clicked.connect(lambda checked=False, c=color_to_capture: self._on_swatch_clicked(c))
 
                     self._grid_layout.addWidget(button, grid_row, group_col)
-                    cell = (group_col, grid_row, color_int, button)
+                    cell = (group_col, logical_row, color_int, button)
                     self._swatch_cells.append(cell)
-                    self._cell_map[(group_col, grid_row)] = (color_int, button)
+                    self._cell_map[(group_col, logical_row)] = (color_int, button)
 
                     group_col += 1
                     if group_col >= _SWATCHES_PER_ROW:
                         group_col = 0
                         grid_row += 1
+                        logical_row += 1
 
                 if not custom_group_tracker_set and color_group is user_palette_colors:
                     # Record the next available slot in the custom colors group
                     # for dynamic swatch appending via _append_swatch_to_custom_group.
                     self._custom_group_next_col = group_col
                     self._custom_group_next_row = grid_row
+                    self._custom_group_next_logical_row = logical_row
                     custom_group_tracker_set = True
 
                 # Move to next group row (creates a blank-row gap between groups)
                 if group_col > 0:
                     grid_row += 1
+                    logical_row += 1
 
             # "Custom Color..." button — opens nuke.getColor(), stages result
             custom_button = QtWidgets.QPushButton("Custom Color...")
@@ -262,7 +272,7 @@ else:
             would incorrectly treat 0 as unselected.
             """
             highlight_color = self._highlight_color_name()
-            for grid_col, grid_row, color_int, button in self._swatch_cells:
+            for group_col, logical_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
                 if self._selected_color is not None and color_int == self._selected_color:
                     button.setStyleSheet(
@@ -302,7 +312,7 @@ else:
 
             if event.key() == Qt.Key_Tab:
                 self._hint_mode = not self._hint_mode
-                self._hint_col = None
+                self._hint_row = None
                 self._update_hint_overlays()
                 event.accept()
                 return
@@ -318,21 +328,24 @@ else:
                 return
 
             if self._hint_mode:
-                if key_text in _COLUMN_KEYS and self._hint_col is None:
-                    self._hint_col = _COLUMN_KEYS.index(key_text)
-                    self._highlight_hint_column(self._hint_col)
+                # First keypress: letter selects the row
+                if key_text in _ROW_KEYS and self._hint_row is None:
+                    self._hint_row = _ROW_KEYS.index(key_text)
+                    self._highlight_hint_row(self._hint_row)
                     event.accept()
                     return
 
-                if key_text in _ROW_KEYS and self._hint_col is not None:
-                    row_index = _ROW_KEYS.index(key_text)
-                    target_cell = self._cell_map.get((self._hint_col, row_index))
+                # Second keypress: number selects the column and confirms
+                if key_text in _COLUMN_KEYS and self._hint_row is not None:
+                    col_index = _COLUMN_KEYS.index(key_text)
+                    target_cell = self._cell_map.get((col_index, self._hint_row))
                     if target_cell is not None:
                         color_int, button = target_cell
                         self._selected_color = color_int
                         if self._name_edit is not None:
                             self.chosen_name = self._name_edit.text()
                         self.accept()
+                    self._hint_row = None
                     event.accept()
                     return
 
@@ -342,20 +355,42 @@ else:
             super().keyPressEvent(event)
 
         def _update_hint_overlays(self):
-            """Show or hide column/row address labels on swatches in hint mode."""
-            for grid_col, grid_row, color_int, button in self._swatch_cells:
+            """Show or hide row/column address labels on swatches in hint mode.
+
+            Display format is "{row_letter}{col_number}" e.g. "a1", "a2", "b1".
+            Letter-first matches the two-keypress navigation order: letter (row)
+            then number (column).
+            """
+            for group_col, logical_row, color_int, button in self._swatch_cells:
                 if self._hint_mode:
-                    col_label = _COLUMN_KEYS[grid_col] if grid_col < len(_COLUMN_KEYS) else '?'
-                    row_label = _ROW_KEYS[grid_row] if grid_row < len(_ROW_KEYS) else '?'
-                    button.setText(f"{col_label}{row_label}")
+                    row_label = _ROW_KEYS[logical_row] if logical_row < len(_ROW_KEYS) else '?'
+                    col_label = _COLUMN_KEYS[group_col] if group_col < len(_COLUMN_KEYS) else '?'
+                    button.setText(f"{row_label}{col_label}")  # letter-number: "a1", "b2"
                 else:
                     button.setText("")
 
         def _highlight_hint_column(self, column_index):
             """Highlight swatches in the given column when column key pressed in hint mode."""
-            for grid_col, grid_row, color_int, button in self._swatch_cells:
+            for group_col, logical_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
-                if grid_col == column_index:
+                if group_col == column_index:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 2px solid yellow; "
+                        "border-radius: 2px;"
+                    )
+                else:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 1px solid #555; "
+                        "border-radius: 2px;"
+                    )
+
+        def _highlight_hint_row(self, row_index):
+            """Highlight swatches in the given logical row when row letter pressed in hint mode."""
+            for group_col, logical_row, color_int, button in self._swatch_cells:
+                red, green, blue = _color_int_to_rgb(color_int)
+                if logical_row == row_index:
                     button.setStyleSheet(
                         f"background-color: rgb({red},{green},{blue}); "
                         "border: 2px solid yellow; "
@@ -398,9 +433,9 @@ else:
                 self._custom_group_next_row,
                 self._custom_group_next_col,
             )
-            cell = (self._custom_group_next_col, self._custom_group_next_row, color_int, button)
+            cell = (self._custom_group_next_col, self._custom_group_next_logical_row, color_int, button)
             self._swatch_cells.append(cell)
-            self._cell_map[(self._custom_group_next_col, self._custom_group_next_row)] = (
+            self._cell_map[(self._custom_group_next_col, self._custom_group_next_logical_row)] = (
                 color_int, button
             )
 
@@ -409,6 +444,7 @@ else:
             if self._custom_group_next_col >= _SWATCHES_PER_ROW:
                 self._custom_group_next_col = 0
                 self._custom_group_next_row += 1
+                self._custom_group_next_logical_row += 1
 
         def chosen_custom_colors(self):
             """Return a copy of the staged custom colors list.
