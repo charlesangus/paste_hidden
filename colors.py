@@ -548,8 +548,8 @@ else:
             # Establish explicit tab order so swatch buttons are reachable via Tab.
             self._update_swatch_tab_order()
 
-            # OK / Cancel buttons in a horizontal row — OK on the left, Cancel on
-            # the right, matching Nuke's native dialog layout and ColorPaletteDialog.
+            # Cancel / OK buttons in a horizontal row — Cancel on the left, OK on
+            # the right, matching Nuke's native dialog convention.
             # setAutoDefault(False) prevents Enter from accidentally triggering a
             # button click instead of the dialog-level keyPressEvent.
             ok_cancel_row_layout = QtWidgets.QHBoxLayout()
@@ -559,8 +559,8 @@ else:
             self._cancel_button = QtWidgets.QPushButton("Cancel")
             self._cancel_button.setAutoDefault(False)
             self._cancel_button.clicked.connect(self.reject)
-            ok_cancel_row_layout.addWidget(self._ok_button)
-            ok_cancel_row_layout.addWidget(self._cancel_button)
+            ok_cancel_row_layout.addWidget(self._cancel_button)  # Cancel on left
+            ok_cancel_row_layout.addWidget(self._ok_button)       # OK on right
             outer_layout.addLayout(ok_cancel_row_layout)
 
         def _populate_swatch_grid(self):
