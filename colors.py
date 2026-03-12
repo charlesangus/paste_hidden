@@ -521,7 +521,7 @@ else:
             for index, color_int in enumerate(self._local_custom_colors):
                 button = QtWidgets.QPushButton()
                 button.setFixedSize(24, 24)
-                button.setFocusPolicy(Qt.NoFocus)
+                button.setFocusPolicy(Qt.TabFocus)
                 button.setAutoDefault(False)
                 red, green, blue = _color_int_to_rgb(color_int)
                 button.setStyleSheet(
