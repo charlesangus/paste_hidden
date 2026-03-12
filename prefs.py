@@ -49,6 +49,7 @@ def _load():
     global plugin_enabled, link_classes_paste_mode, custom_colors
     if not os.path.exists(PREFS_PATH):
         _migrate_from_old_palette()
+        save()
         return
     try:
         with open(PREFS_PATH) as file_handle:
@@ -68,7 +69,7 @@ def save():
     """Persist current preference values to disk.
 
     Creates ~/.nuke/ directory if it does not exist.
-    Called by Phase 7 PrefsDialog on accept — never called automatically.
+    Called by Phase 7 PrefsDialog on accept, and automatically on first run to materialize the file.
     """
     os.makedirs(os.path.dirname(PREFS_PATH), exist_ok=True)
     with open(PREFS_PATH, 'w') as file_handle:
