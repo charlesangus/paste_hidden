@@ -136,6 +136,12 @@ else:
 
             # Order: custom colors first, then backdrop colors, then Nuke defaults.
             # This matches PICKER-04: user's own colors appear at the top.
+            # Each group is paired with a human-readable label shown above its swatches.
+            _GROUP_LABELS = {
+                id(user_palette_colors): "Custom Colors",
+                id(backdrop_colors): "Backdrop Colors",
+                id(nuke_pref_colors): "Nuke Defaults",
+            }
             all_color_groups = [
                 group for group in [user_palette_colors, backdrop_colors, nuke_pref_colors]
                 if group
@@ -154,6 +160,15 @@ else:
             custom_group_tracker_set = False
 
             for color_group in all_color_groups:
+                # Section label spanning all swatch columns
+                group_label_text = _GROUP_LABELS.get(id(color_group), "")
+                if group_label_text:
+                    section_label = QtWidgets.QLabel(group_label_text)
+                    self._grid_layout.addWidget(
+                        section_label, grid_row, 0, 1, _SWATCHES_PER_ROW
+                    )
+                    grid_row += 1
+
                 group_col = 0
                 for color_int in color_group:
                     button = QtWidgets.QPushButton()
@@ -170,13 +185,11 @@ else:
                         "border-radius: 2px;"
                     )
 
-                    # Highlight pre-selected color
-                    if color_int == self._selected_color:
-                        button.setStyleSheet(
-                            f"background-color: rgb({red},{green},{blue}); "
-                            "border: 2px solid white; "
-                            "border-radius: 2px;"
-                        )
+                    # Pre-highlight is applied after all groups are built via
+                    # _refresh_swatch_borders(), which uses the palette Highlight
+                    # color.  The initial stylesheet here is the default (no
+                    # selection) — _refresh_swatch_borders() corrects it at the
+                    # end of _build_ui.
 
                     color_to_capture = color_int
                     button.clicked.connect(lambda checked=False, c=color_to_capture: self._on_swatch_clicked(c))
@@ -223,23 +236,37 @@ else:
             cancel_button.clicked.connect(self.reject)
             outer_layout.addWidget(cancel_button)
 
+            # Apply pre-highlight using palette Highlight color now that all
+            # swatch cells are populated and the widget has a palette context.
+            self._refresh_swatch_borders()
+
         def _on_swatch_clicked(self, color_int):
             self._selected_color = color_int
             self._refresh_swatch_borders()
 
+        def _highlight_color_name(self):
+            """Return the CSS color name to use for the selected swatch border.
+
+            Uses the widget's QPalette Highlight color so the selection indicator
+            matches the user's Qt theme, rather than a hardcoded white.
+            """
+            highlight_qcolor = self.palette().color(QtGui.QPalette.Highlight)
+            return highlight_qcolor.name()
+
         def _refresh_swatch_borders(self):
-            """Re-apply swatch border stylesheets: white border for selected, default for others.
+            """Re-apply swatch border stylesheets: palette Highlight border for selected, default for others.
 
             Uses `is not None` comparison for the selected color so that color
             int 0 (black) is recognised correctly — `if not self._selected_color`
             would incorrectly treat 0 as unselected.
             """
+            highlight_color = self._highlight_color_name()
             for grid_col, grid_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
                 if self._selected_color is not None and color_int == self._selected_color:
                     button.setStyleSheet(
                         f"background-color: rgb({red},{green},{blue}); "
-                        "border: 2px solid white; "
+                        f"border: 2px solid {highlight_color}; "
                         "border-radius: 2px;"
                     )
                 else:
@@ -439,15 +466,9 @@ else:
             custom_colors_label = QtWidgets.QLabel("Custom Colors")
             outer_layout.addWidget(custom_colors_label)
 
-            # Swatch grid widget
-            self._swatch_grid_widget = QtWidgets.QWidget()
-            self._swatch_grid_layout = QtWidgets.QGridLayout()
-            self._swatch_grid_layout.setSpacing(2)
-            self._swatch_grid_widget.setLayout(self._swatch_grid_layout)
-            outer_layout.addWidget(self._swatch_grid_widget)
-            self._populate_swatch_grid()
-
-            # Add/Edit/Remove button row (left-aligned)
+            # Add/Edit/Remove buttons — created BEFORE _populate_swatch_grid so that
+            # _update_edit_remove_buttons (called inside _populate_swatch_grid) can
+            # reference self._edit_button and self._remove_button without AttributeError.
             button_row_layout = QtWidgets.QHBoxLayout()
             self._add_button = QtWidgets.QPushButton("Add")
             self._add_button.setAutoDefault(False)
@@ -462,6 +483,15 @@ else:
             self._add_button.clicked.connect(self._on_add_color)
             self._edit_button.clicked.connect(self._on_edit_color)
             self._remove_button.clicked.connect(self._on_remove_color)
+
+            # Swatch grid widget
+            self._swatch_grid_widget = QtWidgets.QWidget()
+            self._swatch_grid_layout = QtWidgets.QGridLayout()
+            self._swatch_grid_layout.setSpacing(2)
+            self._swatch_grid_widget.setLayout(self._swatch_grid_layout)
+            outer_layout.addWidget(self._swatch_grid_widget)
+            self._populate_swatch_grid()
+
             outer_layout.addLayout(button_row_layout)
 
             # Horizontal separator
