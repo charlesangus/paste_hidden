@@ -463,10 +463,12 @@ else:
             separator_top = QtWidgets.QFrame()
             separator_top.setFrameShape(QtWidgets.QFrame.HLine)
             separator_top.setFrameShadow(QtWidgets.QFrame.Sunken)
+            separator_top.setFocusPolicy(Qt.NoFocus)
             outer_layout.addWidget(separator_top)
 
             # Label: Custom Colors
             custom_colors_label = QtWidgets.QLabel("Custom Colors")
+            custom_colors_label.setFocusPolicy(Qt.NoFocus)
             outer_layout.addWidget(custom_colors_label)
 
             # Add/Edit/Remove buttons — created BEFORE _populate_swatch_grid so that
@@ -487,8 +489,10 @@ else:
             self._edit_button.clicked.connect(self._on_edit_color)
             self._remove_button.clicked.connect(self._on_remove_color)
 
-            # Swatch grid widget
+            # Swatch grid widget — the container itself must not grab focus;
+            # only the swatch buttons inside it participate in the tab chain.
             self._swatch_grid_widget = QtWidgets.QWidget()
+            self._swatch_grid_widget.setFocusPolicy(Qt.NoFocus)
             self._swatch_grid_layout = QtWidgets.QGridLayout()
             self._swatch_grid_layout.setSpacing(2)
             self._swatch_grid_widget.setLayout(self._swatch_grid_layout)
@@ -501,7 +505,11 @@ else:
             separator_bottom = QtWidgets.QFrame()
             separator_bottom.setFrameShape(QtWidgets.QFrame.HLine)
             separator_bottom.setFrameShadow(QtWidgets.QFrame.Sunken)
+            separator_bottom.setFocusPolicy(Qt.NoFocus)
             outer_layout.addWidget(separator_bottom)
+
+            # Establish explicit tab order so swatch buttons are reachable via Tab.
+            self._update_swatch_tab_order()
 
             # OK / Cancel buttons in a horizontal row — OK on the left, Cancel on
             # the right, matching Nuke's native dialog layout and ColorPaletteDialog.
@@ -543,6 +551,29 @@ else:
                 self._swatch_buttons.append(button)
             self._update_edit_remove_buttons()
 
+        def _update_swatch_tab_order(self):
+            """Establish explicit Qt tab order to chain focus through swatch buttons.
+
+            Chains: last checkbox -> first swatch button -> each subsequent swatch
+            button -> Add button.  This ensures Tab key reaches swatch buttons even
+            though the QGridLayout container itself has Qt.NoFocus.
+
+            Called at the end of _build_ui and after every _rebuild_swatch_grid so
+            the chain stays correct when swatches are added or removed.
+            """
+            if not self._swatch_buttons:
+                return
+            # Chain from the last focusable checkbox down to the first swatch button
+            QtWidgets.QWidget.setTabOrder(self._link_mode_checkbox, self._swatch_buttons[0])
+            # Chain each swatch button to the next one
+            for swatch_index in range(len(self._swatch_buttons) - 1):
+                QtWidgets.QWidget.setTabOrder(
+                    self._swatch_buttons[swatch_index],
+                    self._swatch_buttons[swatch_index + 1],
+                )
+            # Chain last swatch button to Add button
+            QtWidgets.QWidget.setTabOrder(self._swatch_buttons[-1], self._add_button)
+
         def _rebuild_swatch_grid(self):
             """Clear and repopulate the swatch grid from self._local_custom_colors."""
             while self._swatch_grid_layout.count() > 0:
@@ -553,6 +584,7 @@ else:
             self._swatch_buttons = []
             self._selected_swatch_index = None
             self._populate_swatch_grid()
+            self._update_swatch_tab_order()
 
         def _highlight_color_name(self):
             """Return the CSS color name to use for the selected swatch border.
