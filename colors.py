@@ -746,3 +746,40 @@ else:
             # Recolor is applied immediately in _on_edit_color (on color picker confirm),
             # not here on OK — so no recolor call needed at accept time.
             self.accept()
+
+        def showEvent(self, event):
+            """Install an application-level event filter so Tab/Shift+Tab reach
+            this dialog before Nuke's tabtabtab plugin can intercept them.
+
+            Qt processes event filters in LIFO order (last installed runs first),
+            so installing here in showEvent means our filter runs before the one
+            registered by tabtabtab at startup.
+            """
+            super().showEvent(event)
+            app = QtWidgets.QApplication.instance()
+            if app is not None:
+                app.installEventFilter(self)
+
+        def hideEvent(self, event):
+            """Remove the application-level event filter when the dialog is hidden."""
+            super().hideEvent(event)
+            app = QtWidgets.QApplication.instance()
+            if app is not None:
+                app.removeEventFilter(self)
+
+        def eventFilter(self, obj, event):
+            """Intercept Tab and Shift+Tab at the QApplication level.
+
+            Returns True (consuming the event) for Tab/Backtab so that Nuke's
+            tabtabtab event filter never sees them.  All other events are passed
+            through by returning False.
+            """
+            if event.type() == QtCore.QEvent.KeyPress:
+                key = event.key()
+                if key == QtCore.Qt.Key_Tab:
+                    self.focusNextChild()
+                    return True  # consume — prevent Nuke's tabtabtab from firing
+                if key == QtCore.Qt.Key_Backtab:
+                    self.focusPreviousChild()
+                    return True
+            return False
