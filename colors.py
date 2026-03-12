@@ -604,13 +604,15 @@ else:
             self._on_swatch_selected(new_index)
 
         def _on_edit_color(self):
-            """Replace the selected color via nuke.getColor()."""
+            """Replace the selected color via nuke.getColor() and immediately recolor matching anchors."""
             if self._selected_swatch_index is None:
                 return
             result = nuke.getColor()
             if result == 0:
                 return
+            old_color = self._local_custom_colors[self._selected_swatch_index]  # capture before update
             self._local_custom_colors[self._selected_swatch_index] = result
+            self._recolor_anchors_for_changed_custom_colors([old_color], [result])  # apply immediately
             selected_index = self._selected_swatch_index
             self._rebuild_swatch_grid()
             self._on_swatch_selected(selected_index)
@@ -672,8 +674,6 @@ else:
             set_menu_enabled = getattr(prefs_module, 'set_anchors_menu_enabled', None)
             if set_menu_enabled is not None:
                 set_menu_enabled(prefs_module.plugin_enabled)
-            # Recolor anchor nodes whose tile_color matched a changed custom color swatch.
-            self._recolor_anchors_for_changed_custom_colors(
-                self._original_custom_colors, list(self._local_custom_colors)
-            )
+            # Recolor is applied immediately in _on_edit_color (on color picker confirm),
+            # not here on OK — so no recolor call needed at accept time.
             self.accept()
