@@ -67,10 +67,10 @@ if QtWidgets is None:
     ColorPaletteDialog = None
     PrefsDialog = None
 else:
-    # Column addresses: a-z (26 columns max)
-    _COLUMN_KEYS = 'abcdefghijklmnopqrstuvwxyz'
-    # Row addresses: 1-9, 0 (10 rows max)
-    _ROW_KEYS = '1234567890'
+    # Column addresses: 1-9, 0 (10 columns max)
+    _COLUMN_KEYS = '1234567890'
+    # Row addresses: a-z (26 rows max)
+    _ROW_KEYS = 'abcdefghijklmnopqrstuvwxyz'
     _SWATCHES_PER_ROW = 8
 
     class ColorPaletteDialog(QtWidgets.QDialog):
@@ -524,7 +524,7 @@ else:
             for index, color_int in enumerate(self._local_custom_colors):
                 button = QtWidgets.QPushButton()
                 button.setFixedSize(24, 24)
-                button.setFocusPolicy(Qt.TabFocus)
+                button.setFocusPolicy(Qt.StrongFocus)
                 button.setAutoDefault(False)
                 red, green, blue = _color_int_to_rgb(color_int)
                 button.setStyleSheet(
@@ -639,23 +639,18 @@ else:
                 Custom color ints after the user's edits (from _local_custom_colors).
             """
             try:
-                import nuke as nuke_module
+                import anchor as anchor_module
             except ImportError:
                 return
-            import anchor as anchor_module
 
             for index in range(min(len(old_colors), len(new_colors))):
                 old_color_int = old_colors[index]
                 new_color_int = new_colors[index]
                 if old_color_int == new_color_int:
                     continue
-                for node in nuke_module.allNodes():
-                    if node.Class() != 'NoOp':
-                        continue
-                    if not node.knob('anchor_name'):
-                        continue
-                    if int(node['tile_color'].value()) == old_color_int:
-                        anchor_module.propagate_anchor_color(node, new_color_int)
+                for anchor_node in anchor_module.all_anchors():
+                    if int(anchor_node['tile_color'].value()) == old_color_int:
+                        anchor_module.propagate_anchor_color(anchor_node, new_color_int)
 
         def _on_accept(self):
             """Flush local working copies to prefs module, persist, and close."""
