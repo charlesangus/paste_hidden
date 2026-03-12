@@ -65,6 +65,7 @@ def _color_int_to_rgb(color_int):
 
 if QtWidgets is None:
     ColorPaletteDialog = None
+    PrefsDialog = None
 else:
     # Column addresses: a-z (26 columns max)
     _COLUMN_KEYS = 'abcdefghijklmnopqrstuvwxyz'
@@ -393,3 +394,208 @@ else:
             are discarded by not calling this method.
             """
             return list(self._staged_custom_colors)
+
+    class PrefsDialog(QtWidgets.QDialog):
+        """Preferences dialog for managing plugin settings and custom colors.
+
+        Seeds local working copies of preferences at open time. Mutates
+        prefs module variables only on OK (via _on_accept). Cancel leaves
+        prefs module variables unchanged.
+        """
+
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            import prefs as prefs_module
+            # Seed local working copies — never mutate prefs module vars until accept
+            self._local_plugin_enabled = prefs_module.plugin_enabled
+            self._local_link_mode = prefs_module.link_classes_paste_mode
+            self._local_custom_colors = list(prefs_module.custom_colors)
+            self._selected_swatch_index = None  # index into _local_custom_colors
+            self._swatch_buttons = []  # parallel list of QPushButton refs
+            self._build_ui()
+
+        def _build_ui(self):
+            self.setWindowTitle("Preferences")
+            outer_layout = QtWidgets.QVBoxLayout()
+            self.setLayout(outer_layout)
+
+            # Checkbox: plugin enabled
+            self._plugin_checkbox = QtWidgets.QCheckBox("Enable paste_hidden plugin")
+            self._plugin_checkbox.setChecked(self._local_plugin_enabled)
+            outer_layout.addWidget(self._plugin_checkbox)
+
+            # Checkbox: link classes paste mode
+            self._link_mode_checkbox = QtWidgets.QCheckBox("Input nodes paste as links")
+            self._link_mode_checkbox.setChecked(self._local_link_mode == "create_link")
+            outer_layout.addWidget(self._link_mode_checkbox)
+
+            # Horizontal separator
+            separator_top = QtWidgets.QFrame()
+            separator_top.setFrameShape(QtWidgets.QFrame.HLine)
+            separator_top.setFrameShadow(QtWidgets.QFrame.Sunken)
+            outer_layout.addWidget(separator_top)
+
+            # Label: Custom Colors
+            custom_colors_label = QtWidgets.QLabel("Custom Colors")
+            outer_layout.addWidget(custom_colors_label)
+
+            # Swatch grid widget
+            self._swatch_grid_widget = QtWidgets.QWidget()
+            self._swatch_grid_layout = QtWidgets.QGridLayout()
+            self._swatch_grid_layout.setSpacing(2)
+            self._swatch_grid_widget.setLayout(self._swatch_grid_layout)
+            outer_layout.addWidget(self._swatch_grid_widget)
+            self._populate_swatch_grid()
+
+            # Add/Edit/Remove button row (left-aligned)
+            button_row_layout = QtWidgets.QHBoxLayout()
+            self._add_button = QtWidgets.QPushButton("Add")
+            self._add_button.setAutoDefault(False)
+            self._edit_button = QtWidgets.QPushButton("Edit")
+            self._edit_button.setAutoDefault(False)
+            self._remove_button = QtWidgets.QPushButton("Remove")
+            self._remove_button.setAutoDefault(False)
+            button_row_layout.addWidget(self._add_button)
+            button_row_layout.addWidget(self._edit_button)
+            button_row_layout.addWidget(self._remove_button)
+            button_row_layout.addStretch()
+            self._add_button.clicked.connect(self._on_add_color)
+            self._edit_button.clicked.connect(self._on_edit_color)
+            self._remove_button.clicked.connect(self._on_remove_color)
+            outer_layout.addLayout(button_row_layout)
+
+            # Horizontal separator
+            separator_bottom = QtWidgets.QFrame()
+            separator_bottom.setFrameShape(QtWidgets.QFrame.HLine)
+            separator_bottom.setFrameShadow(QtWidgets.QFrame.Sunken)
+            outer_layout.addWidget(separator_bottom)
+
+            # OK / Cancel button box
+            self._button_box = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+            )
+            self._button_box.accepted.connect(self._on_accept)
+            self._button_box.rejected.connect(self.reject)
+            outer_layout.addWidget(self._button_box)
+
+        def _populate_swatch_grid(self):
+            """Fill the swatch grid from self._local_custom_colors."""
+            self._swatch_buttons = []
+            for index, color_int in enumerate(self._local_custom_colors):
+                button = QtWidgets.QPushButton()
+                button.setFixedSize(24, 24)
+                button.setFocusPolicy(Qt.NoFocus)
+                button.setAutoDefault(False)
+                red, green, blue = _color_int_to_rgb(color_int)
+                button.setStyleSheet(
+                    f"background-color: rgb({red},{green},{blue}); "
+                    "border: 1px solid #555; "
+                    "border-radius: 2px;"
+                )
+                button.clicked.connect(
+                    lambda checked=False, i=index: self._on_swatch_selected(i)
+                )
+                self._swatch_grid_layout.addWidget(
+                    button,
+                    index // _SWATCHES_PER_ROW,
+                    index % _SWATCHES_PER_ROW,
+                )
+                self._swatch_buttons.append(button)
+            self._update_edit_remove_buttons()
+
+        def _rebuild_swatch_grid(self):
+            """Clear and repopulate the swatch grid from self._local_custom_colors."""
+            while self._swatch_grid_layout.count() > 0:
+                item = self._swatch_grid_layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            self._swatch_buttons = []
+            self._selected_swatch_index = None
+            self._populate_swatch_grid()
+
+        def _on_swatch_selected(self, index):
+            """Mark the swatch at index as selected; update button borders."""
+            self._selected_swatch_index = index
+            for button_index, button in enumerate(self._swatch_buttons):
+                color_int = self._local_custom_colors[button_index]
+                red, green, blue = _color_int_to_rgb(color_int)
+                if button_index == index:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 2px solid white; "
+                        "border-radius: 2px;"
+                    )
+                else:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 1px solid #555; "
+                        "border-radius: 2px;"
+                    )
+            self._update_edit_remove_buttons()
+
+        def _update_edit_remove_buttons(self):
+            """Enable or disable Edit and Remove based on swatch selection state."""
+            has_selection = self._selected_swatch_index is not None
+            self._edit_button.setEnabled(has_selection)
+            self._remove_button.setEnabled(has_selection)
+
+        def _on_add_color(self):
+            """Open nuke.getColor() and append the result to the custom colors list."""
+            result = nuke.getColor()
+            if result == 0:
+                return
+            self._local_custom_colors.append(result)
+            self._rebuild_swatch_grid()
+            # Auto-select the newly appended color
+            new_index = len(self._local_custom_colors) - 1
+            self._on_swatch_selected(new_index)
+            # Apply the white-border stylesheet to confirm visual selection
+            if new_index < len(self._swatch_buttons):
+                color_int = self._local_custom_colors[new_index]
+                red, green, blue = _color_int_to_rgb(color_int)
+                self._swatch_buttons[new_index].setStyleSheet(
+                    f"background-color: rgb({red},{green},{blue}); "
+                    "border: 2px solid white; "
+                    "border-radius: 2px;"
+                )
+
+        def _on_edit_color(self):
+            """Replace the selected color via nuke.getColor()."""
+            if self._selected_swatch_index is None:
+                return
+            result = nuke.getColor()
+            if result == 0:
+                return
+            self._local_custom_colors[self._selected_swatch_index] = result
+            selected_index = self._selected_swatch_index
+            self._rebuild_swatch_grid()
+            self._on_swatch_selected(selected_index)
+
+        def _on_remove_color(self):
+            """Remove the selected color from the list and rebuild the grid."""
+            if self._selected_swatch_index is None:
+                return
+            del self._local_custom_colors[self._selected_swatch_index]
+            self._rebuild_swatch_grid()
+            # _rebuild_swatch_grid resets _selected_swatch_index = None
+            # and _populate_swatch_grid calls _update_edit_remove_buttons()
+
+        def _on_accept(self):
+            """Flush local working copies to prefs module, persist, and close."""
+            import prefs as prefs_module
+            import menu as menu_module
+            # Read current checkbox states into local vars (user may have changed them)
+            self._local_plugin_enabled = self._plugin_checkbox.isChecked()
+            self._local_link_mode = (
+                "create_link" if self._link_mode_checkbox.isChecked() else "passthrough"
+            )
+            # Flush local working copies to prefs module-level variables
+            prefs_module.plugin_enabled = self._local_plugin_enabled
+            prefs_module.link_classes_paste_mode = self._local_link_mode
+            prefs_module.custom_colors = list(self._local_custom_colors)
+            # Persist to disk
+            prefs_module.save()
+            # Apply plugin_enabled live (menu enable/disable without restart)
+            menu_module.set_anchors_menu_enabled(prefs_module.plugin_enabled)
+            self.accept()
