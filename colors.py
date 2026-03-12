@@ -437,6 +437,9 @@ else:
             self._local_plugin_enabled = prefs_module.plugin_enabled
             self._local_link_mode = prefs_module.link_classes_paste_mode
             self._local_custom_colors = list(prefs_module.custom_colors)
+            # Snapshot of custom colors at open time so _on_accept can detect changes
+            # and recolor any anchor nodes using the old color values.
+            self._original_custom_colors = list(prefs_module.custom_colors)
             self._selected_swatch_index = None  # index into _local_custom_colors
             self._swatch_buttons = []  # parallel list of QPushButton refs
             self._build_ui()
@@ -621,10 +624,42 @@ else:
             # _rebuild_swatch_grid resets _selected_swatch_index = None
             # and _populate_swatch_grid calls _update_edit_remove_buttons()
 
+        def _recolor_anchors_for_changed_custom_colors(self, old_colors, new_colors):
+            """Recolor anchor nodes in the current script whose tile_color matches a changed custom color.
+
+            For each index where old_colors[i] != new_colors[i], iterates all
+            NoOp anchor nodes and calls anchor.propagate_anchor_color() for any
+            node whose current tile_color equals the old color value.
+
+            Parameters
+            ----------
+            old_colors : list of int
+                Custom color ints before the user's edits (snapshot from __init__).
+            new_colors : list of int
+                Custom color ints after the user's edits (from _local_custom_colors).
+            """
+            try:
+                import nuke as nuke_module
+            except ImportError:
+                return
+            import anchor as anchor_module
+
+            for index in range(min(len(old_colors), len(new_colors))):
+                old_color_int = old_colors[index]
+                new_color_int = new_colors[index]
+                if old_color_int == new_color_int:
+                    continue
+                for node in nuke_module.allNodes():
+                    if node.Class() != 'NoOp':
+                        continue
+                    if not node.knob('anchor_name'):
+                        continue
+                    if int(node['tile_color'].value()) == old_color_int:
+                        anchor_module.propagate_anchor_color(node, new_color_int)
+
         def _on_accept(self):
             """Flush local working copies to prefs module, persist, and close."""
             import prefs as prefs_module
-            import paste_hidden.menu as menu_module
             # Read current checkbox states into local vars (user may have changed them)
             self._local_plugin_enabled = self._plugin_checkbox.isChecked()
             self._local_link_mode = (
@@ -636,6 +671,14 @@ else:
             prefs_module.custom_colors = list(self._local_custom_colors)
             # Persist to disk
             prefs_module.save()
-            # Apply plugin_enabled live (menu enable/disable without restart)
-            menu_module.set_anchors_menu_enabled(prefs_module.plugin_enabled)
+            # Apply plugin_enabled live (menu enable/disable without restart).
+            # set_anchors_menu_enabled is stored on the prefs module by menu.py at startup,
+            # avoiding any import conflict with Nuke's built-in 'menu' module.
+            set_menu_enabled = getattr(prefs_module, 'set_anchors_menu_enabled', None)
+            if set_menu_enabled is not None:
+                set_menu_enabled(prefs_module.plugin_enabled)
+            # Recolor anchor nodes whose tile_color matched a changed custom color swatch.
+            self._recolor_anchors_for_changed_custom_colors(
+                self._original_custom_colors, list(self._local_custom_colors)
+            )
             self.accept()

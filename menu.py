@@ -86,5 +86,9 @@ def set_anchors_menu_enabled(enabled):
             menu_item.setEnabled(enabled)
 
 
+# Store a reference in prefs so PrefsDialog can call it without import conflicts.
+# colors.py imports prefs cleanly; this avoids any paste_hidden package import issues.
+prefs.set_anchors_menu_enabled = set_anchors_menu_enabled
+
 # Apply initial state at startup in case prefs loads plugin_enabled=False
 set_anchors_menu_enabled(prefs.plugin_enabled)
