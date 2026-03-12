@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: executing
-stopped_at: Completed 06-04-PLAN.md
-last_updated: "2026-03-11T12:36:52.354Z"
+stopped_at: Completed 06-05-PLAN.md
+last_updated: "2026-03-12T03:22:12.732Z"
 last_activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 50
 ---
 
@@ -51,6 +51,7 @@ Progress: [█████░░░░░] 50% (4 of 8 plans complete — v1.1)
 | Phase 06 P03 | 3min | 1 tasks | 1 files |
 | Phase 06-preferences-infrastructure P02 | 2min | 1 tasks | 2 files |
 | Phase 06-preferences-infrastructure P04 | 2min | 2 tasks | 3 files |
+| Phase 06-preferences-infrastructure P05 | 5min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Key decisions affecting v1.1 work:
 - [Phase 06-02]: Test classes for load_user_palette/save_user_palette deleted from test_anchor_color_system.py since the functions no longer exist
 - [Phase 06-04]: set_anchors_menu_enabled() uses hasattr guard for setEnabled for Nuke 13+ compatibility; called at startup with prefs.plugin_enabled to apply initial state
 - [Phase 06-04]: copy_old/cut_old/paste_old excluded from _gated_menu_items — always active as explicit fallback commands; Phase 7 Preferences item will also be excluded when added
+- [Phase 06-05]: save() called in _load() file-absent branch after _migrate_from_old_palette() — prefs file materializes at first import rather than only on explicit PrefsDialog accept
 
 ### Pending Todos
 
@@ -81,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T12:32:01Z
-Stopped at: Completed 06-04-PLAN.md
+Last session: 2026-03-12T03:22:12.729Z
+Stopped at: Completed 06-05-PLAN.md
 Resume file: None
