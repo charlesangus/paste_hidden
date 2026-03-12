@@ -62,11 +62,11 @@
 
 ### Color Picker Redesign
 
-- [ ] **PICKER-01**: Clicking a color swatch selects/highlights it without closing the dialog
-- [ ] **PICKER-02**: User confirms selection with Enter key or OK button; dialog closes and returns chosen color
-- [ ] **PICKER-03**: The pre-selected color (`initial_color`) is visually highlighted when the dialog opens
-- [ ] **PICKER-04**: Swatch groups are ordered: custom colors → backdrop colors → Nuke defaults, with visual separation between groups
-- [ ] **PICKER-05**: Custom colors chosen via "Custom Color..." are staged in memory and only persisted to disk when the dialog is accepted (not on Cancel)
+- [x] **PICKER-01**: Clicking a color swatch selects/highlights it without closing the dialog
+- [x] **PICKER-02**: User confirms selection with Enter key or OK button; dialog closes and returns chosen color
+- [x] **PICKER-03**: The pre-selected color (`initial_color`) is visually highlighted when the dialog opens
+- [x] **PICKER-04**: Swatch groups are ordered: custom colors → backdrop colors → Nuke defaults, with visual separation between groups
+- [x] **PICKER-05**: Custom colors chosen via "Custom Color..." are staged in memory and only persisted to disk when the dialog is accepted (not on Cancel)
 
 ## v2 Requirements
 
@@ -122,11 +122,11 @@
 | PANEL-05 | Phase 7 | Pending |
 | PANEL-06 | Phase 7 | Pending |
 | PANEL-07 | Phase 7 | Pending |
-| PICKER-01 | Phase 7 | Pending |
-| PICKER-02 | Phase 7 | Pending |
-| PICKER-03 | Phase 7 | Pending |
-| PICKER-04 | Phase 7 | Pending |
-| PICKER-05 | Phase 7 | Pending |
+| PICKER-01 | Phase 7 | Complete |
+| PICKER-02 | Phase 7 | Complete |
+| PICKER-03 | Phase 7 | Complete |
+| PICKER-04 | Phase 7 | Complete |
+| PICKER-05 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 complete, 1 deferred (NAV-03 → v2)

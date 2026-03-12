@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-03-12T04:59:20.602Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-12T05:39:52.704Z"
 last_activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 6
   percent: 50
 ---
 
@@ -52,6 +52,7 @@ Progress: [█████░░░░░] 50% (4 of 8 plans complete — v1.1)
 | Phase 06-preferences-infrastructure P02 | 2min | 1 tasks | 2 files |
 | Phase 06-preferences-infrastructure P04 | 2min | 2 tasks | 3 files |
 | Phase 06-preferences-infrastructure P05 | 5min | 1 tasks | 2 files |
+| Phase 07 P01 | 8min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Key decisions affecting v1.1 work:
 - [Phase 06-04]: set_anchors_menu_enabled() uses hasattr guard for setEnabled for Nuke 13+ compatibility; called at startup with prefs.plugin_enabled to apply initial state
 - [Phase 06-04]: copy_old/cut_old/paste_old excluded from _gated_menu_items — always active as explicit fallback commands; Phase 7 Preferences item will also be excluded when added
 - [Phase 06-05]: save() called in _load() file-absent branch after _migrate_from_old_palette() — prefs file materializes at first import rather than only on explicit PrefsDialog accept
+- [Phase 07]: AST method extraction pattern used to test Qt-stubbed class methods in unit tests
+- [Phase 07]: chosen_custom_colors() accessor returns staged list copy; callers persist only on accept (never on cancel)
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T04:59:20.587Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-color-picker-redesign-and-preferences-panel/07-CONTEXT.md
+Last session: 2026-03-12T05:39:52.699Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
