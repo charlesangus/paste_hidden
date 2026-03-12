@@ -500,13 +500,20 @@ else:
             separator_bottom.setFrameShadow(QtWidgets.QFrame.Sunken)
             outer_layout.addWidget(separator_bottom)
 
-            # OK / Cancel button box
-            self._button_box = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-            )
-            self._button_box.accepted.connect(self._on_accept)
-            self._button_box.rejected.connect(self.reject)
-            outer_layout.addWidget(self._button_box)
+            # OK / Cancel buttons in a horizontal row — OK on the left, Cancel on
+            # the right, matching Nuke's native dialog layout and ColorPaletteDialog.
+            # setAutoDefault(False) prevents Enter from accidentally triggering a
+            # button click instead of the dialog-level keyPressEvent.
+            ok_cancel_row_layout = QtWidgets.QHBoxLayout()
+            self._ok_button = QtWidgets.QPushButton("OK")
+            self._ok_button.setAutoDefault(False)
+            self._ok_button.clicked.connect(self._on_accept)
+            self._cancel_button = QtWidgets.QPushButton("Cancel")
+            self._cancel_button.setAutoDefault(False)
+            self._cancel_button.clicked.connect(self.reject)
+            ok_cancel_row_layout.addWidget(self._ok_button)
+            ok_cancel_row_layout.addWidget(self._cancel_button)
+            outer_layout.addLayout(ok_cancel_row_layout)
 
         def _populate_swatch_grid(self):
             """Fill the swatch grid from self._local_custom_colors."""
