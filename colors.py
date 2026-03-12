@@ -232,17 +232,17 @@ else:
             custom_button.clicked.connect(self._on_custom_color_clicked)
             outer_layout.addWidget(custom_button)
 
-            # OK / Cancel buttons side by side — OK on left, Cancel on right,
-            # matching Nuke's native dialog convention.
-            ok_button = QtWidgets.QPushButton("OK")
-            ok_button.setFocusPolicy(Qt.NoFocus)
-            ok_button.setAutoDefault(False)
-            ok_button.clicked.connect(self.accept)
-
+            # Cancel / OK buttons side by side — Cancel on left, OK on right,
+            # matching Nuke's native dialog convention (positive action on the right).
             cancel_button = QtWidgets.QPushButton("Cancel")
             cancel_button.setFocusPolicy(Qt.NoFocus)
             cancel_button.setAutoDefault(False)
             cancel_button.clicked.connect(self.reject)
+
+            ok_button = QtWidgets.QPushButton("OK")
+            ok_button.setFocusPolicy(Qt.NoFocus)
+            ok_button.setAutoDefault(False)
+            ok_button.clicked.connect(self.accept)
 
             ok_cancel_layout = QtWidgets.QHBoxLayout()
             ok_cancel_layout.addWidget(ok_button)      # OK on left
@@ -300,10 +300,80 @@ else:
             self._selected_color = result
             self._append_swatch_to_custom_group(result)
             self._refresh_swatch_borders()
+            if self._name_edit is not None:
+                self.chosen_name = self._name_edit.text()
+            self.accept()
 
         def selected_color_int(self):
             """Return the selected color as a 0xRRGGBBAA int, or None if cancelled."""
             return self._selected_color
+
+        def showEvent(self, event):
+            """Install an application-level event filter so keyboard shortcuts
+            (Tab hint mode, Enter, Escape) work even when a child widget such as
+            the name QLineEdit holds keyboard focus.
+            """
+            super().showEvent(event)
+            app = QtWidgets.QApplication.instance()
+            if app is not None:
+                app.installEventFilter(self)
+
+        def hideEvent(self, event):
+            """Remove the application-level event filter when the dialog hides."""
+            super().hideEvent(event)
+            app = QtWidgets.QApplication.instance()
+            if app is not None:
+                app.removeEventFilter(self)
+
+        def eventFilter(self, obj, event):
+            """Intercept keys at the QApplication level so they reach the dialog
+            even when a child widget (e.g. QLineEdit) has focus.
+            """
+            if event.type() != QtCore.QEvent.KeyPress:
+                return False
+            key = event.key()
+
+            # Tab toggles hint mode regardless of which child has focus.
+            if key == Qt.Key_Tab:
+                self._hint_mode = not self._hint_mode
+                self._hint_row = None
+                self._update_hint_overlays()
+                return True
+
+            # Escape closes the dialog.
+            if key == Qt.Key_Escape:
+                self.reject()
+                return True
+
+            # Enter/Return confirms the current selection.
+            if key in (Qt.Key_Return, Qt.Key_Enter):
+                if self._selected_color is not None:
+                    if self._name_edit is not None:
+                        self.chosen_name = self._name_edit.text()
+                    self.accept()
+                return True
+
+            # In hint mode, route alphanumeric keys to the navigation handler.
+            if self._hint_mode:
+                key_text = event.text().lower()
+                if key_text in _ROW_KEYS and self._hint_row is None:
+                    self._hint_row = _ROW_KEYS.index(key_text)
+                    self._highlight_hint_row(self._hint_row)
+                    return True
+                if key_text in _COLUMN_KEYS and self._hint_row is not None:
+                    col_index = _COLUMN_KEYS.index(key_text)
+                    target_cell = self._cell_map.get((col_index, self._hint_row))
+                    if target_cell is not None:
+                        color_int, button = target_cell
+                        self._selected_color = color_int
+                        if self._name_edit is not None:
+                            self.chosen_name = self._name_edit.text()
+                        self.accept()
+                    self._hint_row = None
+                    return True
+                return True  # consume unknown keys in hint mode
+
+            return False
 
         def keyPressEvent(self, event):
             key_text = event.text().lower()
@@ -551,19 +621,20 @@ else:
             # Establish explicit tab order so swatch buttons are reachable via Tab.
             self._update_swatch_tab_order()
 
-            # OK / Cancel buttons in a horizontal row — OK on the left, Cancel on
-            # the right, matching Nuke's native dialog convention.
+            # Cancel / OK buttons in a horizontal row — Cancel on the left, OK on
+            # the right, matching Nuke's native dialog convention (positive action
+            # on the right).
             # setAutoDefault(False) prevents Enter from accidentally triggering a
             # button click instead of the dialog-level keyPressEvent.
             ok_cancel_row_layout = QtWidgets.QHBoxLayout()
-            self._ok_button = QtWidgets.QPushButton("OK")
-            self._ok_button.setAutoDefault(False)
-            self._ok_button.clicked.connect(self._on_accept)
             self._cancel_button = QtWidgets.QPushButton("Cancel")
             self._cancel_button.setAutoDefault(False)
             self._cancel_button.clicked.connect(self.reject)
-            ok_cancel_row_layout.addWidget(self._ok_button)      # OK on left
-            ok_cancel_row_layout.addWidget(self._cancel_button)  # Cancel on right
+            self._ok_button = QtWidgets.QPushButton("OK")
+            self._ok_button.setAutoDefault(False)
+            self._ok_button.clicked.connect(self._on_accept)
+            ok_cancel_row_layout.addWidget(self._cancel_button)  # Cancel on left
+            ok_cancel_row_layout.addWidget(self._ok_button)      # OK on right
             outer_layout.addLayout(ok_cancel_row_layout)
 
         def _populate_swatch_grid(self):

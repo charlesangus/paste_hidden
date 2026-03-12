@@ -834,8 +834,8 @@ class TestColorPaletteDialogCustomColorStaging(unittest.TestCase):
         self.assertIn(0xFF0000FF, dialog._staged_custom_colors,
                       "New color must be added to _staged_custom_colors")
 
-    def test_on_custom_color_clicked_does_not_call_accept(self):
-        """_on_custom_color_clicked must NOT call self.accept() — dialog stays open."""
+    def test_on_custom_color_clicked_calls_accept(self):
+        """_on_custom_color_clicked must call self.accept() — picking a custom color closes the dialog."""
         on_custom_color_clicked = self._get_method('_on_custom_color_clicked')
 
         dialog = _PickerTestHarness()
@@ -847,7 +847,7 @@ class TestColorPaletteDialogCustomColorStaging(unittest.TestCase):
 
         on_custom_color_clicked(dialog)
 
-        dialog.accept.assert_not_called()
+        dialog.accept.assert_called_once()
 
     def test_on_custom_color_clicked_sets_selected_color(self):
         """_on_custom_color_clicked sets _selected_color to the newly added color."""
@@ -1794,7 +1794,7 @@ class TestHintModeKeyAssignment(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Post-checkpoint fix regression tests (07-03)
 # FIX 1: Tab key intercepted at QApplication level before Nuke's tabtabtab
-# FIX 2: OK left, Cancel right in both dialogs — Nuke convention
+# FIX 2: ColorPaletteDialog — OK left, Cancel right; PrefsDialog — Cancel left, OK right
 # ---------------------------------------------------------------------------
 
 
@@ -1949,14 +1949,14 @@ class TestPrefsDialogTabEventFilter(unittest.TestCase):
         self.assertTrue(True)  # placeholder — source tests are definitive
 
 
-class TestPrefsDialogButtonOrderOkLeft(unittest.TestCase):
-    """FIX 2 regression: PrefsDialog _build_ui must add OK button BEFORE Cancel
-    button in the ok_cancel_row_layout so OK appears on the left — matching Nuke
-    convention.
+class TestPrefsDialogButtonOrderCancelLeft(unittest.TestCase):
+    """FIX 2 regression: PrefsDialog _build_ui must add Cancel button BEFORE OK
+    button in the ok_cancel_row_layout so Cancel appears on the left and OK on
+    the right — matching Nuke's convention (positive action on the right).
     """
 
-    def test_ok_button_added_before_cancel_in_layout(self):
-        """In PrefsDialog._build_ui, addWidget(_ok_button) must appear before addWidget(_cancel_button)."""
+    def test_cancel_button_added_before_ok_in_layout(self):
+        """In PrefsDialog._build_ui, addWidget(_cancel_button) must appear before addWidget(_ok_button)."""
         with open('/workspace/colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
@@ -1979,7 +1979,7 @@ class TestPrefsDialogButtonOrderOkLeft(unittest.TestCase):
         cancel_button_add_line = None
 
         for node in ast.walk(build_ui_node):
-            # Find: ok_cancel_row_layout.addWidget(self._ok_button)
+            # Find: ok_cancel_row_layout.addWidget(self._cancel_button) / addWidget(self._ok_button)
             if (isinstance(node, ast.Expr) and
                     isinstance(node.value, ast.Call) and
                     isinstance(node.value.func, ast.Attribute) and
@@ -1995,10 +1995,10 @@ class TestPrefsDialogButtonOrderOkLeft(unittest.TestCase):
         self.assertIsNotNone(cancel_button_add_line,
                              "PrefsDialog._build_ui: addWidget(self._cancel_button) call not found")
         self.assertLess(
-            ok_button_add_line,
             cancel_button_add_line,
-            f"OK button (line {ok_button_add_line}) must be added to layout BEFORE "
-            f"Cancel button (line {cancel_button_add_line}) — OK should be on the left"
+            ok_button_add_line,
+            f"Cancel button (line {cancel_button_add_line}) must be added to layout BEFORE "
+            f"OK button (line {ok_button_add_line}) — Cancel on left, OK on right"
         )
 
 
@@ -2087,7 +2087,7 @@ class TestColorPaletteDialogButtonLayout(unittest.TestCase):
             ok_add_line,
             cancel_add_line,
             f"ok_button (line {ok_add_line}) must be added to layout BEFORE "
-            f"cancel_button (line {cancel_add_line}) — OK should appear on the left"
+            f"cancel_button (line {cancel_add_line}) — OK on left, Cancel on right"
         )
 
 

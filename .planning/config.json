@@ -1,6 +1,5 @@
 {
   "mode": "yolo",
-  "depth": "standard",
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "balanced",
@@ -9,9 +8,11 @@
     "plan_check": true,
     "verifier": true,
     "auto_advance": false,
-    "nyquist_validation": false
+    "nyquist_validation": false,
+    "_auto_chain_active": false
   },
   "git": {
     "branching_strategy": "none"
-  }
+  },
+  "granularity": "standard"
 }

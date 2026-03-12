@@ -70,7 +70,7 @@ anchors_menu.addCommand("Paste (old)", "paste_hidden.paste_old()", "+^D")
 
 anchors_menu.addSeparator()
 anchors_menu.addCommand(
-    "Preferences...",
+    "Anchor Preferences...",
     "from colors import PrefsDialog; dlg = PrefsDialog(); dlg.exec()"
 )
 
