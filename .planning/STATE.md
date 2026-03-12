@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-11T00:26:00.000Z"
-last_activity: 2026-03-11 — Phase 7 Plan 02 complete; PrefsDialog with custom colors swatch grid and OK/Cancel lifecycle
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-03-12T00:00:00.000Z"
+last_activity: 2026-03-12 — Phase 7 Plan 03 complete; Preferences... menu wired; 5 UAT bugs fixed; v1.1 milestone complete
 progress:
   total_phases: 2
   completed_phases: 1
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 7 of 7 (v1.1 scope — phases 6-7)
-Plan: 2 of 3 in current phase (plan 02 complete)
-Status: In progress
-Last activity: 2026-03-11 — Phase 7 Plan 02 complete; PrefsDialog with custom colors swatch grid and OK/Cancel lifecycle
+Plan: 3 of 3 in current phase (plan 03 complete — phase 7 DONE)
+Status: Complete
+Last activity: 2026-03-12 — Phase 7 Plan 03 complete; Preferences... menu wired; 5 UAT bugs fixed; all Phase 7 features verified
 
-Progress: [██████░░░░] 62% (7 of 8 plans complete — v1.1)
+Progress: [██████████] 100% (8 of 8 plans complete — v1.1)
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████░░░░] 62% (7 of 8 plans complete — v1.1)
 | Phase 06-preferences-infrastructure P05 | 5min | 1 tasks | 2 files |
 | Phase 07 P01 | 8min | 2 tasks | 2 files |
 | Phase 07 P02 | 2min | 2 tasks | 1 files |
+| Phase 07 P03 | 35min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Key decisions affecting v1.1 work:
 - [Phase 07-02]: Local import of prefs inside PrefsDialog.__init__ and _on_accept prevents circular import (colors.py -> prefs.py)
 - [Phase 07-02]: QDialogButtonBox.accepted wired to _on_accept (not self.accept) so flush logic always runs before dialog closes
 - [Phase 07-02]: Working-copy pattern — seed locals at open, flush to prefs module vars only on OK; Cancel leaves prefs unchanged
+- [Phase 07-03]: QPalette.Highlight used for swatch selection border so it matches the user's Qt theme; _refresh_swatch_borders() called at end of _build_ui to apply palette-based pre-highlight
+- [Phase 07-03]: Add/Edit/Remove buttons created before _populate_swatch_grid() in PrefsDialog._build_ui so _update_edit_remove_buttons() never sees AttributeError on _edit_button
+- [Phase 07-03]: _persist_custom_colors_from_dialog() helper in anchor.py consolidates custom color persistence across all three ColorPaletteDialog call sites (set_anchor_color, rename_anchor, create_anchor)
 
 ### Pending Todos
 

@@ -25,7 +25,7 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 **Milestone Goal:** Redesign the color picker dialog for usability, and add a preferences panel for plugin-wide settings.
 
 - [x] **Phase 6: Preferences Infrastructure** - Prefs singleton, JSON persistence, migration from old palette file, and LINK_CLASSES paste-mode gate in copy_hidden() (completed 2026-03-11)
-- [ ] **Phase 7: Color Picker Redesign and Preferences Panel** - ColorPaletteDialog state machine redesign, PrefsDialog UI with all controls, and menu entry point
+- [x] **Phase 7: Color Picker Redesign and Preferences Panel** - ColorPaletteDialog state machine redesign, PrefsDialog UI with all controls, and menu entry point (completed 2026-03-12)
 
 ## Phase Details
 
@@ -60,9 +60,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — ColorPaletteDialog redesign: click-to-select, OK button, group reordering, custom color staging
-- [ ] 07-02-PLAN.md — PrefsDialog new class: layout, swatch CRUD, accept lifecycle
-- [ ] 07-03-PLAN.md — menu.py Preferences... entry point + human verification
+- [x] 07-01-PLAN.md — ColorPaletteDialog redesign: click-to-select, OK button, group reordering, custom color staging
+- [x] 07-02-PLAN.md — PrefsDialog new class: layout, swatch CRUD, accept lifecycle
+- [x] 07-03-PLAN.md — menu.py Preferences... entry point + human verification
 
 ## Progress
 
@@ -74,4 +74,4 @@ Plans:
 | 4. Anchor Navigation | v1.0 | 4/4 | Complete | 2026-03-10 |
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
 | 6. Preferences Infrastructure | 5/5 | Complete   | 2026-03-12 | 2026-03-11 |
-| 7. Color Picker Redesign and Preferences Panel | 2/3 | In Progress|  | - |
+| 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
