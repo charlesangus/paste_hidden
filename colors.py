@@ -544,16 +544,27 @@ else:
             self._selected_swatch_index = None
             self._populate_swatch_grid()
 
+        def _highlight_color_name(self):
+            """Return the CSS color name to use for the selected swatch border.
+
+            Uses the widget's QPalette Highlight color so the selection indicator
+            matches the user's Qt theme, rather than a hardcoded white.
+            Mirrors the same method on ColorPaletteDialog for consistency.
+            """
+            highlight_qcolor = self.palette().color(QtGui.QPalette.Highlight)
+            return highlight_qcolor.name()
+
         def _on_swatch_selected(self, index):
             """Mark the swatch at index as selected; update button borders."""
             self._selected_swatch_index = index
+            highlight_color = self._highlight_color_name()
             for button_index, button in enumerate(self._swatch_buttons):
                 color_int = self._local_custom_colors[button_index]
                 red, green, blue = _color_int_to_rgb(color_int)
                 if button_index == index:
                     button.setStyleSheet(
                         f"background-color: rgb({red},{green},{blue}); "
-                        "border: 2px solid white; "
+                        f"border: 2px solid {highlight_color}; "
                         "border-radius: 2px;"
                     )
                 else:
@@ -577,18 +588,10 @@ else:
                 return
             self._local_custom_colors.append(result)
             self._rebuild_swatch_grid()
-            # Auto-select the newly appended color
+            # Auto-select the newly appended color; _on_swatch_selected applies
+            # the palette highlight border via _highlight_color_name().
             new_index = len(self._local_custom_colors) - 1
             self._on_swatch_selected(new_index)
-            # Apply the white-border stylesheet to confirm visual selection
-            if new_index < len(self._swatch_buttons):
-                color_int = self._local_custom_colors[new_index]
-                red, green, blue = _color_int_to_rgb(color_int)
-                self._swatch_buttons[new_index].setStyleSheet(
-                    f"background-color: rgb({red},{green},{blue}); "
-                    "border: 2px solid white; "
-                    "border-radius: 2px;"
-                )
 
         def _on_edit_color(self):
             """Replace the selected color via nuke.getColor()."""
