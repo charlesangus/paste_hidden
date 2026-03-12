@@ -232,19 +232,22 @@ else:
             custom_button.clicked.connect(self._on_custom_color_clicked)
             outer_layout.addWidget(custom_button)
 
-            # OK button — confirms the current selection and closes the dialog
+            # OK / Cancel buttons side by side — OK on left, Cancel on right,
+            # matching Nuke's native dialog convention.
             ok_button = QtWidgets.QPushButton("OK")
             ok_button.setFocusPolicy(Qt.NoFocus)
             ok_button.setAutoDefault(False)
             ok_button.clicked.connect(self.accept)
-            outer_layout.addWidget(ok_button)
 
-            # Cancel button — discards staged colors; dialog result() == Rejected
             cancel_button = QtWidgets.QPushButton("Cancel")
             cancel_button.setFocusPolicy(Qt.NoFocus)
             cancel_button.setAutoDefault(False)
             cancel_button.clicked.connect(self.reject)
-            outer_layout.addWidget(cancel_button)
+
+            ok_cancel_layout = QtWidgets.QHBoxLayout()
+            ok_cancel_layout.addWidget(ok_button)      # OK on left
+            ok_cancel_layout.addWidget(cancel_button)  # Cancel on right
+            outer_layout.addLayout(ok_cancel_layout)
 
             # Apply pre-highlight using palette Highlight color now that all
             # swatch cells are populated and the widget has a palette context.
@@ -548,7 +551,7 @@ else:
             # Establish explicit tab order so swatch buttons are reachable via Tab.
             self._update_swatch_tab_order()
 
-            # Cancel / OK buttons in a horizontal row — Cancel on the left, OK on
+            # OK / Cancel buttons in a horizontal row — OK on the left, Cancel on
             # the right, matching Nuke's native dialog convention.
             # setAutoDefault(False) prevents Enter from accidentally triggering a
             # button click instead of the dialog-level keyPressEvent.
@@ -559,8 +562,8 @@ else:
             self._cancel_button = QtWidgets.QPushButton("Cancel")
             self._cancel_button.setAutoDefault(False)
             self._cancel_button.clicked.connect(self.reject)
-            ok_cancel_row_layout.addWidget(self._cancel_button)  # Cancel on left
-            ok_cancel_row_layout.addWidget(self._ok_button)       # OK on right
+            ok_cancel_row_layout.addWidget(self._ok_button)      # OK on left
+            ok_cancel_row_layout.addWidget(self._cancel_button)  # Cancel on right
             outer_layout.addLayout(ok_cancel_row_layout)
 
         def _populate_swatch_grid(self):
