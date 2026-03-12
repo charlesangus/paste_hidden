@@ -100,6 +100,10 @@ else:
             self._swatch_cells = []  # list of (col_index, row_index, color_int, button)
             self.chosen_name = initial_name
             self._custom_colors = custom_colors if custom_colors is not None else []
+            # Dialog-local working copy for staging newly added custom colors.
+            # On accept, callers read this via chosen_custom_colors().
+            # On reject, staged colors are discarded (never written to prefs).
+            self._staged_custom_colors = list(self._custom_colors)
 
             # Map from (col_index, row_index) to button for hint navigation
             self._cell_map = {}
@@ -129,14 +133,18 @@ else:
             backdrop_colors = _get_script_backdrop_colors()
             user_palette_colors = self._custom_colors
 
+            # Order: custom colors first, then backdrop colors, then Nuke defaults.
+            # This matches PICKER-04: user's own colors appear at the top.
             all_color_groups = [
-                group for group in [nuke_pref_colors, backdrop_colors, user_palette_colors]
+                group for group in [user_palette_colors, backdrop_colors, nuke_pref_colors]
                 if group
             ]
 
             grid_row = 0
-            col_index = 0
-            row_index = 0
+            # is_first_group tracks whether the current group is the custom
+            # colors group, so we can record the next available slot for
+            # dynamic swatch appending (PICKER-05).
+            is_first_group = True
 
             for color_group in all_color_groups:
                 group_col = 0
@@ -144,6 +152,9 @@ else:
                     button = QtWidgets.QPushButton()
                     button.setFixedSize(24, 24)
                     button.setFocusPolicy(Qt.NoFocus)
+                    # Prevent button from intercepting Enter key — dialog-level
+                    # keyPressEvent handles Enter to confirm swatch selection.
+                    button.setAutoDefault(False)
 
                     red, green, blue = _color_int_to_rgb(color_int)
                     button.setStyleSheet(
@@ -173,36 +184,83 @@ else:
                         group_col = 0
                         grid_row += 1
 
-                # Move to next group row
+                if is_first_group:
+                    # Record the next available slot in the custom colors group
+                    # for dynamic swatch appending via _append_swatch_to_custom_group.
+                    self._custom_group_next_col = group_col
+                    self._custom_group_next_row = grid_row
+                    is_first_group = False
+
+                # Move to next group row (creates a blank-row gap between groups)
                 if group_col > 0:
                     grid_row += 1
 
-            # "Custom Color..." button
+            # If no custom colors were provided, the custom group is empty and
+            # the first group processed was a different one.  Initialise the
+            # custom group position so appended swatches start at row 0.
+            if is_first_group:
+                # all_color_groups was empty, or user_palette_colors was empty
+                # and was filtered out by `if group` — init to (0, 0).
+                self._custom_group_next_col = 0
+                self._custom_group_next_row = 0
+
+            # "Custom Color..." button — opens nuke.getColor(), stages result
             custom_button = QtWidgets.QPushButton("Custom Color...")
             custom_button.setFocusPolicy(Qt.NoFocus)
+            custom_button.setAutoDefault(False)
             custom_button.clicked.connect(self._on_custom_color_clicked)
             outer_layout.addWidget(custom_button)
 
-            # Cancel button
+            # OK button — confirms the current selection and closes the dialog
+            ok_button = QtWidgets.QPushButton("OK")
+            ok_button.setFocusPolicy(Qt.NoFocus)
+            ok_button.setAutoDefault(False)
+            ok_button.clicked.connect(self.accept)
+            outer_layout.addWidget(ok_button)
+
+            # Cancel button — discards staged colors; dialog result() == Rejected
             cancel_button = QtWidgets.QPushButton("Cancel")
             cancel_button.setFocusPolicy(Qt.NoFocus)
+            cancel_button.setAutoDefault(False)
             cancel_button.clicked.connect(self.reject)
             outer_layout.addWidget(cancel_button)
 
         def _on_swatch_clicked(self, color_int):
             self._selected_color = color_int
-            if self._name_edit is not None:
-                self.chosen_name = self._name_edit.text()
-            self.accept()
+            self._refresh_swatch_borders()
+
+        def _refresh_swatch_borders(self):
+            """Re-apply swatch border stylesheets: white border for selected, default for others.
+
+            Uses `is not None` comparison for the selected color so that color
+            int 0 (black) is recognised correctly — `if not self._selected_color`
+            would incorrectly treat 0 as unselected.
+            """
+            for grid_col, grid_row, color_int, button in self._swatch_cells:
+                red, green, blue = _color_int_to_rgb(color_int)
+                if self._selected_color is not None and color_int == self._selected_color:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 2px solid white; "
+                        "border-radius: 2px;"
+                    )
+                else:
+                    button.setStyleSheet(
+                        f"background-color: rgb({red},{green},{blue}); "
+                        "border: 1px solid #555; "
+                        "border-radius: 2px;"
+                    )
 
         def _on_custom_color_clicked(self):
             result = nuke.getColor()
             if result == 0:
+                # nuke.getColor() returns 0 for both cancel and pure black;
+                # treat 0 as cancel (known Nuke API limitation).
                 return
+            self._staged_custom_colors.append(result)
             self._selected_color = result
-            if self._name_edit is not None:
-                self.chosen_name = self._name_edit.text()
-            self.accept()
+            self._append_swatch_to_custom_group(result)
+            self._refresh_swatch_borders()
 
         def selected_color_int(self):
             """Return the selected color as a 0xRRGGBBAA int, or None if cancelled."""
@@ -223,6 +281,16 @@ else:
                 event.accept()
                 return
 
+            # Enter confirms the current selection regardless of hint mode.
+            # Must be checked BEFORE the hint-mode block so it works in both modes.
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                if self._selected_color is not None:
+                    if self._name_edit is not None:
+                        self.chosen_name = self._name_edit.text()
+                    self.accept()
+                event.accept()
+                return
+
             if self._hint_mode:
                 if key_text in _COLUMN_KEYS and self._hint_col is None:
                     self._hint_col = _COLUMN_KEYS.index(key_text)
@@ -236,15 +304,6 @@ else:
                     if target_cell is not None:
                         color_int, button = target_cell
                         self._selected_color = color_int
-                        if self._name_edit is not None:
-                            self.chosen_name = self._name_edit.text()
-                        self.accept()
-                    event.accept()
-                    return
-
-                if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                    # Accept with currently highlighted cell if any
-                    if self._selected_color is not None:
                         if self._name_edit is not None:
                             self.chosen_name = self._name_edit.text()
                         self.accept()
@@ -282,3 +341,58 @@ else:
                         "border: 1px solid #555; "
                         "border-radius: 2px;"
                     )
+
+        def _append_swatch_to_custom_group(self, color_int):
+            """Add a new swatch button to the custom colors group at the next available slot.
+
+            Called by _on_custom_color_clicked to dynamically grow the custom
+            colors section of the grid without rebuilding the entire dialog.
+            Updates self._swatch_cells and self._cell_map so hint mode keeps
+            working correctly.
+            """
+            button = QtWidgets.QPushButton()
+            button.setFixedSize(24, 24)
+            button.setFocusPolicy(Qt.NoFocus)
+            button.setAutoDefault(False)
+
+            red, green, blue = _color_int_to_rgb(color_int)
+            button.setStyleSheet(
+                f"background-color: rgb({red},{green},{blue}); "
+                "border: 1px solid #555; "
+                "border-radius: 2px;"
+            )
+
+            color_to_capture = color_int
+            button.clicked.connect(
+                lambda checked=False, c=color_to_capture: self._on_swatch_clicked(c)
+            )
+
+            self._grid_layout.addWidget(
+                button,
+                self._custom_group_next_row,
+                self._custom_group_next_col,
+            )
+            cell = (self._custom_group_next_col, self._custom_group_next_row, color_int, button)
+            self._swatch_cells.append(cell)
+            self._cell_map[(self._custom_group_next_col, self._custom_group_next_row)] = (
+                color_int, button
+            )
+
+            # Advance column counter; wrap to the next row at _SWATCHES_PER_ROW
+            self._custom_group_next_col += 1
+            if self._custom_group_next_col >= _SWATCHES_PER_ROW:
+                self._custom_group_next_col = 0
+                self._custom_group_next_row += 1
+
+        def chosen_custom_colors(self):
+            """Return a copy of the staged custom colors list.
+
+            This list includes both the original custom_colors passed in at
+            construction AND any colors added via "Custom Color..." during this
+            session.  Returns a copy so the caller cannot mutate internal state.
+
+            Callers should only persist this list when the dialog was accepted
+            (dialog.result() == QDialog.Accepted).  On reject, the staged colors
+            are discarded by not calling this method.
+            """
+            return list(self._staged_custom_colors)
