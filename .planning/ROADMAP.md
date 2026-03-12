@@ -57,7 +57,12 @@ Plans:
   3. User can view, add, remove, and replace custom colors in the Preferences dialog; the updated list appears in the color picker swatch group on next open
   4. Clicking a color swatch in the picker highlights it without closing the dialog; pressing Enter or clicking OK confirms the selection and closes
   5. The color picker opens with the current anchor color pre-highlighted, and swatch groups appear in order: custom colors, backdrop colors, Nuke defaults
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — ColorPaletteDialog redesign: click-to-select, OK button, group reordering, custom color staging
+- [ ] 07-02-PLAN.md — PrefsDialog new class: layout, swatch CRUD, accept lifecycle
+- [ ] 07-03-PLAN.md — menu.py Preferences... entry point + human verification
 
 ## Progress
 
@@ -69,4 +74,4 @@ Plans:
 | 4. Anchor Navigation | v1.0 | 4/4 | Complete | 2026-03-10 |
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
 | 6. Preferences Infrastructure | 5/5 | Complete   | 2026-03-12 | 2026-03-11 |
-| 7. Color Picker Redesign and Preferences Panel | v1.1 | 0/? | Not started | - |
+| 7. Color Picker Redesign and Preferences Panel | v1.1 | 0/3 | Not started | - |
