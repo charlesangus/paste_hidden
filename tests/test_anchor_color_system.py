@@ -573,5 +573,194 @@ class TestPropagateAnchorColorSkipsDot(unittest.TestCase):
         tile_color_knob.setValue.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# PICKER-01/02: ColorPaletteDialog click-to-select and refresh tests
+#
+# Strategy: Qt is stubbed as MagicMock, so ColorPaletteDialog is a MagicMock
+# instance (not a real class). We cannot instantiate it or access class methods
+# through normal means.
+#
+# We use ast + compile to extract individual method definitions from colors.py
+# source and build a test harness class that runs the ACTUAL implementation.
+# Tests fail when the source does not contain the expected implementation, and
+# pass once the implementation is correct.
+# ---------------------------------------------------------------------------
+
+import ast
+import textwrap
+
+def _extract_method_from_source(method_name):
+    """Extract a method definition from ColorPaletteDialog in colors.py.
+
+    Returns the compiled function object, or None if method not found.
+    """
+    with open('/workspace/colors.py', 'r') as source_file:
+        source_text = source_file.read()
+    tree = ast.parse(source_text)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == 'ColorPaletteDialog':
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef) and item.name == method_name:
+                    # Reconstruct source and compile
+                    method_lines = source_text.splitlines()
+                    start_line = item.lineno - 1
+                    end_line = item.end_lineno
+                    method_source = '\n'.join(method_lines[start_line:end_line])
+                    method_source = textwrap.dedent(method_source)
+                    namespace = {}
+                    namespace['_color_int_to_rgb'] = _real_colors_module._color_int_to_rgb
+                    exec(compile(method_source, '<colors_method>', 'exec'), namespace)
+                    return namespace[method_name]
+    return None
+
+
+class _PickerTestHarness:
+    """Plain Python object with the same instance attributes as ColorPaletteDialog.
+
+    Used to call real method implementations extracted from colors.py source
+    without needing a Qt environment.
+    """
+
+    def __init__(self, initial_color=None, custom_colors=None):
+        self._selected_color = initial_color
+        self._hint_mode = False
+        self._hint_col = None
+        self._swatch_cells = []
+        self.chosen_name = ""
+        self._custom_colors = list(custom_colors) if custom_colors else []
+        self._staged_custom_colors = list(self._custom_colors)
+        self._name_edit = None
+        self._cell_map = {}
+        self._grid_layout = MagicMock()
+        self._custom_group_next_col = 0
+        self._custom_group_next_row = 0
+        self.accept = MagicMock()
+        self.reject = MagicMock()
+
+
+class TestColorPaletteDialogClickToSelect(unittest.TestCase):
+    """PICKER-01: _on_swatch_clicked updates _selected_color without closing dialog."""
+
+    def _get_on_swatch_clicked(self):
+        """Get the real _on_swatch_clicked method from colors.py source."""
+        method = _extract_method_from_source('_on_swatch_clicked')
+        if method is None:
+            self.fail("_on_swatch_clicked not found in ColorPaletteDialog in colors.py")
+        return method
+
+    def _get_refresh_swatch_borders(self):
+        """Get the real _refresh_swatch_borders method from colors.py source."""
+        method = _extract_method_from_source('_refresh_swatch_borders')
+        if method is None:
+            self.fail("_refresh_swatch_borders not found in ColorPaletteDialog in colors.py")
+        return method
+
+    def test_on_swatch_clicked_updates_selected_color(self):
+        """_on_swatch_clicked must update _selected_color to the clicked color."""
+        on_swatch_clicked = self._get_on_swatch_clicked()
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        color_to_click = 0xFF0000FF  # red
+
+        on_swatch_clicked(dialog, color_to_click)
+
+        self.assertEqual(dialog._selected_color, color_to_click)
+
+    def test_on_swatch_clicked_does_not_call_accept(self):
+        """_on_swatch_clicked must NOT call self.accept() (dialog stays open)."""
+        on_swatch_clicked = self._get_on_swatch_clicked()
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        color_to_click = 0xFF0000FF
+
+        on_swatch_clicked(dialog, color_to_click)
+
+        dialog.accept.assert_not_called()
+
+    def test_on_swatch_clicked_calls_refresh_swatch_borders(self):
+        """_on_swatch_clicked must call _refresh_swatch_borders() after updating state."""
+        on_swatch_clicked = self._get_on_swatch_clicked()
+        dialog = _PickerTestHarness()
+        refresh_mock = MagicMock()
+        dialog._refresh_swatch_borders = refresh_mock
+
+        on_swatch_clicked(dialog, 0x00FF00FF)
+
+        refresh_mock.assert_called_once()
+
+    def test_on_swatch_clicked_with_zero_color_does_not_call_accept(self):
+        """_on_swatch_clicked with color_int==0 (black) must not call accept() — 0 is valid."""
+        on_swatch_clicked = self._get_on_swatch_clicked()
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        black_color = 0  # valid color, must not be treated as falsy
+
+        on_swatch_clicked(dialog, black_color)
+
+        self.assertEqual(dialog._selected_color, 0)
+        dialog.accept.assert_not_called()
+
+
+class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
+    """PICKER-01: _refresh_swatch_borders applies correct stylesheet to selected vs non-selected swatches."""
+
+    def _get_refresh_swatch_borders(self):
+        """Get the real _refresh_swatch_borders method from colors.py source."""
+        method = _extract_method_from_source('_refresh_swatch_borders')
+        if method is None:
+            self.fail("_refresh_swatch_borders not found in ColorPaletteDialog in colors.py")
+        return method
+
+    def _make_dialog_with_swatches(self, selected_color, swatch_colors):
+        """Create a harness with _swatch_cells populated."""
+        dialog = _PickerTestHarness(initial_color=selected_color)
+        for col_index, color_int in enumerate(swatch_colors):
+            button = MagicMock()
+            dialog._swatch_cells.append((col_index, 0, color_int, button))
+        return dialog
+
+    def test_refresh_swatch_borders_applies_white_border_to_selected(self):
+        """_refresh_swatch_borders applies white 2px border to the selected swatch."""
+        refresh_swatch_borders = self._get_refresh_swatch_borders()
+        selected = 0xFF0000FF
+        non_selected = 0x00FF00FF
+
+        dialog = self._make_dialog_with_swatches(selected, [selected, non_selected])
+        refresh_swatch_borders(dialog)
+
+        selected_button = dialog._swatch_cells[0][3]
+        stylesheet_call = selected_button.setStyleSheet.call_args[0][0]
+        self.assertIn("border: 2px solid white", stylesheet_call,
+                      "Selected swatch must have 2px white border")
+
+    def test_refresh_swatch_borders_applies_default_border_to_non_selected(self):
+        """_refresh_swatch_borders applies 1px #555 border to non-selected swatches."""
+        refresh_swatch_borders = self._get_refresh_swatch_borders()
+        selected = 0xFF0000FF
+        non_selected = 0x00FF00FF
+
+        dialog = self._make_dialog_with_swatches(selected, [selected, non_selected])
+        refresh_swatch_borders(dialog)
+
+        non_selected_button = dialog._swatch_cells[1][3]
+        stylesheet_call = non_selected_button.setStyleSheet.call_args[0][0]
+        self.assertIn("border: 1px solid #555", stylesheet_call,
+                      "Non-selected swatch must have 1px #555 border")
+
+    def test_refresh_swatch_borders_handles_zero_selected_color(self):
+        """_refresh_swatch_borders correctly identifies color 0 as selected (not falsy)."""
+        refresh_swatch_borders = self._get_refresh_swatch_borders()
+        black = 0  # valid color int
+        other = 0xFF0000FF
+
+        dialog = self._make_dialog_with_swatches(black, [black, other])
+        refresh_swatch_borders(dialog)
+
+        black_button = dialog._swatch_cells[0][3]
+        stylesheet_call = black_button.setStyleSheet.call_args[0][0]
+        self.assertIn("border: 2px solid white", stylesheet_call,
+                      "Black swatch (color 0) must be selected correctly — cannot use falsy test")
+
+
 if __name__ == '__main__':
     unittest.main()
