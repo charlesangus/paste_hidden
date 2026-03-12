@@ -68,6 +68,12 @@ anchors_menu.addCommand("Copy (old)",  "paste_hidden.copy_old()")
 anchors_menu.addCommand("Cut (old)",   "paste_hidden.cut_old()")
 anchors_menu.addCommand("Paste (old)", "paste_hidden.paste_old()", "+^D")
 
+anchors_menu.addSeparator()
+anchors_menu.addCommand(
+    "Preferences...",
+    "from colors import PrefsDialog; dlg = PrefsDialog(); dlg.exec_()"
+)
+
 
 def set_anchors_menu_enabled(enabled):
     """Enable or disable all gated Anchors menu items.
