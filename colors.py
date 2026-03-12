@@ -614,7 +614,7 @@ else:
         def _on_accept(self):
             """Flush local working copies to prefs module, persist, and close."""
             import prefs as prefs_module
-            import menu as menu_module
+            import paste_hidden.menu as menu_module
             # Read current checkbox states into local vars (user may have changed them)
             self._local_plugin_enabled = self._plugin_checkbox.isChecked()
             self._local_link_mode = (
