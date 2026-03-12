@@ -1139,5 +1139,242 @@ class TestPersistCustomColorsFromDialog(unittest.TestCase):
                          "_persist_custom_colors_from_dialog must NOT call prefs.save() when colors are unchanged")
 
 
+# ---------------------------------------------------------------------------
+# UAT Phase 7 regression tests — BUG fixes committed after UAT
+# ---------------------------------------------------------------------------
+
+
+class TestPrefsDialogImportMenuModulePath(unittest.TestCase):
+    """BUG 1 regression: _on_accept must import paste_hidden.menu, not plain 'menu'.
+
+    In Nuke's Python environment, 'import menu' resolves to the Nuke built-in
+    menu module, which does not have set_anchors_menu_enabled().  The fix is to
+    use 'import paste_hidden.menu as menu_module' so the correct module is
+    always imported regardless of sys.path order.
+    """
+
+    def test_on_accept_source_uses_paste_hidden_menu_import(self):
+        """_on_accept source must use 'paste_hidden.menu' not plain 'import menu'."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        on_accept_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_on_accept':
+                        lines = source_text.splitlines()
+                        on_accept_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(on_accept_source,
+                             "PrefsDialog._on_accept not found in colors.py")
+        self.assertIn('paste_hidden.menu', on_accept_source,
+                      "_on_accept must import paste_hidden.menu (not plain 'menu') "
+                      "to avoid resolving to Nuke's built-in menu module")
+        # Ensure a bare 'import menu' without the package prefix is not present
+        # (a plain bare import would still shadow the correct module on sys.path)
+        import re
+        bare_import_pattern = re.compile(r'\bimport menu\b')
+        self.assertIsNone(
+            bare_import_pattern.search(on_accept_source),
+            "_on_accept must not contain a bare 'import menu' — "
+            "use 'import paste_hidden.menu as menu_module' instead",
+        )
+
+
+class TestPrefsDialogHighlightColorMethod(unittest.TestCase):
+    """BUG 2 regression: PrefsDialog must have _highlight_color_name() and use it
+    in _on_swatch_selected, matching the pattern established in ColorPaletteDialog.
+    """
+
+    def test_prefs_dialog_has_highlight_color_name_method(self):
+        """PrefsDialog must define _highlight_color_name() method."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        found_method = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_highlight_color_name'):
+                        found_method = True
+                        break
+                break
+
+        self.assertTrue(found_method,
+                        "PrefsDialog must define _highlight_color_name() to match "
+                        "ColorPaletteDialog and support theme-aware selection borders")
+
+    def test_on_swatch_selected_uses_highlight_color_name(self):
+        """_on_swatch_selected must call _highlight_color_name() for the selection border."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        on_swatch_selected_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_on_swatch_selected'):
+                        lines = source_text.splitlines()
+                        on_swatch_selected_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(on_swatch_selected_source,
+                             "PrefsDialog._on_swatch_selected not found in colors.py")
+        self.assertIn('_highlight_color_name', on_swatch_selected_source,
+                      "_on_swatch_selected must call _highlight_color_name() for the "
+                      "selection border color — do not hardcode 'white'")
+        self.assertNotIn('white', on_swatch_selected_source,
+                         "_on_swatch_selected must not hardcode 'white' as the "
+                         "selection border color — use _highlight_color_name() instead")
+
+    def test_on_swatch_selected_applies_highlight_color_to_selected_swatch(self):
+        """_on_swatch_selected applies the _highlight_color_name() result as the border."""
+        on_swatch_selected = _extract_prefs_dialog_method_from_source('_on_swatch_selected')
+        if on_swatch_selected is None:
+            self.fail("PrefsDialog._on_swatch_selected not found in colors.py")
+
+        sentinel_highlight = "#4a90d9"
+
+        class PrefsDialogHarness:
+            def __init__(self):
+                self._selected_swatch_index = None
+                self._local_custom_colors = [0xFF0000FF, 0x00FF00FF]
+                self._swatch_buttons = [MagicMock(), MagicMock()]
+                self._update_edit_remove_buttons = MagicMock()
+
+            def _highlight_color_name(self):
+                return sentinel_highlight
+
+        harness = PrefsDialogHarness()
+        on_swatch_selected(harness, 0)
+
+        selected_button = harness._swatch_buttons[0]
+        stylesheet_call = selected_button.setStyleSheet.call_args[0][0]
+        self.assertIn(f"border: 2px solid {sentinel_highlight}", stylesheet_call,
+                      "_on_swatch_selected must use the _highlight_color_name() value "
+                      "in the selected swatch border stylesheet")
+
+
+class TestMenuExecNotDeprecated(unittest.TestCase):
+    """BUG 3 regression: menu.py must use dlg.exec() not the deprecated dlg.exec_()."""
+
+    def test_preferences_menu_command_uses_exec_not_exec_underscore(self):
+        """The Preferences... menu command string must call dlg.exec() not dlg.exec_()."""
+        with open('/workspace/menu.py', 'r') as source_file:
+            source_text = source_file.read()
+
+        self.assertIn('dlg.exec()', source_text,
+                      "menu.py Preferences command must use dlg.exec() (not exec_())")
+        self.assertNotIn('dlg.exec_()', source_text,
+                         "menu.py must not use the deprecated dlg.exec_() — use dlg.exec()")
+
+
+class TestPrefsDialogButtonsHaveAutoDefaultFalse(unittest.TestCase):
+    """BUG 4 regression: PrefsDialog OK and Cancel buttons must have setAutoDefault(False)
+    and follow the same button pattern as ColorPaletteDialog (separate QPushButton
+    widgets, not QDialogButtonBox, OK on the left).
+    """
+
+    def test_build_ui_does_not_use_qdialogbuttonbox(self):
+        """PrefsDialog._build_ui must not use QDialogButtonBox — use separate QPushButton widgets."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        build_ui_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_build_ui':
+                        lines = source_text.splitlines()
+                        build_ui_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(build_ui_source,
+                             "PrefsDialog._build_ui not found in colors.py")
+        self.assertNotIn('QDialogButtonBox', build_ui_source,
+                         "PrefsDialog._build_ui must not use QDialogButtonBox — "
+                         "use explicit QPushButton widgets to ensure setAutoDefault(False) "
+                         "and consistent button order with ColorPaletteDialog")
+
+    def test_build_ui_ok_button_has_auto_default_false(self):
+        """PrefsDialog OK button must have setAutoDefault(False)."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        build_ui_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_build_ui':
+                        lines = source_text.splitlines()
+                        build_ui_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(build_ui_source)
+        # Both OK and Cancel buttons must set AutoDefault to False
+        auto_default_false_count = build_ui_source.count('setAutoDefault(False)')
+        # There are at least Add, Edit, Remove, OK, Cancel — 5 buttons with setAutoDefault(False)
+        self.assertGreaterEqual(
+            auto_default_false_count, 5,
+            f"PrefsDialog._build_ui must call setAutoDefault(False) on at least 5 buttons "
+            f"(Add, Edit, Remove, OK, Cancel) — found {auto_default_false_count}"
+        )
+
+
+class TestPrefsDialogSwatchTabFocusPolicy(unittest.TestCase):
+    """BUG 5 regression: PrefsDialog swatch buttons must use Qt.TabFocus so they
+    participate in the tab order and are reachable by keyboard navigation.
+    """
+
+    def test_populate_swatch_grid_sets_tab_focus_not_no_focus(self):
+        """_populate_swatch_grid must set Qt.TabFocus on swatch buttons, not Qt.NoFocus."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        populate_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_populate_swatch_grid'):
+                        lines = source_text.splitlines()
+                        populate_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(populate_source,
+                             "PrefsDialog._populate_swatch_grid not found in colors.py")
+        self.assertIn('Qt.TabFocus', populate_source,
+                      "_populate_swatch_grid must set Qt.TabFocus on swatch buttons "
+                      "so they are reachable via Tab key navigation")
+        self.assertNotIn('Qt.NoFocus', populate_source,
+                         "_populate_swatch_grid must not set Qt.NoFocus on swatch buttons — "
+                         "this prevents tab navigation to swatches")
+
+
 if __name__ == '__main__':
     unittest.main()
