@@ -1145,16 +1145,17 @@ class TestPersistCustomColorsFromDialog(unittest.TestCase):
 
 
 class TestPrefsDialogImportMenuModulePath(unittest.TestCase):
-    """BUG 1 regression: _on_accept must import paste_hidden.menu, not plain 'menu'.
+    """BUG 1 regression: _on_accept must NOT use 'import paste_hidden.menu' or 'import menu'.
 
     In Nuke's Python environment, 'import menu' resolves to the Nuke built-in
-    menu module, which does not have set_anchors_menu_enabled().  The fix is to
-    use 'import paste_hidden.menu as menu_module' so the correct module is
-    always imported regardless of sys.path order.
+    menu module, and 'import paste_hidden.menu' fails when the plugin directory
+    has no __init__.py (not a package).  The correct fix is to retrieve
+    set_anchors_menu_enabled via getattr on the prefs module, where menu.py
+    stores a reference at startup.
     """
 
-    def test_on_accept_source_uses_paste_hidden_menu_import(self):
-        """_on_accept source must use 'paste_hidden.menu' not plain 'import menu'."""
+    def test_on_accept_source_uses_getattr_prefs_module_pattern(self):
+        """_on_accept must use getattr(prefs_module, 'set_anchors_menu_enabled', None) pattern."""
         with open('/workspace/colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
@@ -1173,17 +1174,22 @@ class TestPrefsDialogImportMenuModulePath(unittest.TestCase):
 
         self.assertIsNotNone(on_accept_source,
                              "PrefsDialog._on_accept not found in colors.py")
-        self.assertIn('paste_hidden.menu', on_accept_source,
-                      "_on_accept must import paste_hidden.menu (not plain 'menu') "
-                      "to avoid resolving to Nuke's built-in menu module")
-        # Ensure a bare 'import menu' without the package prefix is not present
-        # (a plain bare import would still shadow the correct module on sys.path)
+        self.assertIn('getattr(prefs_module, \'set_anchors_menu_enabled\'', on_accept_source,
+                      "_on_accept must use getattr(prefs_module, 'set_anchors_menu_enabled', ...) "
+                      "to retrieve the menu callback stored by menu.py at startup")
+        # Ensure neither bare import nor package import is present — both are broken approaches
         import re
         bare_import_pattern = re.compile(r'\bimport menu\b')
         self.assertIsNone(
             bare_import_pattern.search(on_accept_source),
             "_on_accept must not contain a bare 'import menu' — "
-            "use 'import paste_hidden.menu as menu_module' instead",
+            "use getattr(prefs_module, 'set_anchors_menu_enabled', None) instead",
+        )
+        package_import_pattern = re.compile(r'import paste_hidden\.menu')
+        self.assertIsNone(
+            package_import_pattern.search(on_accept_source),
+            "_on_accept must not use 'import paste_hidden.menu' — plugin dir has no __init__.py; "
+            "use getattr(prefs_module, 'set_anchors_menu_enabled', None) instead",
         )
 
 
@@ -1374,6 +1380,251 @@ class TestPrefsDialogSwatchTabFocusPolicy(unittest.TestCase):
         self.assertNotIn('Qt.NoFocus', populate_source,
                          "_populate_swatch_grid must not set Qt.NoFocus on swatch buttons — "
                          "this prevents tab navigation to swatches")
+
+
+# ---------------------------------------------------------------------------
+# Post-UAT bug fix regression tests (FIX 1 and FIX 2)
+# ---------------------------------------------------------------------------
+
+
+class TestMenuCallbackStoredOnPrefsModule(unittest.TestCase):
+    """FIX 1 regression: menu.py must attach set_anchors_menu_enabled to the prefs module.
+
+    This allows PrefsDialog in colors.py to retrieve it via getattr without any
+    import, avoiding conflicts with Nuke's built-in 'menu' module and the missing
+    __init__.py that makes 'import paste_hidden.menu' fail.
+    """
+
+    def test_menu_py_source_stores_function_on_prefs_module(self):
+        """menu.py source must assign set_anchors_menu_enabled onto the prefs module object."""
+        with open('/workspace/menu.py', 'r') as source_file:
+            source_text = source_file.read()
+
+        self.assertIn('prefs.set_anchors_menu_enabled = set_anchors_menu_enabled', source_text,
+                      "menu.py must store 'prefs.set_anchors_menu_enabled = set_anchors_menu_enabled' "
+                      "after the function is defined so PrefsDialog can retrieve it via getattr")
+
+    def test_on_accept_uses_getattr_not_import(self):
+        """_on_accept must use getattr(prefs_module, 'set_anchors_menu_enabled', None) not an import."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        on_accept_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '_on_accept':
+                        lines = source_text.splitlines()
+                        on_accept_source = '\n'.join(
+                            lines[item.lineno - 1:item.end_lineno]
+                        )
+                        break
+                break
+
+        self.assertIsNotNone(on_accept_source, "PrefsDialog._on_accept not found in colors.py")
+        self.assertIn("getattr(prefs_module, 'set_anchors_menu_enabled'", on_accept_source,
+                      "_on_accept must use getattr pattern to retrieve set_anchors_menu_enabled")
+        self.assertNotIn('import paste_hidden.menu', on_accept_source,
+                         "_on_accept must not import paste_hidden.menu (plugin has no __init__.py)")
+
+    def test_on_accept_calls_set_menu_enabled_when_attribute_present(self):
+        """_on_accept calls the stored menu callback when it is found on prefs_module."""
+        on_accept = _extract_prefs_dialog_method_from_source('_on_accept')
+        if on_accept is None:
+            self.skipTest("_on_accept not extractable without full Qt environment")
+
+        recolor_mock = MagicMock()
+
+        class PrefsDialogHarness:
+            def __init__(self):
+                self._plugin_checkbox = MagicMock()
+                self._plugin_checkbox.isChecked.return_value = True
+                self._link_mode_checkbox = MagicMock()
+                self._link_mode_checkbox.isChecked.return_value = True
+                self._local_custom_colors = []
+                self._original_custom_colors = []
+                self.accept = MagicMock()
+                self._recolor_anchors_for_changed_custom_colors = recolor_mock
+
+        import prefs as prefs_module_real
+
+        menu_callback_calls = []
+
+        def mock_set_menu_enabled(enabled):
+            menu_callback_calls.append(enabled)
+
+        original_save = prefs_module_real.save
+        original_set_menu = getattr(prefs_module_real, 'set_anchors_menu_enabled', None)
+        prefs_module_real.save = MagicMock()
+        prefs_module_real.set_anchors_menu_enabled = mock_set_menu_enabled
+
+        harness = PrefsDialogHarness()
+        try:
+            # Patch the 'import prefs as prefs_module' inside _on_accept
+            import sys
+            sys.modules['prefs']  # ensure it's in sys.modules (it is)
+            on_accept(harness)
+        except Exception:
+            pass  # harness may not have all attributes; just check the call
+        finally:
+            prefs_module_real.save = original_save
+            if original_set_menu is not None:
+                prefs_module_real.set_anchors_menu_enabled = original_set_menu
+            elif hasattr(prefs_module_real, 'set_anchors_menu_enabled'):
+                del prefs_module_real.set_anchors_menu_enabled
+
+        self.assertTrue(
+            len(menu_callback_calls) > 0,
+            "_on_accept must call set_anchors_menu_enabled when it is stored on prefs_module",
+        )
+
+
+class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
+    """FIX 2 regression: PrefsDialog.__init__ must snapshot custom colors so _on_accept
+    can detect which custom color swatches were changed and recolor matching anchor nodes.
+    """
+
+    def test_init_source_sets_original_custom_colors(self):
+        """PrefsDialog.__init__ must assign self._original_custom_colors."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        init_source = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == '__init__':
+                        lines = source_text.splitlines()
+                        init_source = '\n'.join(lines[item.lineno - 1:item.end_lineno])
+                        break
+                break
+
+        self.assertIsNotNone(init_source, "PrefsDialog.__init__ not found in colors.py")
+        self.assertIn('_original_custom_colors', init_source,
+                      "PrefsDialog.__init__ must set self._original_custom_colors as a snapshot "
+                      "of prefs_module.custom_colors before any edits are applied")
+
+    def test_recolor_helper_exists_in_prefs_dialog(self):
+        """PrefsDialog must define _recolor_anchors_for_changed_custom_colors method."""
+        with open('/workspace/colors.py', 'r') as source_file:
+            source_text = source_file.read()
+        tree = ast.parse(source_text)
+
+        found_method = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == 'PrefsDialog':
+                for item in node.body:
+                    if (isinstance(item, ast.FunctionDef) and
+                            item.name == '_recolor_anchors_for_changed_custom_colors'):
+                        found_method = True
+                        break
+                break
+
+        self.assertTrue(found_method,
+                        "PrefsDialog must define _recolor_anchors_for_changed_custom_colors() "
+                        "to recolor anchor nodes when a custom color swatch is edited")
+
+    def test_recolor_helper_calls_propagate_anchor_color_on_matching_nodes(self):
+        """_recolor_anchors_for_changed_custom_colors calls propagate_anchor_color for matching nodes."""
+        recolor_method = _extract_prefs_dialog_method_from_source(
+            '_recolor_anchors_for_changed_custom_colors'
+        )
+        if recolor_method is None:
+            self.fail("_recolor_anchors_for_changed_custom_colors not found in PrefsDialog")
+
+        old_color = 0xFF0000FF
+        new_color = 0x00FF00FF
+
+        # Build a matching anchor node stub
+        tile_color_knob = MagicMock()
+        tile_color_knob.value.return_value = old_color
+
+        anchor_knob = MagicMock()  # truthy — node.knob('anchor_name') returns this
+
+        matching_node = MagicMock()
+        matching_node.Class.return_value = 'NoOp'
+        matching_node.knob = MagicMock(side_effect=lambda name: anchor_knob if name == 'anchor_name' else None)
+        matching_node.__getitem__ = MagicMock(side_effect=lambda key: tile_color_knob if key == 'tile_color' else MagicMock())
+
+        # Build a non-matching node (different class)
+        non_anchor_node = MagicMock()
+        non_anchor_node.Class.return_value = 'Blur'
+
+        import nuke as nuke_stub_module
+        nuke_stub_module.allNodes.return_value = [matching_node, non_anchor_node]
+
+        propagate_calls = []
+
+        class PrefsDialogHarness:
+            pass
+
+        harness = PrefsDialogHarness()
+
+        import anchor as anchor_module_real
+        original_propagate = anchor_module_real.propagate_anchor_color
+
+        try:
+            anchor_module_real.propagate_anchor_color = lambda node, color: propagate_calls.append((node, color))
+            # Patch the 'import anchor as anchor_module' that _recolor_anchors_for_changed_custom_colors uses
+            import sys
+            original_anchor_in_modules = sys.modules.get('anchor')
+            sys.modules['anchor'] = anchor_module_real
+            recolor_method(harness, [old_color], [new_color])
+        finally:
+            anchor_module_real.propagate_anchor_color = original_propagate
+
+        self.assertEqual(len(propagate_calls), 1,
+                         "_recolor_anchors_for_changed_custom_colors must call propagate_anchor_color "
+                         "exactly once for the node whose tile_color matched the old custom color")
+        called_node, called_color = propagate_calls[0]
+        self.assertIs(called_node, matching_node,
+                      "propagate_anchor_color must be called with the matching anchor node")
+        self.assertEqual(called_color, new_color,
+                         "propagate_anchor_color must be called with the new color value")
+
+    def test_recolor_helper_skips_unchanged_colors(self):
+        """_recolor_anchors_for_changed_custom_colors does nothing when old and new colors are equal."""
+        recolor_method = _extract_prefs_dialog_method_from_source(
+            '_recolor_anchors_for_changed_custom_colors'
+        )
+        if recolor_method is None:
+            self.fail("_recolor_anchors_for_changed_custom_colors not found in PrefsDialog")
+
+        same_color = 0xFF0000FF
+
+        tile_color_knob = MagicMock()
+        tile_color_knob.value.return_value = same_color
+        anchor_knob = MagicMock()
+
+        node = MagicMock()
+        node.Class.return_value = 'NoOp'
+        node.knob = MagicMock(return_value=anchor_knob)
+        node.__getitem__ = MagicMock(return_value=tile_color_knob)
+
+        import nuke as nuke_stub_module
+        nuke_stub_module.allNodes.return_value = [node]
+
+        propagate_calls = []
+
+        class PrefsDialogHarness:
+            pass
+
+        harness = PrefsDialogHarness()
+
+        import anchor as anchor_module_real
+        original_propagate = anchor_module_real.propagate_anchor_color
+
+        try:
+            anchor_module_real.propagate_anchor_color = lambda n, c: propagate_calls.append((n, c))
+            recolor_method(harness, [same_color], [same_color])
+        finally:
+            anchor_module_real.propagate_anchor_color = original_propagate
+
+        self.assertEqual(len(propagate_calls), 0,
+                         "_recolor_anchors_for_changed_custom_colors must not call propagate_anchor_color "
+                         "when the old and new color values are identical")
 
 
 if __name__ == '__main__':
