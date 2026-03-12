@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-12T05:39:52.704Z"
-last_activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-03-11T00:26:00.000Z"
+last_activity: 2026-03-11 — Phase 7 Plan 02 complete; PrefsDialog with custom colors swatch grid and OK/Cancel lifecycle
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
-  percent: 50
+  completed_plans: 7
+  percent: 62
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
-**Current focus:** Phase 6 — Preferences Infrastructure
+**Current focus:** Phase 7 — Color Picker Redesign and Preferences Panel
 
 ## Current Position
 
-Phase: 6 of 7 (v1.1 scope — phases 6-7)
-Plan: 4 of 4 in current phase (plan 04 complete — Phase 6 done)
+Phase: 7 of 7 (v1.1 scope — phases 6-7)
+Plan: 2 of 3 in current phase (plan 02 complete)
 Status: In progress
-Last activity: 2026-03-11 — Phase 6 Plan 04 complete; plugin_enabled gates on anchor/label entry points and menu gating infrastructure
+Last activity: 2026-03-11 — Phase 7 Plan 02 complete; PrefsDialog with custom colors swatch grid and OK/Cancel lifecycle
 
-Progress: [█████░░░░░] 50% (4 of 8 plans complete — v1.1)
+Progress: [██████░░░░] 62% (7 of 8 plans complete — v1.1)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [█████░░░░░] 50% (4 of 8 plans complete — v1.1)
 | Phase 06-preferences-infrastructure P04 | 2min | 2 tasks | 3 files |
 | Phase 06-preferences-infrastructure P05 | 5min | 1 tasks | 2 files |
 | Phase 07 P01 | 8min | 2 tasks | 2 files |
+| Phase 07 P02 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Key decisions affecting v1.1 work:
 - [Phase 06-05]: save() called in _load() file-absent branch after _migrate_from_old_palette() — prefs file materializes at first import rather than only on explicit PrefsDialog accept
 - [Phase 07]: AST method extraction pattern used to test Qt-stubbed class methods in unit tests
 - [Phase 07]: chosen_custom_colors() accessor returns staged list copy; callers persist only on accept (never on cancel)
+- [Phase 07-02]: Local import of prefs inside PrefsDialog.__init__ and _on_accept prevents circular import (colors.py -> prefs.py)
+- [Phase 07-02]: QDialogButtonBox.accepted wired to _on_accept (not self.accept) so flush logic always runs before dialog closes
+- [Phase 07-02]: Working-copy pattern — seed locals at open, flush to prefs module vars only on OK; Cancel leaves prefs unchanged
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T05:39:52.699Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-11T00:26:00.000Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None

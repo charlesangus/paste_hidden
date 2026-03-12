@@ -53,12 +53,12 @@
 ### Preferences Panel
 
 - [ ] **PANEL-01**: User can open a preferences dialog from the Anchors menu
-- [ ] **PANEL-02**: User can toggle the plugin enabled/disabled in the preferences dialog; change persists across sessions
-- [ ] **PANEL-03**: User can toggle LINK_CLASSES paste mode between "Create link" and "Paste copy" in the preferences dialog; change persists across sessions
-- [ ] **PANEL-04**: User can view the list of saved custom colors in the preferences dialog
-- [ ] **PANEL-05**: User can add a new custom color to the saved list via the color picker in the preferences dialog
-- [ ] **PANEL-06**: User can remove a custom color from the saved list in the preferences dialog
-- [ ] **PANEL-07**: User can edit (replace) an existing custom color in the saved list via the color picker in the preferences dialog
+- [x] **PANEL-02**: User can toggle the plugin enabled/disabled in the preferences dialog; change persists across sessions
+- [x] **PANEL-03**: User can toggle LINK_CLASSES paste mode between "Create link" and "Paste copy" in the preferences dialog; change persists across sessions
+- [x] **PANEL-04**: User can view the list of saved custom colors in the preferences dialog
+- [x] **PANEL-05**: User can add a new custom color to the saved list via the color picker in the preferences dialog
+- [x] **PANEL-06**: User can remove a custom color from the saved list in the preferences dialog
+- [x] **PANEL-07**: User can edit (replace) an existing custom color in the saved list via the color picker in the preferences dialog
 
 ### Color Picker Redesign
 
@@ -116,12 +116,12 @@
 | PREFS-03 | Phase 6 | Complete |
 | PREFS-04 | Phase 6 | Complete |
 | PANEL-01 | Phase 7 | Pending |
-| PANEL-02 | Phase 7 | Pending |
-| PANEL-03 | Phase 7 | Pending |
-| PANEL-04 | Phase 7 | Pending |
-| PANEL-05 | Phase 7 | Pending |
-| PANEL-06 | Phase 7 | Pending |
-| PANEL-07 | Phase 7 | Pending |
+| PANEL-02 | Phase 7 | Complete |
+| PANEL-03 | Phase 7 | Complete |
+| PANEL-04 | Phase 7 | Complete |
+| PANEL-05 | Phase 7 | Complete |
+| PANEL-06 | Phase 7 | Complete |
+| PANEL-07 | Phase 7 | Complete |
 | PICKER-01 | Phase 7 | Complete |
 | PICKER-02 | Phase 7 | Complete |
 | PICKER-03 | Phase 7 | Complete |
