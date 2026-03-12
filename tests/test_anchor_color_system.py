@@ -593,6 +593,8 @@ def _extract_method_from_source(method_name):
     """Extract a method definition from ColorPaletteDialog in colors.py.
 
     Returns the compiled function object, or None if method not found.
+    The extracted function runs in a namespace that includes the real module-level
+    helpers from colors.py (e.g. _color_int_to_rgb) and the nuke stub.
     """
     with open('/workspace/colors.py', 'r') as source_file:
         source_text = source_file.read()
@@ -607,8 +609,10 @@ def _extract_method_from_source(method_name):
                     end_line = item.end_lineno
                     method_source = '\n'.join(method_lines[start_line:end_line])
                     method_source = textwrap.dedent(method_source)
+                    import nuke as _nuke_stub
                     namespace = {}
                     namespace['_color_int_to_rgb'] = _real_colors_module._color_int_to_rgb
+                    namespace['nuke'] = _nuke_stub
                     exec(compile(method_source, '<colors_method>', 'exec'), namespace)
                     return namespace[method_name]
     return None
@@ -760,6 +764,132 @@ class TestColorPaletteDialogRefreshSwatchBorders(unittest.TestCase):
         stylesheet_call = black_button.setStyleSheet.call_args[0][0]
         self.assertIn("border: 2px solid white", stylesheet_call,
                       "Black swatch (color 0) must be selected correctly — cannot use falsy test")
+
+
+# ---------------------------------------------------------------------------
+# PICKER-05: Custom Color staging tests
+# ---------------------------------------------------------------------------
+
+class TestColorPaletteDialogCustomColorStaging(unittest.TestCase):
+    """PICKER-05: _on_custom_color_clicked stages colors without closing dialog."""
+
+    def _get_method(self, method_name):
+        """Extract a method from ColorPaletteDialog in colors.py source."""
+        method = _extract_method_from_source(method_name)
+        if method is None:
+            self.fail(f"{method_name} not found in ColorPaletteDialog in colors.py")
+        return method
+
+    def _make_dialog(self, custom_colors=None):
+        """Create a harness with staged_custom_colors initialized from custom_colors."""
+        dialog = _PickerTestHarness(custom_colors=custom_colors)
+        # Bind real methods extracted from colors.py source
+        dialog._on_custom_color_clicked = lambda: _extract_method_from_source(
+            '_on_custom_color_clicked')(dialog)
+        dialog._refresh_swatch_borders = MagicMock()
+        dialog._append_swatch_to_custom_group = MagicMock()
+        return dialog
+
+    def test_staged_custom_colors_is_copy_of_custom_colors_param(self):
+        """_staged_custom_colors is initialized as a separate copy of custom_colors."""
+        original_palette = [0xFF0000FF, 0x00FF00FF]
+        dialog = _PickerTestHarness(custom_colors=original_palette)
+
+        # Staged copy should have same values
+        self.assertEqual(dialog._staged_custom_colors, original_palette)
+        # But must be a separate list — not the same object
+        self.assertIsNot(dialog._staged_custom_colors, original_palette,
+                         "_staged_custom_colors must be a copy, not the same list object")
+
+    def test_on_custom_color_clicked_appends_to_staged_list(self):
+        """_on_custom_color_clicked appends the returned color to _staged_custom_colors."""
+        on_custom_color_clicked = self._get_method('_on_custom_color_clicked')
+
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        dialog._append_swatch_to_custom_group = MagicMock()
+
+        import nuke as nuke_stub
+        nuke_stub.getColor = MagicMock(return_value=0xFF0000FF)
+
+        on_custom_color_clicked(dialog)
+
+        self.assertIn(0xFF0000FF, dialog._staged_custom_colors,
+                      "New color must be added to _staged_custom_colors")
+
+    def test_on_custom_color_clicked_does_not_call_accept(self):
+        """_on_custom_color_clicked must NOT call self.accept() — dialog stays open."""
+        on_custom_color_clicked = self._get_method('_on_custom_color_clicked')
+
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        dialog._append_swatch_to_custom_group = MagicMock()
+
+        import nuke as nuke_stub
+        nuke_stub.getColor = MagicMock(return_value=0x00FF00FF)
+
+        on_custom_color_clicked(dialog)
+
+        dialog.accept.assert_not_called()
+
+    def test_on_custom_color_clicked_sets_selected_color(self):
+        """_on_custom_color_clicked sets _selected_color to the newly added color."""
+        on_custom_color_clicked = self._get_method('_on_custom_color_clicked')
+
+        dialog = _PickerTestHarness()
+        dialog._refresh_swatch_borders = MagicMock()
+        dialog._append_swatch_to_custom_group = MagicMock()
+
+        import nuke as nuke_stub
+        nuke_stub.getColor = MagicMock(return_value=0x8800CCFF)
+
+        on_custom_color_clicked(dialog)
+
+        self.assertEqual(dialog._selected_color, 0x8800CCFF)
+
+    def test_on_custom_color_clicked_returns_early_for_zero_result(self):
+        """_on_custom_color_clicked does nothing when nuke.getColor() returns 0."""
+        on_custom_color_clicked = self._get_method('_on_custom_color_clicked')
+
+        initial_palette = [0xFF0000FF]
+        dialog = _PickerTestHarness(custom_colors=initial_palette)
+        dialog._refresh_swatch_borders = MagicMock()
+        dialog._append_swatch_to_custom_group = MagicMock()
+
+        import nuke as nuke_stub
+        nuke_stub.getColor = MagicMock(return_value=0)  # user cancelled
+
+        on_custom_color_clicked(dialog)
+
+        self.assertEqual(len(dialog._staged_custom_colors), 1,
+                         "_staged_custom_colors must not change when getColor returns 0")
+        dialog.accept.assert_not_called()
+        dialog._refresh_swatch_borders.assert_not_called()
+
+    def test_chosen_custom_colors_returns_staged_list(self):
+        """chosen_custom_colors() returns the staged custom colors list."""
+        chosen_custom_colors = self._get_method('chosen_custom_colors')
+
+        original = [0xFF0000FF, 0x00FF00FF]
+        dialog = _PickerTestHarness(custom_colors=original)
+
+        result = chosen_custom_colors(dialog)
+
+        self.assertEqual(result, original)
+
+    def test_chosen_custom_colors_returns_copy(self):
+        """chosen_custom_colors() returns a copy — callers cannot mutate internal state."""
+        chosen_custom_colors = self._get_method('chosen_custom_colors')
+
+        dialog = _PickerTestHarness(custom_colors=[0xFF0000FF])
+
+        result = chosen_custom_colors(dialog)
+        result.append(0xDEADBEEF)  # mutate the returned copy
+
+        # Internal state must be unchanged
+        internal_result = chosen_custom_colors(dialog)
+        self.assertNotIn(0xDEADBEEF, internal_result,
+                         "chosen_custom_colors() must return a copy, not a reference")
 
 
 if __name__ == '__main__':
