@@ -119,6 +119,19 @@ def propagate_anchor_color(anchor_node, color_int):
         link_node['tile_color'].setValue(color_int)
 
 
+def _persist_custom_colors_from_dialog(dialog):
+    """Save any newly staged custom colors from *dialog* back to prefs and disk.
+
+    Call this on every accepted ColorPaletteDialog so custom colors added via
+    "Custom Color..." persist across sessions.  Only saves when the staged list
+    differs from the current prefs.custom_colors to avoid spurious disk writes.
+    """
+    staged = dialog.chosen_custom_colors()
+    if staged != prefs.custom_colors:
+        prefs.custom_colors = staged
+        prefs.save()
+
+
 def set_anchor_color(anchor_node):
     """Open the color palette dialog and apply the chosen color to *anchor_node*.
 
@@ -135,6 +148,7 @@ def set_anchor_color(anchor_node):
         custom_colors=prefs.custom_colors,
     )
     if dialog.exec_() == ColorPaletteDialog.Accepted:
+        _persist_custom_colors_from_dialog(dialog)
         chosen_color = dialog.selected_color_int()
         if chosen_color is not None:
             propagate_anchor_color(anchor_node, chosen_color)
@@ -270,6 +284,7 @@ def rename_anchor(anchor_node):
     )
     if dialog.exec_() != QtWidgets.QDialog.Accepted:
         return
+    _persist_custom_colors_from_dialog(dialog)
     chosen_name = dialog.chosen_name
     if not chosen_name or not chosen_name.strip():
         return
@@ -338,6 +353,7 @@ def create_anchor():
     )
     if dialog.exec_() != QtWidgets.QDialog.Accepted:
         return
+    _persist_custom_colors_from_dialog(dialog)
     chosen_name = dialog.chosen_name
     if not chosen_name or not chosen_name.strip():
         return
