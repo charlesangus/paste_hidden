@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Hardening
 status: completed
-last_updated: "2026-03-13T12:51:31.961Z"
+last_updated: "2026-03-13T12:57:15.315Z"
 last_activity: 2026-03-13 — Phase 8 Plan 01 executed (centralized stub infrastructure)
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -43,6 +43,7 @@ v1.2 Progress: [#---------] 4% (1/1 plans complete in Phase 8)
 | Phase 09-cross-script-paste-bug-fixes P01 | 1 | 1 tasks | 1 files |
 | Phase 09-cross-script-paste-bug-fixes P02 | 8 | 2 tasks | 3 files |
 | Phase 10-code-quality-sweep P01 | 1 | 2 tasks | 7 files |
+| Phase 10-code-quality-sweep P02 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 10-code-quality-sweep]: tabtabtab.py per-file-ignores: B008/C901/SIM/E501 suppressed — vendored third-party code must not be modified
 - [Phase 10-code-quality-sweep]: menu.py F401 suppressed via per-file-ignores — imports used in Nuke string-eval menu callbacks, ruff cannot see through string arguments
 - [Phase 10-code-quality-sweep]: line-length=100 in pyproject.toml reduces E501 violations from 78 to 21 in source files without touching any code
+- [Phase 10-code-quality-sweep]: anchor.py SIM108: two ternary collapses applied (suggest_anchor_name and pre_color assignment)
+- [Phase 10-code-quality-sweep]: colors.py C901: eventFilter and keyPressEvent suppressed with noqa: C901 — inherent Qt event dispatch complexity
+- [Phase 10-code-quality-sweep]: colors.py B007: all 4 unused loop variables renamed with _ prefix — none captured in lambdas or inner functions
 
 ### Pending Todos
 
@@ -80,7 +84,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T12:51:31.959Z
+Last session: 2026-03-13T12:57:15.312Z
 To resume: Phase 8 has 1 plan (08-01 complete). Phase 8 is complete. Run `/gsd:plan-phase 9` to continue.
 
 Phase 8 completed: centralized stub infrastructure in tests/stubs.py + conftest.py. Full suite passes: 130 tests, 0 errors.
