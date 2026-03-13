@@ -52,7 +52,10 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
   2. `tests/conftest.py` exists and provides the authoritative shared Qt and tabtabtab stubs for all test files
   3. All individual test files continue to pass when run in isolation
   4. No per-file stub installation remains that could conflict with conftest stubs
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md — Create tests/stubs.py + tests/conftest.py, strip per-file stub blocks from 5 test files
 
 ### Phase 9: Cross-Script Paste Bug Fixes
 **Goal**: Anchors pasted cross-script stay anchors, and NoOp links pasted cross-script receive the correct anchor tile_color — both with regression test coverage that guards the subsequent quality sweep
@@ -109,7 +112,7 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
-| 8. Test Infrastructure Stabilization | v1.2 | 0/? | Not started | - |
+| 8. Test Infrastructure Stabilization | v1.2 | 0/1 | Not started | - |
 | 9. Cross-Script Paste Bug Fixes | v1.2 | 0/? | Not started | - |
 | 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
