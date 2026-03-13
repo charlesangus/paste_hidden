@@ -29,7 +29,7 @@ from link import (
 )
 
 
-def copy_hidden(cut=False):
+def copy_hidden(cut=False):  # noqa: C901 — complexity is inherent: 3 node-class paths × same/cross-script gate
     """Add a hidden knob storing the original name of the node/node's input. We
     can then, when pasting, replace the node or reconnect its inputs.
 
@@ -51,7 +51,8 @@ def copy_hidden(cut=False):
         # no anchor points at it (legacy direct-file-node path).
         if node.Class() in LINK_SOURCE_CLASSES:
             if prefs.link_classes_paste_mode == 'passthrough':
-                continue  # skip stamping; node copies plainly via nuke.nodeCopy() at end of function
+                # skip stamping; node copies plainly via nuke.nodeCopy() at end of function
+                continue
             if cut:
                 stored_fqnn = ""
             else:
@@ -136,7 +137,7 @@ def _extract_display_name_from_fqnn(stored_fqnn):
     return None
 
 
-def paste_hidden():
+def paste_hidden():  # noqa: C901 — complexity is inherent: anchor/link/dot paths × same/cross-script gate
     if not prefs.plugin_enabled:
         return nuke.nodePaste(nukescripts.cut_paste_file())
     last_pasted_node = nuke.nodePaste(nukescripts.cut_paste_file())
@@ -200,8 +201,9 @@ def paste_hidden():
                         destination_anchor = find_anchor_by_name(display_name)
                         if destination_anchor:
                             setup_link_node(destination_anchor, node)
-                            # BUG-01 fix: removed ANCHOR_DEFAULT_COLOR overwrite; setup_link_node() already
-                            # applies the anchor's real tile_color via find_node_color().
+                            # BUG-01 fix: removed ANCHOR_DEFAULT_COLOR overwrite;
+                            # setup_link_node() already applies the anchor's real tile_color
+                            # via find_node_color().
                 # Local Dot: silent no-op — do not reconnect under any circumstances.
                 continue
 
