@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-03-10)
 - ✅ **v1.1 Polish** — Phases 6-7 (shipped 2026-03-12)
+- 🚧 **v1.2 Hardening** — Phases 8-12 (in progress)
 
 ## Phases
 
@@ -30,6 +31,73 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 
 </details>
 
+### 🚧 v1.2 Hardening (In Progress)
+
+**Milestone Goal:** Fix cross-script paste regressions, stabilize test infrastructure, sweep code quality, and add CI/CD packaging pipeline.
+
+- [ ] **Phase 8: Test Infrastructure Stabilization** - Fix flat-discovery Qt stub ordering conflicts so the test suite is a reliable feedback mechanism
+- [ ] **Phase 9: Cross-Script Paste Bug Fixes** - Fix BUG-01 and BUG-02 in paste_hidden.py with regression tests
+- [ ] **Phase 10: Code Quality Sweep** - Dead code removal, unused import cleanup, complex conditional simplification
+- [ ] **Phase 11: CI/CD Pipeline** - Tag-triggered GitHub Actions workflow: offline tests, versioned ZIP, GitHub Release
+- [ ] **Phase 12: Nuke -t Validation Scripts** - Manual developer validation confirming stub behavior matches real Nuke runtime
+
+## Phase Details
+
+### Phase 8: Test Infrastructure Stabilization
+**Goal**: The test suite passes cleanly under flat discovery so it can serve as a reliable regression gate for all subsequent work
+**Depends on**: Nothing (first v1.2 phase)
+**Requirements**: TEST-03
+**Success Criteria** (what must be TRUE):
+  1. `pytest tests/` (flat discovery) completes with zero errors and zero failures
+  2. `tests/conftest.py` exists and provides the authoritative shared Qt and tabtabtab stubs for all test files
+  3. All individual test files continue to pass when run in isolation
+  4. No per-file stub installation remains that could conflict with conftest stubs
+**Plans**: TBD
+
+### Phase 9: Cross-Script Paste Bug Fixes
+**Goal**: Anchors pasted cross-script stay anchors, and NoOp links pasted cross-script receive the correct anchor tile_color — both with regression test coverage that guards the subsequent quality sweep
+**Depends on**: Phase 8
+**Requirements**: BUG-01, BUG-02
+**Success Criteria** (what must be TRUE):
+  1. A NoOp link pasted into a different script shows the anchor's tile_color, not the default purple
+  2. An anchor node pasted into a different script remains an anchor node, not a link node
+  3. Regression tests for both bugs exist in `tests/` and pass under flat discovery
+  4. `pytest tests/` remains green after both fixes are applied
+**Plans**: TBD
+
+### Phase 10: Code Quality Sweep
+**Goal**: The source files are cleaner — dead code removed, unused imports eliminated, overly complex conditionals simplified — with no API breaks, no behavior changes, and no serialized knob string values altered
+**Depends on**: Phase 9
+**Requirements**: QUAL-01
+**Success Criteria** (what must be TRUE):
+  1. `ruff check` (rules E, F, W, B, C90, I, SIM) reports zero violations across all source files
+  2. All serialized knob name constants in `constants.py` are annotated as FROZEN and none have been renamed
+  3. `pytest tests/` remains green after every sweep commit touching `paste_hidden.py`
+  4. No public function or class API is changed (no callers broken)
+**Plans**: TBD
+
+### Phase 11: CI/CD Pipeline
+**Goal**: A tag push to GitHub triggers offline tests, packages plugin source into a versioned ZIP, and publishes a GitHub Release — with the ZIP containing only end-user files and no dev artifacts
+**Depends on**: Phase 10
+**Requirements**: CI-01, CI-02
+**Success Criteria** (what must be TRUE):
+  1. Pushing a version tag (e.g., `v1.2.0`) to GitHub triggers the workflow and produces a GitHub Release
+  2. The GitHub Release contains a ZIP artifact with only the plugin source files (no `tests/`, `validation/`, `.planning/`, `__pycache__`)
+  3. The workflow runs offline tests (`pytest tests/`) and fails the release if tests fail
+  4. A locally unzipped copy of the release artifact contains exactly the expected files and no extras
+**Plans**: TBD
+
+### Phase 12: Nuke -t Validation Scripts
+**Goal**: A developer running the validation scripts against a local licensed Nuke install can confirm that StubNode/StubKnob assumptions in `tests/` match real Nuke API behavior, and that the BUG-01 and BUG-02 fixed code paths work correctly under a real runtime
+**Depends on**: Phase 11
+**Requirements**: TEST-01, TEST-02
+**Success Criteria** (what must be TRUE):
+  1. `validation/validate_stub_alignment.py` exists and runs to completion under `nuke -t` without errors
+  2. `validation/validate_cross_script_paste.py` exists and smoke-tests the BUG-01 and BUG-02 fixed paths under `nuke -t`
+  3. Any stub or mock inconsistencies found by the scripts are corrected in `tests/` and `pytest tests/` remains green
+  4. Validation scripts never import `menu.py` and never reach Qt dialog code paths in headless mode
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -41,3 +109,8 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
+| 8. Test Infrastructure Stabilization | v1.2 | 0/? | Not started | - |
+| 9. Cross-Script Paste Bug Fixes | v1.2 | 0/? | Not started | - |
+| 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
+| 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
+| 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
