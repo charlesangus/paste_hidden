@@ -11,33 +11,38 @@ try:
         from PySide6 import QtCore, QtGui, QtWidgets
         from PySide6.QtCore import Qt
     else:
-        from PySide2 import QtGui, QtWidgets, QtCore
+        from PySide2 import QtCore, QtGui, QtWidgets
         from PySide2.QtCore import Qt
 except ImportError:
     QtGui = None
     QtWidgets = None
     QtCore = None
 
+import prefs
 import tabtabtab as _tabtabtab
-
-from constants import (
-    ANCHOR_PREFIX, KNOB_NAME,
-    ANCHOR_RECONNECT_KNOB_NAME, ANCHOR_RENAME_KNOB_NAME, ANCHOR_DEFAULT_COLOR,
-    ANCHOR_SET_COLOR_KNOB_NAME,
-    DOT_LABEL_FONT_SIZE_MEDIUM, DOT_LABEL_FONT_SIZE_LARGE, NODE_LABEL_FONT_SIZE_LARGE,
-)
 from colors import ColorPaletteDialog
+from constants import (
+    ANCHOR_DEFAULT_COLOR,
+    ANCHOR_PREFIX,
+    ANCHOR_RECONNECT_KNOB_NAME,
+    ANCHOR_RENAME_KNOB_NAME,
+    ANCHOR_SET_COLOR_KNOB_NAME,
+    DOT_LABEL_FONT_SIZE_LARGE,
+    DOT_LABEL_FONT_SIZE_MEDIUM,
+    KNOB_NAME,
+    NODE_LABEL_FONT_SIZE_LARGE,
+)
 from link import (
-    is_anchor, is_link,
-    get_fully_qualified_node_name,
     add_input_knob,
-    reconnect_link_node,
     find_node_color,
     find_smallest_containing_backdrop,
+    get_fully_qualified_node_name,
     get_link_class_for_source,
+    is_anchor,
+    is_link,
+    reconnect_link_node,
     setup_link_node,
 )
-import prefs
 
 
 def sanitize_anchor_name(name):

@@ -1,7 +1,8 @@
 import nuke
-import paste_hidden
+
 import anchor
 import labels
+import paste_hidden
 import prefs
 
 menu = nuke.menu("Nuke")

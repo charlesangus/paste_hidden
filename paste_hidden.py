@@ -8,20 +8,25 @@ in constants.py.
 import nuke
 import nukescripts
 
-from constants import (
-    KNOB_NAME, LINK_SOURCE_CLASSES, HIDDEN_INPUT_CLASSES,
-    DOT_TYPE_KNOB_NAME, LOCAL_DOT_COLOR, ANCHOR_DEFAULT_COLOR,
-)
+import prefs
 from anchor import find_anchor_by_name
+from constants import (
+    ANCHOR_DEFAULT_COLOR,
+    DOT_TYPE_KNOB_NAME,
+    HIDDEN_INPUT_CLASSES,
+    KNOB_NAME,
+    LINK_SOURCE_CLASSES,
+    LOCAL_DOT_COLOR,
+)
 from link import (
-    is_anchor, is_link,
+    add_input_knob,
+    find_anchor_node,
     get_fully_qualified_node_name,
     get_link_class_for_source,
-    setup_link_node, add_input_knob,
-    find_anchor_node,
+    is_anchor,
+    is_link,
+    setup_link_node,
 )
-
-import prefs
 
 
 def copy_hidden(cut=False):

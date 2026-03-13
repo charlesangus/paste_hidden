@@ -2,15 +2,21 @@
 
 import nuke
 
+import prefs
 from constants import (
-    KNOB_NAME,
     DOT_LABEL_FONT_SIZE_LARGE,
     DOT_LABEL_FONT_SIZE_MEDIUM,
     DOT_LINK_LABEL_FONT_SIZE,
+    KNOB_NAME,
     NODE_LABEL_FONT_SIZE_LARGE,
 )
-from link import get_fully_qualified_node_name, is_anchor, is_link, reconnect_link_node, mark_dot_as_anchor
-import prefs
+from link import (
+    get_fully_qualified_node_name,
+    is_anchor,
+    is_link,
+    mark_dot_as_anchor,
+    reconnect_link_node,
+)
 
 
 def _update_dot_link_labels(dot_node, new_label):
