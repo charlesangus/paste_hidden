@@ -36,7 +36,7 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 **Milestone Goal:** Fix cross-script paste regressions, stabilize test infrastructure, sweep code quality, and add CI/CD packaging pipeline.
 
 - [x] **Phase 8: Test Infrastructure Stabilization** - Fix flat-discovery Qt stub ordering conflicts so the test suite is a reliable feedback mechanism
-- [ ] **Phase 9: Cross-Script Paste Bug Fixes** - Fix BUG-01 and BUG-02 in paste_hidden.py with regression tests
+- [x] **Phase 9: Cross-Script Paste Bug Fixes** - Fix BUG-01 and BUG-02 in paste_hidden.py with regression tests (completed 2026-03-13)
 - [ ] **Phase 10: Code Quality Sweep** - Dead code removal, unused import cleanup, complex conditional simplification
 - [ ] **Phase 11: CI/CD Pipeline** - Tag-triggered GitHub Actions workflow: offline tests, versioned ZIP, GitHub Release
 - [ ] **Phase 12: Nuke -t Validation Scripts** - Manual developer validation confirming stub behavior matches real Nuke runtime
@@ -117,7 +117,7 @@ Plans:
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
-| 9. Cross-Script Paste Bug Fixes | 1/2 | In Progress|  | - |
+| 9. Cross-Script Paste Bug Fixes | 2/2 | Complete   | 2026-03-13 | - |
 | 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
