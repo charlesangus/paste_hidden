@@ -66,7 +66,11 @@ Plans:
   2. An anchor node pasted into a different script remains an anchor node, not a link node
   3. Regression tests for both bugs exist in `tests/` and pass under flat discovery
   4. `pytest tests/` remains green after both fixes are applied
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Write failing regression tests (TestBugRegressions class with BUG-01 and BUG-02 tests — RED phase)
+- [ ] 09-02-PLAN.md — Apply BUG-01 and BUG-02 fixes to paste_hidden.py; confirm full suite green
 
 ### Phase 10: Code Quality Sweep
 **Goal**: The source files are cleaner — dead code removed, unused imports eliminated, overly complex conditionals simplified — with no API breaks, no behavior changes, and no serialized knob string values altered
@@ -113,7 +117,7 @@ Plans:
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
-| 9. Cross-Script Paste Bug Fixes | v1.2 | 0/? | Not started | - |
+| 9. Cross-Script Paste Bug Fixes | v1.2 | 0/2 | Not started | - |
 | 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
