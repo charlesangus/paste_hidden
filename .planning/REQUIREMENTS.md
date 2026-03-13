@@ -1,0 +1,69 @@
+# Requirements: paste_hidden
+
+**Defined:** 2026-03-12
+**Core Value:** Copy and paste must reconnect predictably — anchors provide stable, navigable references; hidden inputs reconnect to their source without ceremony.
+
+## v1.2 Requirements
+
+### CI/CD
+
+- [ ] **CI-01**: Tag push to GitHub triggers a workflow that runs offline tests, packages plugin source files into a versioned ZIP, and creates a GitHub Release
+- [ ] **CI-02**: ZIP release artifact uses an explicit file manifest — excludes `tests/`, `validation/`, `.planning/`, `__pycache__`
+
+### Bug Fixes
+
+- [ ] **BUG-01**: Links receive their anchor's tile_color in all code paths (not default purple in any scenario)
+- [ ] **BUG-02**: Anchor node pasted cross-script stays an anchor — not converted to a link node (regression fix)
+
+### Code Quality
+
+- [ ] **QUAL-01**: Moderate code quality sweep using ruff + radon — dead code removed, unused imports cleaned, over-complex conditionals simplified; no API breaks, no serialized knob string values renamed
+
+### Test Infrastructure
+
+- [ ] **TEST-01**: `nuke -t` validation scripts written covering StubNode/StubKnob assumptions and cross-script paste behavior
+- [ ] **TEST-02**: Any stub/mock inconsistencies found by validation scripts corrected in `tests/`
+- [ ] **TEST-03**: `tests/conftest.py` created with shared stubs — fixes pytest flat-discovery Qt stub ordering conflicts (4–8 spurious errors)
+
+## Future Requirements
+
+### Navigation
+
+- **NAV-03**: Full browser-style forward/back navigation history stack (deferred from v1.0)
+
+### Color
+
+- **COLOR-V2-01**: Manual tile_color changes by user propagate to link nodes (explicitly by-design deferred)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| nuke -t in CI pipeline | Nuke requires commercial license; not available on GitHub-hosted runners |
+| Rename serialized knob string constants | Would silently break all existing .nk files saved by the artist |
+| Undo/redo stack integration | Nuke API complexity, not requested |
+| Cross-script reconnection for hidden-input Dot nodes | Explicitly excluded — Dots are positional/ad-hoc |
+| External persistence (database, remote API) | Local-only plugin |
+| Multi-user / shared anchor libraries | Single-artist tool |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TEST-03 | Phase 8 | Pending |
+| BUG-01 | Phase 9 | Pending |
+| BUG-02 | Phase 9 | Pending |
+| QUAL-01 | Phase 10 | Pending |
+| CI-01 | Phase 11 | Pending |
+| CI-02 | Phase 11 | Pending |
+| TEST-01 | Phase 12 | Pending |
+| TEST-02 | Phase 12 | Pending |
+
+**Coverage:**
+- v1.2 requirements: 8 total
+- Mapped to phases: 8
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-03-12*
+*Last updated: 2026-03-12 after initial definition*
