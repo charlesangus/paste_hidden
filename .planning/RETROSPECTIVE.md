@@ -47,6 +47,51 @@
 
 ---
 
+## Milestone: v1.1 — Polish
+
+**Shipped:** 2026-03-12
+**Phases:** 2 | **Plans:** 8
+
+### What Was Built
+- JSON-backed prefs singleton (`prefs.py`) — module-level vars loaded at import, `save()` owned by PrefsDialog; first-run file materialization via `save()` call in `_load()` absent branch
+- One-way migration from legacy `paste_hidden_user_palette.json` into new prefs file; old file never written again
+- Plugin-enabled gating on all clipboard, anchor, and label entry points; LINK_CLASSES passthrough mode (`continue` in Path A loop)
+- `ColorPaletteDialog` redesign: click-to-select, OK button, group reordering (custom→backdrop→defaults), custom color staging via `chosen_custom_colors()`, QPalette.Highlight for selection border
+- `PrefsDialog` with plugin toggle, paste-mode toggle, custom color CRUD (Add/Edit/Remove), working-copy pattern on open/accept
+- `Preferences...` menu entry (ungated); `_persist_custom_colors_from_dialog()` helper consolidates custom color persistence across all 3 ColorPaletteDialog call sites
+
+### What Worked
+- **Constructor injection for custom_colors** cleanly prevented circular import between `colors.py` and `prefs.py` — `colors.py` has zero knowledge of `prefs.py`. Established early in 06-02, paid off through all Phase 7 work.
+- **Working-copy pattern in PrefsDialog** (seed locals at open, flush only on OK) kept the state model simple and correct. No accidental writes to `prefs.*` on cancel.
+- **UAT-driven bug-fix cycle in Phase 7-03** was thorough — 5 bugs found and fixed in a single structured UAT pass, each with a regression test. The regression tests caught real issues before they reached the next session.
+- **AST method extraction pattern** (`_extract_method_from_source`) worked well for testing Qt-stubbed class methods offline — avoided MagicMock return value ambiguity.
+- **Gap closure plan (06-05)** addressed a real UAT finding cleanly with TDD: one RED commit, one GREEN commit, three tests. Minimal scope.
+
+### What Was Inefficient
+- **PrefsDialog initialization order bug** (AttributeError on `_edit_button`) should have been caught by unit test at plan time, not UAT. The plan had explicit success criteria about opening the dialog without crashes; an offline test for `_update_edit_remove_buttons()` attribute references would have caught this in 06-04's write.
+- **PANEL-01 checkbox** was not ticked in REQUIREMENTS.md after Phase 7-03 implemented the menu entry. A 5-second update prevents a gap at milestone completion — same lesson as v1.0's Phase 3 checkbox.
+- **`QDialogButtonBox` replaced entirely** with explicit OK/Cancel buttons after UAT showed `QDialogButtonBox` didn't respond as expected to Tab in Nuke's event filter environment. Would have been faster to use explicit buttons from the start for a Nuke plugin context.
+
+### Patterns Established
+- **Module-level prefs singleton**: `import prefs` at module level; `prefs.plugin_enabled` etc. read directly. No class needed. `save()` never auto-called inside `prefs.py` — only on explicit accept.
+- **Local import for circular import prevention**: `from paste_hidden import menu` inside `_on_accept` (not at module top) prevents `colors.py → prefs.py → menu.py` chain. Document in method-level comment.
+- **`_persist_custom_colors_from_dialog()` helper**: consolidate caller-side custom color save at all `ColorPaletteDialog.exec()` accept sites — read `chosen_custom_colors()`, compare to `prefs.custom_colors`, call `prefs.save()` only if different.
+- **QPalette.Highlight for theme-aware selection**: use `self.palette().color(QtGui.QPalette.Highlight).name()` for selection borders — hardcoded colors are invisible on non-default themes.
+- **Buttons before populate**: in any dialog where `_update_*_buttons()` is called inside `_populate_*()`, always create button widgets before calling `_populate_*()` in `_build_ui()`. Enforce with an AST line-number test.
+
+### Key Lessons
+1. **Plan-time tests for initialization order**: any dialog method that calls another method which references `self._widget_attr` must have a test verifying the attribute exists at that call time. Catches `AttributeError` at write time, not UAT.
+2. **Prefer explicit buttons over QDialogButtonBox in Nuke context**: Nuke's event filter intercepts Tab and Enter in ways QDialogButtonBox doesn't handle predictably. Explicit QPushButton with `setAutoDefault(False)` is more reliable.
+3. **REQUIREMENTS.md checkbox discipline**: tick the checkbox the moment the feature passes UAT. Pre-archive gap review should be a 30-second scan, not a forensic investigation.
+4. **Test discovery ordering still unresolved**: 4–8 errors in flat discovery persist from v1.0. This is now two milestones old — should be the first plan in the next milestone if tests are a priority.
+
+### Cost Observations
+- Model: claude-sonnet-4-6 (100%)
+- Sessions: multiple (separated by phase)
+- Notable: Phase 7-03 took 35 min (longest plan across both milestones) due to the 5-UAT-bug fix cycle. All other plans averaged 2–8 min. UAT bug fix cycles are worth the time — zero regressions after.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -54,14 +99,18 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.0 | 5 | 13 | Initial milestone — established TDD stub pattern, yolo mode, DOT_TYPE architecture |
+| v1.1 | 2 | 8 | Prefs system, UI dialogs, UAT-driven bug fix cycle; constructor injection prevents circular import |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Zero-Dep Additions |
 |-----------|-------|--------------------|
 | v1.0 | 74+ | 0 (no new external deps) |
+| v1.1 | 100+ | 0 (no new external deps) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. TDD offline stubs pay for themselves — caught architectural issues before Nuke sessions
 2. Test discovery ordering conflicts should be fixed structurally, not documented as known issues
+3. UAT-driven fix cycles with regression tests (v1.1 Phase 7-03) produce zero post-merge regressions
+4. REQUIREMENTS.md checkbox discipline: tick on UAT pass, not at archive time

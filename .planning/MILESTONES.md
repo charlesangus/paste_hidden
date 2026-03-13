@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.1 Polish (Shipped: 2026-03-12)
+
+**Phases completed:** 2 phases, 8 plans (Phases 6-7)
+
+**Timeline:** 2026-03-11 → 2026-03-12 (2 days)
+**LOC:** ~3,064 Python (source)
+**Git range:** `408443f feat(06-01)` → `7495ce9 chore(07)`
+
+**Key accomplishments:**
+- JSON-backed prefs singleton (`prefs.py`) with `plugin_enabled`, `link_classes_paste_mode`, `custom_colors` — persists across Nuke sessions
+- One-way migration from legacy `paste_hidden_user_palette.json` into new prefs file on first run
+- Plugin-enabled gating on all clipboard, anchor, and label entry points; LINK_CLASSES passthrough mode
+- Click-to-select `ColorPaletteDialog` with OK button, group ordering (custom→backdrop→defaults), and custom color staging
+- `PrefsDialog` with plugin toggle, paste-mode toggle, and full custom color CRUD (Add/Edit/Remove)
+- `Preferences...` menu entry wired into Anchors menu; custom colors persist across sessions via `_persist_custom_colors_from_dialog` helper
+
+**Requirements:** 16/17 v1.1 requirements explicitly checked off; PANEL-01 delivered via Phase 7-03 (checkbox missed before archive)
+
+**Archive:** `.planning/milestones/v1.1-ROADMAP.md`, `.planning/milestones/v1.1-REQUIREMENTS.md`
+
+---
+
 ## v1.0 MVP (Shipped: 2026-03-10)
 
 **Phases completed:** 5 phases, 13 plans
