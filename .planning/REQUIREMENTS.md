@@ -12,8 +12,8 @@
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Links receive their anchor's tile_color in all code paths (not default purple in any scenario)
-- [ ] **BUG-02**: Anchor node pasted cross-script stays an anchor — not converted to a link node (regression fix)
+- [x] **BUG-01**: Links receive their anchor's tile_color in all code paths (not default purple in any scenario)
+- [x] **BUG-02**: Anchor node pasted cross-script stays an anchor — not converted to a link node (regression fix)
 
 ### Code Quality
 
@@ -51,8 +51,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TEST-03 | Phase 8 | Complete (2026-03-13) |
-| BUG-01 | Phase 9 | Pending |
-| BUG-02 | Phase 9 | Pending |
+| BUG-01 | Phase 9 | Complete |
+| BUG-02 | Phase 9 | Complete |
 | QUAL-01 | Phase 10 | Pending |
 | CI-01 | Phase 11 | Pending |
 | CI-02 | Phase 11 | Pending |

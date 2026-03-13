@@ -117,7 +117,7 @@ Plans:
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
-| 9. Cross-Script Paste Bug Fixes | v1.2 | 0/2 | Not started | - |
+| 9. Cross-Script Paste Bug Fixes | 1/2 | In Progress|  | - |
 | 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |

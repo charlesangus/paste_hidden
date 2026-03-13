@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Hardening
 status: completed
-last_updated: "2026-03-13T06:45:25.379Z"
+last_updated: "2026-03-13T12:02:17.074Z"
 last_activity: 2026-03-13 — Phase 8 Plan 01 executed (centralized stub infrastructure)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -40,6 +40,7 @@ v1.2 Progress: [#---------] 4% (1/1 plans complete in Phase 8)
 | Requirements mapped | 8/8 |
 | Plans complete | 1 |
 | Phase 8 plan 01 duration | 7 min |
+| Phase 09-cross-script-paste-bug-fixes P01 | 1 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -57,6 +58,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - Phase 9 before sweep: bugs must have regression tests before QUAL-01 to prevent sweep from silently reverting BUG-01/BUG-02 fixes
 - Phase 10 before CI: ZIP file manifest must reflect final source state; writing CI first risks stale manifest
 - Phase 12 last: nuke -t validation scripts confirm final code shape; any drift corrected in tests/ only
+- [Phase 09-cross-script-paste-bug-fixes]: Patch link.find_node_color (not paste_hidden.find_node_color) for BUG-01 test — find_node_color lives in link.py namespace
+- [Phase 09-cross-script-paste-bug-fixes]: Mock paste_hidden.setup_link_node in BUG-02 test to avoid nuke.toNode(preferences) error while still exposing createNode/delete assertions
 
 ### Pending Todos
 
@@ -70,7 +73,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13 — Phase 8 Plan 01 complete
+Last session: 2026-03-13T12:02:17.071Z
 To resume: Phase 8 has 1 plan (08-01 complete). Phase 8 is complete. Run `/gsd:plan-phase 9` to continue.
 
 Phase 8 completed: centralized stub infrastructure in tests/stubs.py + conftest.py. Full suite passes: 130 tests, 0 errors.
