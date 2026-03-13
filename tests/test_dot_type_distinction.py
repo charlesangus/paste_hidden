@@ -342,9 +342,8 @@ class TestPasteHiddenCrossScriptDotTypeBehavior(unittest.TestCase):
 
     def test_link_dot_pasted_cross_script_with_matching_anchor_calls_setup_link_node(self):
         """Link Dot pasted cross-script with a matching anchor must call setup_link_node
-        with the destination anchor and set ANCHOR_DEFAULT_COLOR."""
-        from constants import ANCHOR_DEFAULT_COLOR
-
+        with the destination anchor. The tile_color is set by setup_link_node() to the
+        anchor's real color — no ANCHOR_DEFAULT_COLOR overwrite (BUG-01 fix)."""
         # stored FQNN has 'sourceScript' stem; current script is 'destScript' → cross-script
         dot_node = self._make_hidden_dot_node(
             stored_fqnn='sourceScript.Anchor_MyFootage',
@@ -372,11 +371,6 @@ class TestPasteHiddenCrossScriptDotTypeBehavior(unittest.TestCase):
 
             mock_find_by_name.assert_called_once_with('MyFootage')
             mock_setup_link_node.assert_called_once_with(destination_anchor, dot_node)
-            self.assertEqual(
-                dot_node['tile_color'].getValue(),
-                ANCHOR_DEFAULT_COLOR,
-                "Link Dot tile_color must be ANCHOR_DEFAULT_COLOR after cross-script reconnect"
-            )
 
     def test_link_dot_pasted_cross_script_with_no_matching_anchor_does_not_call_setup_link_node(self):
         """Link Dot pasted cross-script with no matching anchor must leave node disconnected."""

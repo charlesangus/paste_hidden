@@ -112,10 +112,10 @@ class TestCrossScriptReconnect(unittest.TestCase):
         )
         return node
 
-    def test_cross_script_reconnect_with_matching_anchor_creates_link_and_deletes_placeholder(self):
+    def test_cross_script_anchor_with_matching_anchor_stays_as_anchor_placeholder(self):
         """When a NoOp anchor is pasted cross-script and a matching anchor exists in the
-        destination script, paste_hidden() should create a new link node, wire it, and
-        delete the pasted placeholder."""
+        destination script, paste_hidden() must leave the pasted anchor in place — it must
+        NOT be replaced by a link node (BUG-02 fix)."""
         import nuke as _nuke
         from constants import KNOB_NAME
 
@@ -130,31 +130,23 @@ class TestCrossScriptReconnect(unittest.TestCase):
             name='Anchor_MyFootage',
             node_class='NoOp',
         )
-        created_link_node = _nuke.StubNode(name='NoOp1', node_class='NoOp',
-                                           knobs_dict={'selected': _nuke.StubKnob(False)})
 
         with patch('paste_hidden.nuke') as mock_nuke, \
              patch('paste_hidden.nukescripts') as mock_nukescripts, \
-             patch('paste_hidden.find_anchor_node', return_value=None) as mock_find_anchor_node, \
-             patch('paste_hidden.find_anchor_by_name', return_value=destination_anchor) as mock_find_by_name, \
+             patch('paste_hidden.find_anchor_node', return_value=None), \
+             patch('paste_hidden.find_anchor_by_name', return_value=destination_anchor), \
              patch('paste_hidden.setup_link_node') as mock_setup_link_node, \
-             patch('paste_hidden.is_anchor', return_value=True) as mock_is_anchor:
+             patch('paste_hidden.is_anchor', return_value=True):
 
             mock_nuke.nodePaste.return_value = None
             mock_nuke.selectedNodes.return_value = [pasted_anchor_node]
-            mock_nuke.createNode.return_value = created_link_node
 
             from paste_hidden import paste_hidden
             paste_hidden()
 
-            # A new NoOp link node should have been created
-            mock_nuke.createNode.assert_called_once_with('NoOp')
-
-            # setup_link_node should have been called to wire the new link
-            mock_setup_link_node.assert_called_once_with(destination_anchor, created_link_node)
-
-            # The placeholder node should have been deleted
-            mock_nuke.delete.assert_called_once_with(pasted_anchor_node)
+            # Anchor placeholder must NOT be replaced — createNode and delete must not be called
+            mock_nuke.createNode.assert_not_called()
+            mock_nuke.delete.assert_not_called()
 
     def test_cross_script_reconnect_with_no_matching_anchor_leaves_placeholder(self):
         """When a NoOp anchor is pasted cross-script but no matching anchor exists in

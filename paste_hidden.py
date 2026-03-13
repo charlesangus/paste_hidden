@@ -150,25 +150,11 @@ def paste_hidden():
             # deleted.
             if not input_node:
                 # Cross-script case: find_anchor_node() returned None because the
-                # stored FQNN belongs to a different script. Attempt name-based
-                # reconnect for NoOp anchors (XSCRIPT-01). Dot anchors and file
+                # stored FQNN belongs to a different script. Dot anchors and file
                 # nodes are left disconnected as placeholders.
-                if is_anchor(node) and node.Class() != 'Dot':
-                    display_name = _extract_display_name_from_fqnn(
-                        node[KNOB_NAME].getText()
-                    )
-                    if display_name:
-                        destination_anchor = find_anchor_by_name(display_name)
-                        if destination_anchor:
-                            nukescripts.clear_selection_recursive()
-                            node["selected"].setValue(True)
-                            link_node = nuke.createNode(get_link_class_for_source(destination_anchor))
-                            setup_link_node(destination_anchor, link_node)
-                            link_node.setXYpos(node.xpos(), node.ypos())
-                            selected_nodes.remove(node)
-                            selected_nodes.append(link_node)
-                            nuke.delete(node)
-                            continue
+                # BUG-02 fix: anchor pasted cross-script stays an anchor.
+                # Do not attempt replacement regardless of whether a same-named anchor
+                # exists in the destination. Leave the placeholder in place.
                 continue
             nukescripts.clear_selection_recursive()
             node["selected"].setValue(True)
