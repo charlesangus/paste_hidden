@@ -209,7 +209,8 @@ def paste_hidden():
                         destination_anchor = find_anchor_by_name(display_name)
                         if destination_anchor:
                             setup_link_node(destination_anchor, node)
-                            node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)
+                            # BUG-01 fix: removed ANCHOR_DEFAULT_COLOR overwrite; setup_link_node() already
+                            # applies the anchor's real tile_color via find_node_color().
                 # Local Dot: silent no-op — do not reconnect under any circumstances.
                 continue
 
