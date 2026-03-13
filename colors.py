@@ -199,7 +199,9 @@ else:
                     # end of _build_ui.
 
                     color_to_capture = color_int
-                    button.clicked.connect(lambda checked=False, c=color_to_capture: self._on_swatch_clicked(c))
+                    button.clicked.connect(
+                        lambda checked=False, c=color_to_capture: self._on_swatch_clicked(c)
+                    )
 
                     self._grid_layout.addWidget(button, grid_row, group_col)
                     cell = (group_col, logical_row, color_int, button)
@@ -268,14 +270,15 @@ else:
             return highlight_qcolor.name()
 
         def _refresh_swatch_borders(self):
-            """Re-apply swatch border stylesheets: palette Highlight border for selected, default for others.
+            """Re-apply swatch border stylesheets: palette Highlight border for selected,
+            default for others.
 
             Uses `is not None` comparison for the selected color so that color
             int 0 (black) is recognised correctly — `if not self._selected_color`
             would incorrectly treat 0 as unselected.
             """
             highlight_color = self._highlight_color_name()
-            for group_col, logical_row, color_int, button in self._swatch_cells:
+            for _group_col, _logical_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
                 if self._selected_color is not None and color_int == self._selected_color:
                     button.setStyleSheet(
@@ -325,7 +328,7 @@ else:
             if app is not None:
                 app.removeEventFilter(self)
 
-        def eventFilter(self, obj, event):
+        def eventFilter(self, obj, event):  # noqa: C901  # complexity is inherent to Qt event dispatch logic
             """Intercept keys at the QApplication level so they reach the dialog
             even when a child widget (e.g. QLineEdit) has focus.
             """
@@ -375,7 +378,7 @@ else:
 
             return False
 
-        def keyPressEvent(self, event):
+        def keyPressEvent(self, event):  # noqa: C901  # complexity is inherent to Qt swatch rendering logic
             key_text = event.text().lower()
 
             if event.key() == Qt.Key_Escape:
@@ -434,7 +437,7 @@ else:
             Letter-first matches the two-keypress navigation order: letter (row)
             then number (column).
             """
-            for group_col, logical_row, color_int, button in self._swatch_cells:
+            for group_col, logical_row, _color_int, button in self._swatch_cells:
                 if self._hint_mode:
                     row_label = _ROW_KEYS[logical_row] if logical_row < len(_ROW_KEYS) else '?'
                     col_label = _COLUMN_KEYS[group_col] if group_col < len(_COLUMN_KEYS) else '?'
@@ -444,7 +447,7 @@ else:
 
         def _highlight_hint_column(self, column_index):
             """Highlight swatches in the given column when column key pressed in hint mode."""
-            for group_col, logical_row, color_int, button in self._swatch_cells:
+            for group_col, _logical_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
                 if group_col == column_index:
                     button.setStyleSheet(
@@ -461,7 +464,7 @@ else:
 
         def _highlight_hint_row(self, row_index):
             """Highlight swatches in the given logical row when row letter pressed in hint mode."""
-            for group_col, logical_row, color_int, button in self._swatch_cells:
+            for _group_col, logical_row, color_int, button in self._swatch_cells:
                 red, green, blue = _color_int_to_rgb(color_int)
                 if logical_row == row_index:
                     button.setStyleSheet(
@@ -506,7 +509,9 @@ else:
                 self._custom_group_next_row,
                 self._custom_group_next_col,
             )
-            cell = (self._custom_group_next_col, self._custom_group_next_logical_row, color_int, button)
+            cell = (
+                self._custom_group_next_col, self._custom_group_next_logical_row, color_int, button
+            )
             self._swatch_cells.append(cell)
             self._cell_map[(self._custom_group_next_col, self._custom_group_next_logical_row)] = (
                 color_int, button
@@ -747,15 +752,18 @@ else:
             self._on_swatch_selected(new_index)
 
         def _on_edit_color(self):
-            """Replace the selected color via nuke.getColor() and immediately recolor matching anchors."""
+            """Replace the selected color via nuke.getColor() and immediately
+            recolor matching anchors.
+            """
             if self._selected_swatch_index is None:
                 return
             result = nuke.getColor()
             if result == 0:
                 return
-            old_color = self._local_custom_colors[self._selected_swatch_index]  # capture before update
+            # Capture old color before updating so we can recolor matching anchors
+            old_color = self._local_custom_colors[self._selected_swatch_index]
             self._local_custom_colors[self._selected_swatch_index] = result
-            self._recolor_anchors_for_changed_custom_colors([old_color], [result])  # apply immediately
+            self._recolor_anchors_for_changed_custom_colors([old_color], [result])
             selected_index = self._selected_swatch_index
             self._rebuild_swatch_grid()
             self._on_swatch_selected(selected_index)
@@ -770,7 +778,8 @@ else:
             # and _populate_swatch_grid calls _update_edit_remove_buttons()
 
         def _recolor_anchors_for_changed_custom_colors(self, old_colors, new_colors):
-            """Recolor anchor nodes in the current script whose tile_color matches a changed custom color.
+            """Recolor anchor nodes in the current script whose tile_color matches
+            a changed custom color.
 
             For each index where old_colors[i] != new_colors[i], iterates all
             NoOp anchor nodes and calls anchor.propagate_anchor_color() for any
