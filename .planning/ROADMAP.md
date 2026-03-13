@@ -81,7 +81,12 @@ Plans:
   2. All serialized knob name constants in `constants.py` are annotated as FROZEN and none have been renamed
   3. `pytest tests/` remains green after every sweep commit touching `paste_hidden.py`
   4. No public function or class API is changed (no callers broken)
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Create pyproject.toml with ruff config; auto-fix import sort order (I001) across all source files
+- [ ] 10-02-PLAN.md — Fix anchor.py and link.py (F401, SIM105, SIM108, E501); fix colors.py and labels.py (B007, C901 noqa, E501)
+- [ ] 10-03-PLAN.md — Fix paste_hidden.py (E501, C901 noqa), menu.py and prefs.py (E501); add FROZEN annotations to constants.py; global zero-violation verify
 
 ### Phase 11: CI/CD Pipeline
 **Goal**: A tag push to GitHub triggers offline tests, packages plugin source into a versioned ZIP, and publishes a GitHub Release — with the ZIP containing only end-user files and no dev artifacts
@@ -118,6 +123,6 @@ Plans:
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
 | 9. Cross-Script Paste Bug Fixes | 2/2 | Complete   | 2026-03-13 | - |
-| 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
+| 10. Code Quality Sweep | v1.2 | 0/3 | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
