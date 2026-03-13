@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "C90", "I", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"menu.py" = ["F401"]
+"tabtabtab.py" = ["B008", "C901", "SIM", "E501"]
