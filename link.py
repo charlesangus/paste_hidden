@@ -4,10 +4,10 @@ Neither anchor.py nor paste_hidden.py need to import from each other;
 both pull what they need from here and from constants.py.
 """
 
+import contextlib
 import re
 
 import nuke
-import nukescripts
 
 from constants import (
     ANCHOR_DEFAULT_COLOR,
@@ -15,7 +15,6 @@ from constants import (
     DOT_ANCHOR_KNOB_NAME,
     DOT_LINK_LABEL_FONT_SIZE,
     DOT_TYPE_KNOB_NAME,
-    HIDDEN_INPUT_CLASSES,
     KNOB_NAME,
     LINK_RECONNECT_KNOB_NAME,
     TAB_NAME,
@@ -29,9 +28,20 @@ def get_fully_qualified_node_name(node):
 
 def find_node_default_color(node):
     prefs = nuke.toNode("preferences")
-    node_colour_slots = [prefs[knob_name].value().split(' ') for knob_name in prefs.knobs() if knob_name.startswith("NodeColourSlot")]
-    node_colour_slots = [[item.replace("'", "").lower() for item in parent_item] for parent_item in node_colour_slots]
-    node_colour_choices = [prefs[knob_name].value() for knob_name in prefs.knobs() if knob_name.startswith("NodeColourChoice")]
+    node_colour_slots = [
+        prefs[knob_name].value().split(' ')
+        for knob_name in prefs.knobs()
+        if knob_name.startswith("NodeColourSlot")
+    ]
+    node_colour_slots = [
+        [item.replace("'", "").lower() for item in parent_item]
+        for parent_item in node_colour_slots
+    ]
+    node_colour_choices = [
+        prefs[knob_name].value()
+        for knob_name in prefs.knobs()
+        if knob_name.startswith("NodeColourChoice")
+    ]
     for i, slot in enumerate(node_colour_slots):
         if node.Class().lower() in slot:
             return node_colour_choices[i]
@@ -106,7 +116,8 @@ def is_anchor(node):
                 return True
             # Legacy: labelled dot that is not a link, not hidden-input, no "Link: " prefix
             label = node['label'].getValue().strip()
-            if label and not label.startswith('Link: ') and not is_link(node) and not node['hide_input'].getValue():
+            if (label and not label.startswith('Link: ')
+                    and not is_link(node) and not node['hide_input'].getValue()):
                 return True
         return False
     except Exception:
@@ -133,18 +144,12 @@ def add_input_knob(node, dot_type=None):
     # Remove our custom knobs to make sure they're at the end.
     # DOT_TYPE_KNOB_NAME is removed first so it can be re-added last (keeping correct order:
     # TAB_NAME → KNOB_NAME → DOT_TYPE_KNOB_NAME).
-    try:
+    with contextlib.suppress(Exception):
         node.removeKnob(node[DOT_TYPE_KNOB_NAME])
-    except Exception:
-        pass
-    try:
+    with contextlib.suppress(Exception):
         node.removeKnob(node[KNOB_NAME])
-    except Exception:
-        pass
-    try:
+    with contextlib.suppress(Exception):
         node.removeKnob(node[TAB_NAME])
-    except Exception:
-        pass
 
     tab = nuke.Tab_Knob(TAB_NAME)
     tab.setFlag(nuke.INVISIBLE)

@@ -1,5 +1,6 @@
 """Anchor system: creation, renaming, reconnection, and the tabtabtab picker."""
 
+import contextlib
 import os
 import re
 
@@ -33,7 +34,6 @@ from constants import (
     NODE_LABEL_FONT_SIZE_LARGE,
 )
 from link import (
-    add_input_knob,
     find_node_color,
     find_smallest_containing_backdrop,
     get_fully_qualified_node_name,
@@ -194,10 +194,7 @@ def suggest_anchor_name(input_node):
         if filepath:
             filename = os.path.basename(filepath)
             m = re.match(r'^(.+)_v\d+(?:\.[^.]+)?\.[^.]+$', filename)
-            if m:
-                suggestion = m.group(1)
-            else:
-                suggestion = os.path.splitext(filename)[0]
+            suggestion = m.group(1) if m else os.path.splitext(filename)[0]
 
     smallest = find_smallest_containing_backdrop(input_node)
     if smallest is not None:
@@ -267,17 +264,18 @@ def rename_anchor(anchor_node):
         suggested = anchor_display_name(anchor_node)
     else:
         input_node = anchor_node.input(0)
-        suggested = suggest_anchor_name(input_node) if input_node is not None else anchor_display_name(anchor_node)
+        suggested = (
+            suggest_anchor_name(input_node) if input_node is not None
+            else anchor_display_name(anchor_node)
+        )
 
     if ColorPaletteDialog is None:
         # Qt unavailable — fall back to plain text input
         name = nuke.getInput("Rename anchor:", suggested)
         if not name or not name.strip():
             return
-        try:
+        with contextlib.suppress(ValueError):
             rename_anchor_to(anchor_node, name)
-        except ValueError:
-            pass
         return
 
     current_color = int(anchor_node['tile_color'].value())
@@ -339,16 +337,11 @@ def create_anchor():
         name = nuke.getInput("Anchor name:", suggested)
         if not name or not name.strip():
             return
-        try:
+        with contextlib.suppress(ValueError):
             create_anchor_named(name, input_node)
-        except ValueError:
-            pass
         return
 
-    if input_node is not None:
-        pre_color = find_anchor_color(input_node)
-    else:
-        pre_color = ANCHOR_DEFAULT_COLOR
+    pre_color = find_anchor_color(input_node) if input_node is not None else ANCHOR_DEFAULT_COLOR
 
     dialog = ColorPaletteDialog(
         initial_color=int(pre_color),
@@ -363,10 +356,8 @@ def create_anchor():
     if not chosen_name or not chosen_name.strip():
         return
     chosen_color = dialog.selected_color_int()
-    try:
+    with contextlib.suppress(ValueError):
         create_anchor_named(chosen_name, input_node, color=chosen_color)
-    except ValueError:
-        pass
 
 
 def create_from_anchor(anchor_node):
