@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Hardening
 status: completed
-last_updated: "2026-03-13T12:08:46.507Z"
+last_updated: "2026-03-13T12:51:31.961Z"
 last_activity: 2026-03-13 — Phase 8 Plan 01 executed (centralized stub infrastructure)
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
 ---
 
 # Project State
@@ -42,6 +42,7 @@ v1.2 Progress: [#---------] 4% (1/1 plans complete in Phase 8)
 | Phase 8 plan 01 duration | 7 min |
 | Phase 09-cross-script-paste-bug-fixes P01 | 1 | 1 tasks | 1 files |
 | Phase 09-cross-script-paste-bug-fixes P02 | 8 | 2 tasks | 3 files |
+| Phase 10-code-quality-sweep P01 | 1 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 09-cross-script-paste-bug-fixes]: Mock paste_hidden.setup_link_node in BUG-02 test to avoid nuke.toNode(preferences) error while still exposing createNode/delete assertions
 - [Phase 09-cross-script-paste-bug-fixes]: BUG-01 fix: removed ANCHOR_DEFAULT_COLOR overwrite after setup_link_node() in paste_hidden() cross-script link branch — setup_link_node() already sets anchor's real color
 - [Phase 09-cross-script-paste-bug-fixes]: BUG-02 fix: replaced anchor-to-link replacement block with unconditional continue — anchor pasted cross-script stays as anchor, KNOB_NAME cleanup deferred to QUAL-01
+- [Phase 10-code-quality-sweep]: tabtabtab.py per-file-ignores: B008/C901/SIM/E501 suppressed — vendored third-party code must not be modified
+- [Phase 10-code-quality-sweep]: menu.py F401 suppressed via per-file-ignores — imports used in Nuke string-eval menu callbacks, ruff cannot see through string arguments
+- [Phase 10-code-quality-sweep]: line-length=100 in pyproject.toml reduces E501 violations from 78 to 21 in source files without touching any code
 
 ### Pending Todos
 
@@ -76,7 +80,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T12:06:32.984Z
+Last session: 2026-03-13T12:51:31.959Z
 To resume: Phase 8 has 1 plan (08-01 complete). Phase 8 is complete. Run `/gsd:plan-phase 9` to continue.
 
 Phase 8 completed: centralized stub infrastructure in tests/stubs.py + conftest.py. Full suite passes: 130 tests, 0 errors.

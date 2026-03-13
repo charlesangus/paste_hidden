@@ -17,7 +17,7 @@
 
 ### Code Quality
 
-- [ ] **QUAL-01**: Moderate code quality sweep using ruff + radon — dead code removed, unused imports cleaned, over-complex conditionals simplified; no API breaks, no serialized knob string values renamed
+- [x] **QUAL-01**: Moderate code quality sweep using ruff + radon — dead code removed, unused imports cleaned, over-complex conditionals simplified; no API breaks, no serialized knob string values renamed
 
 ### Test Infrastructure
 
@@ -53,7 +53,7 @@
 | TEST-03 | Phase 8 | Complete (2026-03-13) |
 | BUG-01 | Phase 9 | Complete |
 | BUG-02 | Phase 9 | Complete |
-| QUAL-01 | Phase 10 | Pending |
+| QUAL-01 | Phase 10 | Complete |
 | CI-01 | Phase 11 | Pending |
 | CI-02 | Phase 11 | Pending |
 | TEST-01 | Phase 12 | Pending |
