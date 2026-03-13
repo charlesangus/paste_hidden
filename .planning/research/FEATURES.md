@@ -1,17 +1,16 @@
 # Feature Research
 
-**Domain:** Qt/PySide preferences panel and color picker dialog for a Nuke plugin
-**Researched:** 2026-03-10
-**Confidence:** HIGH (behavior derived from existing codebase + Qt documentation; no market competition)
+**Domain:** Nuke Python plugin — v1.2 Hardening milestone (CI/CD, stub validation, code quality, cross-script paste bugs)
+**Researched:** 2026-03-12
+**Confidence:** HIGH (CI/CD patterns), MEDIUM (nuke -t headless limits), HIGH (code quality tooling), HIGH (cross-script paste bugs — code read directly)
 
 ---
 
 ## Context
 
-This is a single-artist internal tool. "Table stakes" and "differentiators" are reframed relative
-to user expectations for a tool panel in a professional DCC (Nuke), not a consumer product.
-Features are scoped strictly to the v1.1 milestone: preferences panel and color picker redesign.
-All v1.0 features (swatch grid, color propagation, anchor dialogs) are existing and not re-evaluated here.
+This is a subsequent milestone on a shipped single-artist plugin. "Table stakes" and "differentiators"
+are framed relative to a hardening release, not a greenfield product. Features are the six active
+items from PROJECT.md v1.2: CI-01, CI-02, BUG-01, BUG-02, QUAL-01, TEST-01/02/03.
 
 ---
 
@@ -19,116 +18,91 @@ All v1.0 features (swatch grid, color propagation, anchor dialogs) are existing 
 
 ### Table Stakes (Users Expect These)
 
-Features the artist expects. Missing any of these = the panel or dialog feels unfinished or
-broken for professional use.
-
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Preferences dialog accessible from menu | Standard DCC plugin UX; Nuke itself has a Preferences menu entry | LOW | Add menu item to existing Anchors menu in `menu.py` |
-| Enable/disable plugin toggle (checkbox) | Without this, disabling requires editing `menu.py` manually — unacceptable workflow | LOW | Boolean flag; when disabled, Ctrl+C/X/V must fall back to native Nuke commands |
-| Paste-mode toggle: link-creation vs plain copy | LINK_CLASSES currently hardcoded in `constants.py`; user expects runtime control | LOW | Two-state radio or checkbox; affects `copy_hidden()` Path A logic only |
-| Preferences persist across Nuke sessions | A preferences panel that resets on restart is unusable | MEDIUM | Must write to a file; `~/.nuke/` is the conventional location; JSON is already used for USER_PALETTE_PATH |
-| Custom color list with Add / Remove | The color palette is already persisted; UI to manage it is the missing piece | MEDIUM | Backed by existing `load_user_palette()` / `save_user_palette()` helpers |
-| Color picker: click selects without closing | Current behavior closes on click; users expect to browse before committing | LOW | `_on_swatch_clicked` must set `_selected_color` without calling `self.accept()` |
-| Color picker: Enter/Return key accepts | Standard modal dialog keyboard contract; any dialog that ignores Enter feels broken | LOW | `keyPressEvent` already exists; currently Enter only works inside hint mode — must work globally |
-| Color picker: pre-selected swatch visually highlighted on open | Without a visible highlight, the current color is invisible after re-opening | LOW | Already partially implemented via border style; must survive the new deferred-accept flow |
-| Color picker: OK/Accept button | With click no longer closing the dialog, an explicit accept path is mandatory | LOW | Standard `QDialogButtonBox` or simple OK button wired to `self.accept()` |
+| Tag-triggered GitHub Release with ZIP | Standard delivery for VFX plugins — artist downloads zip, drops into ~/.nuke | LOW | `softprops/action-gh-release@v2` on `push: tags: v*.*.*` trigger; ZIP built excluding tests/, .planning/, __pycache__ |
+| Release body / changelog | Reviewable history at download time; answers "what changed in this version?" | LOW | `generate_release_notes: true` auto-pulls from merged PRs/commits; or `body_path` pointing to a CHANGELOG section |
+| Correct tile_color on cross-script NoOp link paste (BUG-01) | Anchor color conveys semantic ownership — default purple on a reconnected link breaks visual consistency across scripts | LOW | Bug in paste_hidden.py line 212: `node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)` overwrites the correct color that `setup_link_node(destination_anchor, node)` just set one line earlier. Fix: remove that line. |
+| Anchor pasted cross-script stays an anchor (BUG-02) | Pasting an anchor should seed it in the destination — silently converting it to a link is wrong | MEDIUM | Bug in paste_hidden.py Path A/C: when an anchor NoOp is pasted cross-script and `find_anchor_by_name()` finds a same-named anchor in the destination, the code deletes the pasted node and creates a link. Anchors should not follow this path; only explicit link nodes and LINK_SOURCE_CLASSES should. Fix: skip link-creation when `is_anchor(node)` is true in the cross-script branch. |
+| Test suite runs cleanly via flat discovery (TEST-03) | Discovery failures (`python3 -m unittest discover`) erode CI output trust and hide real failures | MEDIUM | Cause: Qt stub modules installed into sys.modules by one test file leak into subsequently-loaded files. Fix patterns: `setUpModule`/`tearDownModule` with sys.modules cleanup, or per-test mock.patch on sys.modules entries. |
 
-### Differentiators (What Makes This Better Than the Status Quo)
-
-These are improvements beyond basic function. This is a single-user tool, so "differentiator"
-means "noticeably better than the current workaround."
+### Differentiators (Valuable, Not Assumed)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Custom color list with Edit (in-place rename/reorder) | Add/Remove alone leaves the list hard to curate; Edit gives control over ordering | MEDIUM | QListWidget with double-click edit or separate Edit button; color value re-entry via `nuke.getColor()` |
-| Swatch order: custom colors first, then backdrop colors, then Nuke defaults | Custom colors are the most intentional; surfacing them first reduces scanning time | LOW | Reorder the `all_color_groups` list in `_build_ui`; custom slot already exists, just currently last |
-| Default anchor color highlighted in picker on open | Without this, the artist cannot see what color is currently set when re-opening the picker | LOW | Already partially done; confirm it persists correctly after click-to-select re-renders swatches |
-| Preferences panel: custom color management embedded | Placing color list management inside preferences (rather than a separate dialog) keeps the feature surface small | LOW | Reuse color list widget inside the preferences dialog |
-| Preferences state readable by plugin at runtime without dialog being open | Plugin code must check enabled/paste-mode flags on every copy/paste invocation | MEDIUM | A module-level `load_prefs()` helper called at import or lazily per-operation; must not require the dialog to be open |
+| nuke -t validation scripts (TEST-01/02) | Confirms stub behavior matches real Nuke API — detects mock drift before tests silently validate wrong behavior | MEDIUM | Manual developer step only (no CI license). Scripts exercise each StubNode/StubKnob method against real nuke.Node/nuke.Knob. Output: printed pass/fail per method under test. |
+| Moderate code quality sweep (QUAL-01) | Reduces future maintenance cost; improves readability without altering plugin behavior | MEDIUM | Highest-value targets: dead code (vulture), unused imports (ruff F401), overly broad exception handlers, comments restating obvious code. No API breaks, no new runtime deps. |
+| Auto-generated release notes from commits | Zero-ceremony changelog — PR titles and commit messages appear in the GitHub Release body automatically | LOW | `generate_release_notes: true` in softprops action. Requires commit message discipline going forward. |
 
-### Anti-Features (Commonly Considered, Better Avoided)
+### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Using Nuke's built-in `preferences` node to store plugin settings | Seems "native" and avoids a separate file | Nuke's preferences node is version-specific (`preferences17.0.nk`), adds unversioned knobs to a shared namespace, and is fragile across Nuke version upgrades | JSON file in `~/.nuke/` — already used for USER_PALETTE_PATH; extend the same pattern |
-| QSettings / uistate.ini for plugin prefs | Nuke itself uses `uistate.ini` for some panel state; could piggyback on it | `QSettings` with `uistate.ini` path is undocumented for plugin use and could collide with Foundry internals; format is INI not JSON, inconsistent with existing codebase | Dedicated `paste_hidden_prefs.json` alongside existing `paste_hidden_user_palette.json` |
-| Combining preferences and color palette into a single JSON file | Fewer files | Makes the schema load/save harder to evolve independently; palette is already shipped as its own file | Keep separate files; palette path is already a constant (`USER_PALETTE_PATH`) |
-| Full color editor (HSV sliders, hex input) inside the swatch picker | Some users like in-picker editing | The existing "Custom Color..." button already delegates to `nuke.getColor()` (Nuke's native full-color dialog); duplicating that adds complexity with no gain | Keep the "Custom Color..." button; it already handles the edge case |
-| Preferences window as a docked Nuke panel (nukescripts.PythonPanel) | Looks "more native" | Docked panels have a persistent lifecycle that complicates state sync; preferences are infrequently accessed; a modal QDialog is simpler and correct | Modal `QDialog`; open from menu, close on OK/Cancel |
-| Live preview of enable/disable toggle while panel is open | Instant feedback seems good | If the plugin disables itself while the preferences dialog is open, menu shortcuts are live-rewired mid-session; edge cases are hard to reason about | Apply all changes on OK/Accept only; Cancel discards |
+| nuke -t validation in CI pipeline | "Run everything in CI automatically" | Nuke requires a commercial license to execute any Python API. GitHub Actions runners have no Nuke license and cannot acquire one; the job fails at license checkout before any test runs. | Keep nuke -t scripts as a manual developer tool run against a local licensed install. Document the workflow in a comment in the validation script itself. |
+| Automated dead-code removal without review | vulture/deadcode output piped straight to deletion | False positives on plugin entry points registered in menu.py or called by Nuke callbacks via string name — they appear unused statically but are live. Blind removal breaks the plugin. | Use vulture output as a human-review checklist. `vulture --make-whitelist` for known false positives. |
+| ruff --fix on the entire codebase in one pass | Fast, appeals as a one-shot cleanup | Auto-fix rewrites can change semantics (exception chain simplification, comprehension rewrites). In a plugin with no type annotations, some rewrites reduce clarity. Batch application makes the diff hard to review. | Run `ruff check` only first. Review findings by category. Apply fixes file-by-file with manual verification. |
+| python-semantic-release for version automation | Automatic version bumping, industry practice for packages | Heavyweight dependency and opinionated commit-message format for a single-developer plugin. Adds pyproject.toml complexity for no practical gain. | Manual `git tag v1.2.0 && git push origin v1.2.0`. The CI workflow reads `github.ref_name` for the release name. |
+| PyPI publication step in CI | "Publish like a real package" | This plugin has no PyPI audience. It is a ~/.nuke-dropped directory plugin, not an importable package. PyPI publication would require setup.py/pyproject.toml restructuring with no benefit to the single user. | GitHub Release ZIP is the correct and sufficient distribution artifact. |
+| Parallel test isolation via subprocess-per-test-file | Cleanly solves Qt stub ordering | Extreme complexity for a 100-test suite; subprocess invocations add CI time and configuration overhead. | Fix stub ordering at the module level with setUpModule/tearDownModule sys.modules cleanup — simpler and sufficient. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Preferences persist across sessions]
-    └──requires──> [Prefs JSON load/save helpers]
-                       └──requires──> [Defined prefs schema (enabled, paste_mode, custom_colors)]
+[GitHub Actions workflow]
+    └──requires──> [git tag convention matching v*.*.*]
+    └──produces──> [Release ZIP + GitHub Release]
 
-[Enable/disable toggle]
-    └──requires──> [Prefs JSON load/save helpers]
-    └──requires──> [Plugin reads prefs flag at copy/paste invocation]
+[Release ZIP]
+    └──requires──> [clean source tree / no __pycache__ or test files in ZIP]
 
-[Paste-mode toggle]
-    └──requires──> [Prefs JSON load/save helpers]
-    └──requires──> [copy_hidden() reads paste_mode flag before Path A logic]
+[nuke -t validation scripts]
+    └──requires──> [licensed local Nuke install — NOT on CI]
+    └──validates──> [StubNode/StubKnob behavior in tests/]
+    └──informs──> [stub corrections in test files if mock drift found]
 
-[Custom color list UI (Add/Remove/Edit)]
-    └──requires──> [Existing load_user_palette() / save_user_palette() in colors.py]
-    └──enhances──> [Color picker swatch order: custom colors first]
+[Code quality sweep (QUAL-01)]
+    └──uses──> [vulture (dead code) + ruff (style/imports)]
+    └──informs──> [BUG-01 and BUG-02 fixes] (reading paste_hidden.py during sweep surfaces both bugs)
+    └──must not break──> [existing public API: functions referenced in menu.py or by name in node knobs]
 
-[Color picker: click selects without closing]
-    └──conflicts──> [Current _on_swatch_clicked calls self.accept()]
+[BUG-01 fix]
+    └──located in──> [paste_hidden.py Path B cross-script branch, line 212]
+    └──isolated from──> [BUG-02 fix] (different code paths)
 
-[Color picker: Enter accepts]
-    └──requires──> [A currently-selected swatch state (not just _selected_color set at open)]
+[BUG-02 fix]
+    └──located in──> [paste_hidden.py Path A/C, lines 156-171]
+    └──must not break──> [XSCRIPT-01 working behavior: link nodes still reconnect cross-script]
 
-[Color picker: OK button]
-    └──requires──> [Click-to-select without closing (otherwise OK is redundant)]
-
-[Swatch order: custom first]
-    └──requires──> [No structural change to _build_ui, only list reorder]
-    └──enhances──> [Pre-selected color highlighting (custom colors are the most likely pre-selected)]
+[TEST-03 fix]
+    └──located in──> [tests/ sys.modules stub installation in each test file]
+    └──independent of──> [BUG-01, BUG-02] (test infrastructure only)
 ```
 
 ### Dependency Notes
 
-- **Enable/disable toggle requires runtime flag reads:** `paste_hidden.py` functions `copy_hidden()`, `cut_hidden()`, `paste_hidden()` must each check a loaded prefs flag. This is a change to the hot path; it must be a fast dictionary lookup, not a file read per operation.
-- **Click-to-select conflicts with current close-on-click:** The entire `_on_swatch_clicked` method must be refactored. This is the central behavioral change of the color picker redesign.
-- **Custom color list in preferences depends on existing palette helpers:** `load_user_palette()` and `save_user_palette()` in `colors.py` are stable; the preferences panel simply needs to call them. No change to persistence logic required.
-- **Paste-mode toggle depends on `copy_hidden()` reading a flag:** The flag controls whether Path A (link creation for LINK_SOURCE_CLASSES nodes) fires. The plain-copy fallback is already the behavior when `copy_hidden()` encounters a node without a matching anchor; the paste-mode toggle just needs to suppress the Path A branch entirely.
+- **CI workflow requires tag convention:** The `on: push: tags: v*.*.*` trigger must match the developer's tagging convention. `v1.2.0` matches; `1.2.0` does not. Must be documented.
+- **nuke -t validation is one-directional:** If validation finds drift, fixes land in tests/ (stub definitions), not in production code. The production API is the ground truth.
+- **BUG-02 fix must preserve XSCRIPT-01:** The existing working behavior where a NoOp *link* pasted cross-script reconnects to a same-named anchor in the destination must not regress. The fix must distinguish `is_anchor(node)` from `is_link(node)`.
 
 ---
 
-## MVP Definition
+## v1.2 Milestone Scope (replaces generic MVP section)
 
-This is a subsequent milestone on a shipped plugin. "MVP" here means: minimum to make the
-preferences panel and color picker redesign complete and releasable as v1.1.
+### Ship to close v1.2
 
-### Launch With (v1.1)
+- [ ] GitHub Actions CI/CD: tag-triggered ZIP packaging + GitHub Release (CI-01, CI-02)
+- [ ] BUG-01: NoOp links pasted cross-script receive anchor tile_color, not default purple
+- [ ] BUG-02: Anchor pasted cross-script stays an anchor (not converted to a link)
+- [ ] Moderate code quality sweep: dead code removed, complex logic simplified, no API breaks (QUAL-01)
+- [ ] nuke -t validation scripts written and run manually against licensed local Nuke (TEST-01, TEST-02)
+- [ ] TEST-03: flat-discovery Qt stub ordering conflicts resolved
 
-- [ ] Preferences dialog accessible from the Anchors menu
-- [ ] Enable/disable toggle — persisted, read at copy/paste invocation
-- [ ] Paste-mode toggle (link-creation vs plain copy for LINK_SOURCE_CLASSES) — persisted
-- [ ] Custom color list: Add and Remove — backed by existing palette helpers
-- [ ] Preferences JSON load/save module (separate from palette file)
-- [ ] Color picker: click selects swatch without closing dialog
-- [ ] Color picker: Enter/Return accepts with currently selected color
-- [ ] Color picker: OK button for explicit accept
-- [ ] Color picker: swatch order reordered (custom first, then backdrop, then Nuke defaults)
-- [ ] Color picker: pre-selected color highlight visible after click-to-select flow
+### Defer to v2+
 
-### Add After Validation (v1.1+)
-
-- [ ] Custom color list: Edit (replace color value via `nuke.getColor()`) — useful but not blocking
-- [ ] Custom color list: drag-to-reorder — ergonomic improvement; requires more complex QListWidget setup
-
-### Future Consideration (v2+)
-
-- [ ] Full forward/back navigation history stack (NAV-03) — already tracked in PROJECT.md as v2 candidate
-- [ ] Manual `tile_color` change propagation to links (Color-V2-01) — explicitly deferred by design
+- [ ] Full forward/back navigation history stack (NAV-03)
+- [ ] Manual tile_color changes propagate to links (COLOR-V2-01) — out of scope by design
 
 ---
 
@@ -136,52 +110,183 @@ preferences panel and color picker redesign complete and releasable as v1.1.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Color picker: click-to-select without closing | HIGH | LOW | P1 |
-| Color picker: Enter accepts | HIGH | LOW | P1 |
-| Color picker: OK button | HIGH | LOW | P1 |
-| Enable/disable toggle + persistence | HIGH | MEDIUM | P1 |
-| Paste-mode toggle + persistence | HIGH | LOW | P1 |
-| Prefs JSON load/save helpers | HIGH | LOW | P1 (unblocks all prefs features) |
-| Custom color list Add/Remove in prefs | MEDIUM | MEDIUM | P1 |
-| Swatch order: custom first | MEDIUM | LOW | P1 |
-| Pre-selected highlight after click-to-select | MEDIUM | LOW | P1 |
-| Custom color list Edit | LOW | LOW | P2 |
-| Custom color list drag-to-reorder | LOW | MEDIUM | P3 |
+| BUG-01 tile_color fix | HIGH (visual regression, visible on every cross-script link paste) | LOW (remove one line) | P1 |
+| BUG-02 anchor cross-script fix | HIGH (behavioral regression, silent wrong semantics) | MEDIUM (conditional in Path A/C) | P1 |
+| TEST-03 flat-discovery fix | MEDIUM (CI integrity, developer trust in suite) | MEDIUM (sys.modules isolation) | P1 |
+| GitHub Actions CI/CD ZIP release | MEDIUM (packaging convenience) | LOW (~30 lines YAML) | P1 |
+| Code quality sweep | MEDIUM (maintainability, reduces future debt) | MEDIUM (tool-assisted + human review) | P2 |
+| nuke -t validation scripts | LOW-MEDIUM (one-time confidence check, not recurring CI) | MEDIUM (write scripts, run manually, interpret results) | P2 |
 
-**Priority key:**
-- P1: Must have for v1.1 launch
-- P2: Should have, add when possible
-- P3: Nice to have, future consideration
+**Priority key:** P1 = required for v1.2 close. P2 = value-adds within milestone scope.
 
 ---
 
-## Competitor Feature Analysis
+## nuke -t Headless Validation: Capability Map
 
-There are no direct competitors — this is an internal single-artist plugin. The relevant
-reference points are DCC industry norms and Qt standard dialog patterns.
+### What CAN be tested headlessly with `nuke -t` (MEDIUM confidence)
 
-| Feature | Qt Standard Pattern | Nuke Native Pattern | Our Approach |
-|---------|---------------------|---------------------|--------------|
-| Preferences dialog | Modal QDialog with OK/Cancel, apply-on-OK | Foundry uses a tabbed non-modal preferences window; plugins rarely use it | Modal QDialog; simpler, sufficient for small feature set |
-| Color swatch picker | QColorDialog has a custom color section; click-and-close is not standard for palette pickers | Nuke's `nuke.getColor()` is a single call that returns one color and closes | Custom palette picker; click-selects, Enter/OK closes |
-| Persisting plugin settings | QSettings (platform-aware) | ~/.nuke/*.nk knob files for Nuke-native prefs | JSON in ~/.nuke/; consistent with existing USER_PALETTE_PATH pattern |
-| Custom color management | QColorDialog has a "Add to Custom Colors" button | None in Nuke natively | QListWidget with Add/Remove in prefs panel |
+- Node creation: `nuke.createNode()`, `nuke.nodes.NoOp()`, etc.
+- Knob read/write: `node['knob'].value()`, `.setValue()`, `.getText()`, `.setText()`
+- Node graph traversal: `nuke.allNodes()`, `node.input(0)`, `node.setInput()`
+- Custom knob addition: `node.addKnob()`, `knob_name in node.knobs()`
+- Script I/O: `nuke.scriptOpen()`, `nuke.scriptSave()`, `nuke.root()`
+- `nuke.toNode(name)` lookup
+- `nuke.env['gui']` returns `False` — can gate UI code on this
+- `nuke.execute()` for rendering (requires valid read/write inputs — not needed for stub validation)
+- `nuke.root().name()` returns the script filename stem
+
+### What CANNOT be tested headlessly with `nuke -t`
+
+- Any Qt/PySide2/PySide6 UI: dialogs, panels, widgets — Qt event loop does not run
+- `nuke.message()`, `nuke.ask()`, `nuke.getInput()` — blocking GUI dialogs, will fail or hang
+- `nuke.executeInMainThread()` — no GUI main thread running
+- `nuke.toNode("preferences")` NodeColourSlot knob access — preferences node may not initialise correctly in headless (depends on Nuke version; avoid relying on this in validation scripts)
+- DAG/viewport operations: `nuke.zoom()`, `nuke.center()` — no DAG panel
+- `nuke.getColor()` — launches a modal color picker GUI
+
+### What the validation scripts should cover
+
+Goal: confirm each StubNode/StubKnob method in `tests/` faithfully mimics real `nuke.Node`/`nuke.Knob` behavior for operations the test suite depends on.
+
+Key behaviors to validate against real Nuke:
+1. `node['knob'].value()` returns set value (not a MagicMock side-effect)
+2. `node['knob'].setValue(x)` followed by `.value()` round-trips correctly
+3. `node.knobs()` returns a dict-keyed structure with knob name as key
+4. `node.addKnob(knob)` makes `knob.name() in node.knobs()` true
+5. `node.Class()` returns class string
+6. `node.name()` / `node.setName()` round-trip
+7. `nuke.root().name()` returns filename stem (e.g. `"untitled"` for unsaved)
+8. `nuke.allNodes()` returns list of current-context nodes
+9. `nuke.toNode(name)` returns node or None
+10. `node.input(0)` / `node.setInput(0, other)` connectivity
+11. `knob.getText()` / `knob.setText()` for String_Knob (separate from `value()`/`setValue()`)
+
+### Critical constraint: license required, CI is off-limits
+
+Nuke requires a commercial floating license (or Nuke Non-Commercial) to run any Python API call.
+GitHub Actions runners have no Nuke license. Therefore:
+
+- nuke -t validation is a **manual developer step only**
+- The `.github/workflows/` YAML must NOT include any `nuke -t` or `nuke --tg` step
+- The CI workflow contains only: offline Python unittest (stub-based), ZIP build, release upload
+
+---
+
+## Cross-Script Paste Color Propagation: Bug Analysis
+
+### BUG-01: NoOp links get wrong tile_color on cross-script paste
+
+**Location in code:** `paste_hidden.py`, Path B cross-script branch, approximately lines 203-214
+
+**Root cause:** After `setup_link_node(destination_anchor, node)` correctly sets `tile_color` from the destination anchor (via `find_node_color(destination_anchor)` in `link.py:162`), the very next line unconditionally resets it:
+
+```
+setup_link_node(destination_anchor, node)   # sets correct anchor color
+node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)  # BUG: overwrites with purple
+```
+
+The purple override was originally placed here to canonicalize Dot link tile color at copy time. In the paste cross-script path it is incorrect — the correct color from the destination anchor was just set.
+
+**Fix:** Remove the `node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR)` line in the cross-script Link Dot branch. `setup_link_node` already handles color propagation correctly.
+
+**Risk:** LOW. `ANCHOR_DEFAULT_COLOR` (purple) is never the right value post-reconnect when a destination anchor exists. The same-script path does not have this line.
+
+### BUG-02: Anchor pasted cross-script becomes a link node
+
+**Location in code:** `paste_hidden.py`, Path A/C, approximately lines 147-180
+
+**Root cause:** When a NoOp anchor is pasted cross-script, `is_anchor(node)` is true. `find_anchor_node()` returns None (FQNN belongs to a different script). The code then calls `find_anchor_by_name(display_name)`. If a same-named anchor exists in the destination, the pasted anchor node is deleted and a new link node is created pointing at the destination anchor.
+
+This is correct behavior for **link nodes** (which should reconnect). It is wrong for **anchor nodes** (which should be planted as independent anchors in the destination).
+
+**Fix:** In the cross-script block inside the `is_anchor(node)` branch, skip the `find_anchor_by_name` → create-link path. Instead: leave the pasted anchor in place, update its FQNN knob to reflect the current script stem, and continue. The pasted anchor becomes a fresh anchor in the destination.
+
+**Must preserve:** XSCRIPT-01 behavior — a NoOp *link* pasted cross-script (which satisfies `is_link(node)`, not `is_anchor(node)`) must still reconnect to a same-named anchor. `is_anchor()` and `is_link()` are mutually exclusive predicates; the fix does not touch the link path.
+
+**Risk:** MEDIUM. The change alters semantics for a cross-script paste case. The existing test for XSCRIPT-01 in `test_cross_script_paste.py` provides the regression guard.
+
+---
+
+## GitHub Actions Release Pipeline: Standard Patterns
+
+### Minimal correct workflow structure
+
+```yaml
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ZIP
+        run: |
+          mkdir -p dist
+          zip -r dist/paste_hidden-${{ github.ref_name }}.zip \
+            *.py LICENSE README.md \
+            --exclude "__pycache__/*" "*.pyc" "tests/*" ".planning/*"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/paste_hidden-*.zip
+          generate_release_notes: true
+```
+
+**Key decisions:**
+- `softprops/action-gh-release@v2` is current; `actions/create-release` is deprecated and should not be used
+- `github.ref_name` gives the tag name without additional extraction steps
+- Exclude `tests/`, `.planning/`, `__pycache__`, `.pyc` from the artist-facing ZIP
+- `generate_release_notes: true` pulls from PR titles and merged commit messages automatically
+
+### What "done" looks like for CI-01/CI-02
+
+After implementation, `git tag v1.2.0 && git push origin v1.2.0` triggers:
+1. Actions workflow activates on the tag push
+2. ZIP built containing all `.py` source files, LICENSE, README (no test/planning content)
+3. GitHub Release created at that tag with ZIP attached
+4. Release notes auto-generated from commits since last tag
+5. Artist downloads ZIP from the Releases page, drops into ~/.nuke
+
+---
+
+## Code Quality Sweep: Scope and Tooling
+
+### Most valuable at moderate scope (ordered by ROI)
+
+1. **Dead code removal** — unused functions, unreachable conditional branches, imports never referenced. Use `vulture . --min-confidence 80`. Human review required before deletion (entry points registered via `menu.py` string references are false positives).
+2. **Overly complex conditionals** — nested if/elif chains that can be flattened or extracted to named predicates. Read the code; tools do not catch this reliably.
+3. **Exception scope tightening** — bare `except Exception: pass` clauses that swallow errors silently. Either handle the specific exception or re-raise.
+4. **Redundant comments** — comments that restate what the code obviously does. Remove them; keep comments explaining *why*.
+5. **Import hygiene** — unused imports. `ruff check --select F401` catches these reliably and fast.
+
+### What to avoid at moderate scope (no API breaks constraint)
+
+- Renaming public API symbols (functions called by name in node knob PyScript callbacks, e.g. `link.reconnect_link_node`)
+- Changing function signatures (callers in `menu.py` pass positional arguments)
+- Reformatting entire files with ruff format / black (creates noisy diffs obscuring logical changes)
+- Adding type annotations (out of scope for a hardening milestone)
+
+### Tooling recommendation
+
+- `vulture .` — dead code detection; output is a review checklist, not a deletion script. Confidence: HIGH for what it finds; always human-review before removing.
+- `ruff check . --select F,E,W` — unused imports (F401), undefined names (F821), basic style violations. Fast and low-noise. No runtime dependency introduced.
+- Neither tool requires installation into the plugin itself; both are dev-only.
 
 ---
 
 ## Sources
 
-- Existing codebase: `/workspace/colors.py` — current `ColorPaletteDialog` implementation (HIGH confidence)
-- Existing codebase: `/workspace/constants.py` — `USER_PALETTE_PATH`, `LINK_SOURCE_CLASSES` (HIGH confidence)
-- Existing codebase: `/workspace/paste_hidden.py` — `copy_hidden()` Path A/B logic (HIGH confidence)
-- Existing codebase: `/workspace/PROJECT.md` — v1.1 target features and constraints (HIGH confidence)
-- [QDialog documentation — Qt for Python](https://doc.qt.io/qtforpython-6/PySide6/QtWidgets/QDialog.html) — modal dialog contract, accept/reject signals (HIGH confidence)
-- [QListWidget — Qt for Python](https://doc.qt.io/qtforpython-6/PySide6/QtWidgets/QListWidget.html) — add/remove/edit item patterns (HIGH confidence)
-- [Foundry: Custom Panels in Nuke](https://learn.foundry.com/nuke/developers/111/pythondevguide/custom_panels.html) — plugin panel patterns (MEDIUM confidence)
-- [Foundry: Preferences knob defaults (uistate.ini)](https://support.foundry.com/hc/en-us/articles/360006950439) — QSettings/uistate.ini risk (MEDIUM confidence)
-- [Houdini Qt ColorPalette](https://www.sidefx.com/docs/houdini/hom/hou/qt/ColorPalette.html) — DCC color palette UX precedent: `colorAccepted` signal on deferred accept (MEDIUM confidence)
+- [softprops/action-gh-release — GitHub](https://github.com/softprops/action-gh-release) — release action inputs and tag trigger pattern (HIGH confidence)
+- [NUKE Python Developers Guide — Command Line](https://learn.foundry.com/nuke/developers/63/pythondevguide/command_line.html) — `nuke -t` capabilities (MEDIUM confidence — older version, behavior stable)
+- [Foundry Nuke Python API Reference 14.0](https://learn.foundry.com/nuke/developers/140/pythonreference/basics.html) — `nuke.env['gui']`, node/knob API (HIGH confidence)
+- [vulture — Find dead Python code](https://github.com/jendrikseipp/vulture) — dead code detection (HIGH confidence)
+- [ruff — Python linter](https://github.com/astral-sh/ruff) — style and unused-import checks (HIGH confidence)
+- Code read directly: `/workspace/paste_hidden.py` lines 147-214, `/workspace/link.py` lines 160-174 — bug analysis (HIGH confidence, primary source)
+- Code read directly: `/workspace/tests/test_cross_script_paste.py`, `/workspace/tests/test_anchor_color_system.py` — stub pattern and test infrastructure (HIGH confidence)
 
 ---
 
-*Feature research for: paste_hidden v1.1 — preferences panel and color picker redesign*
-*Researched: 2026-03-10*
+*Feature research for: paste_hidden v1.2 Hardening milestone*
+*Researched: 2026-03-12*
