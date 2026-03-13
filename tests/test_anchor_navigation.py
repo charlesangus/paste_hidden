@@ -16,180 +16,6 @@ import unittest
 from unittest.mock import MagicMock, patch, call
 
 
-# ---------------------------------------------------------------------------
-# Stub Qt and tabtabtab modules — anchor.py imports these at module level.
-# These stubs must be installed before any local imports.
-# ---------------------------------------------------------------------------
-
-def _make_stub_qt_module(name):
-    """Return a minimal Qt sub-module stub with common attribute placeholders."""
-    stub = types.ModuleType(name)
-    stub.Qt = MagicMock()
-    stub.QtCore = MagicMock()
-    stub.QtGui = MagicMock()
-    stub.QtWidgets = MagicMock()
-    return stub
-
-
-_pyside6_stub = _make_stub_qt_module('PySide6')
-_pyside6_stub.QtCore = MagicMock()
-_pyside6_stub.QtGui = MagicMock()
-_pyside6_stub.QtWidgets = MagicMock()
-_pyside6_stub.QtCore.Qt = MagicMock()
-sys.modules['PySide6'] = _pyside6_stub
-sys.modules['PySide6.QtCore'] = _pyside6_stub.QtCore
-sys.modules['PySide6.QtGui'] = _pyside6_stub.QtGui
-sys.modules['PySide6.QtWidgets'] = _pyside6_stub.QtWidgets
-
-_tabtabtab_stub = types.ModuleType('tabtabtab')
-_tabtabtab_stub.TabTabTabPlugin = MagicMock
-_tabtabtab_stub.TabTabTabWidget = MagicMock
-sys.modules['tabtabtab'] = _tabtabtab_stub
-
-
-# ---------------------------------------------------------------------------
-# Stub colors module before importing anchor so 'from colors import ...' works
-# ---------------------------------------------------------------------------
-
-_colors_stub = types.ModuleType('colors')
-_colors_stub.ColorPaletteDialog = None
-sys.modules['colors'] = _colors_stub
-
-
-# ---------------------------------------------------------------------------
-# Stub nuke and nukescripts modules
-# ---------------------------------------------------------------------------
-
-def make_stub_nuke_module():
-    """Create a minimal nuke stub for offline testing.
-
-    Includes all knob machinery from test_anchor_color_system.py plus
-    the DAG viewport methods needed for Phase 4 navigation:
-      - stub.zoom: MagicMock returning 1.0 (current zoom float)
-      - stub.center: MagicMock returning [0.0, 0.0] (current [x, y] list)
-      - stub.exists: MagicMock returning True
-      - stub.zoomToFitSelected: MagicMock
-      - stub.allNodes: MagicMock returning [] by default
-    """
-    stub = types.ModuleType('nuke')
-
-    class StubKnob:
-        def __init__(self, value=''):
-            self._value = value
-
-        def getText(self):
-            return str(self._value)
-
-        def setValue(self, value):
-            self._value = value
-
-        def getValue(self):
-            return self._value
-
-        def value(self):
-            return self._value
-
-    class StubNode:
-        def __init__(self, name='Node', node_class='NoOp', xpos=0, ypos=0, knobs_dict=None):
-            self._name = name
-            self._class = node_class
-            self._xpos = xpos
-            self._ypos = ypos
-            self._knobs = knobs_dict or {}
-            self._input = None
-            self._selected = False
-
-        def name(self):
-            return self._name
-
-        def fullName(self):
-            return self._name
-
-        def Class(self):
-            return self._class
-
-        def xpos(self):
-            return self._xpos
-
-        def ypos(self):
-            return self._ypos
-
-        def screenWidth(self):
-            return 100
-
-        def screenHeight(self):
-            return 50
-
-        def knobs(self):
-            return self._knobs
-
-        def input(self, index):
-            return self._input
-
-        def setInput(self, index, node):
-            self._input = node
-
-        def setXYpos(self, x, y):
-            self._xpos = x
-            self._ypos = y
-
-        def setName(self, name):
-            self._name = name
-
-        def addKnob(self, knob):
-            self._knobs[knob.name()] = knob
-
-        def __getitem__(self, knob_name):
-            if knob_name not in self._knobs:
-                raise KeyError(knob_name)
-            return self._knobs[knob_name]
-
-        def __setitem__(self, knob_name, value):
-            self._knobs[knob_name] = value
-
-    stub.StubNode = StubNode
-    stub.StubKnob = StubKnob
-
-    root_obj = MagicMock()
-    root_obj.name.return_value = 'destScript.nk'
-    stub.root = MagicMock(return_value=root_obj)
-
-    stub.allNodes = MagicMock(return_value=[])
-    stub.toNode = MagicMock(return_value=None)
-    stub.createNode = MagicMock()
-    stub.selectedNodes = MagicMock(return_value=[])
-    stub.nodeCopy = MagicMock()
-    stub.nodePaste = MagicMock(return_value=None)
-    stub.exists = MagicMock(return_value=True)
-    stub.delete = MagicMock()
-    stub.INVISIBLE = 0
-    stub.NUKE_VERSION_MAJOR = 16  # triggers PySide6 import path in anchor.py
-    stub.PyScript_Knob = MagicMock(side_effect=lambda knob_name, label, script: _make_pyscript_knob(knob_name, label, script))
-
-    # Phase 4 DAG viewport methods
-    stub.zoom = MagicMock(return_value=1.0)
-    stub.center = MagicMock(return_value=[0.0, 0.0])
-    stub.zoomToFitSelected = MagicMock()
-
-    return stub
-
-
-def _make_pyscript_knob(knob_name, label, script):
-    """Return a minimal PyScript_Knob stand-in that supports .name()."""
-    knob = MagicMock()
-    knob.name.return_value = knob_name
-    knob._knob_name = knob_name
-    return knob
-
-
-_nuke_stub = make_stub_nuke_module()
-sys.modules['nuke'] = _nuke_stub
-
-_nukescripts_stub = types.ModuleType('nukescripts')
-_nukescripts_stub.cut_paste_file = lambda: '/tmp/nuke_stub_clipboard.nk'
-_nukescripts_stub.clear_selection_recursive = MagicMock()
-sys.modules['nukescripts'] = _nukescripts_stub
-
 
 # ---------------------------------------------------------------------------
 # Now import anchor — functions referenced by Phase 4 tests do not exist yet.
@@ -550,7 +376,7 @@ class TestPickerLaunchGuard(unittest.TestCase):
         anchor._anchor_navigate_widget = None
 
         widget_mock = MagicMock()
-        with patch.object(_tabtabtab_stub, 'TabTabTabWidget', return_value=widget_mock) as mock_widget_cls:
+        with patch.object(sys.modules['tabtabtab'], 'TabTabTabWidget', return_value=widget_mock) as mock_widget_cls:
             anchor.select_anchor_and_navigate()
             mock_widget_cls.assert_called_once()
 
@@ -564,7 +390,7 @@ class TestPickerLaunchGuard(unittest.TestCase):
 
         anchor._anchor_navigate_widget = None
 
-        with patch.object(_tabtabtab_stub, 'TabTabTabWidget') as mock_widget_cls:
+        with patch.object(sys.modules['tabtabtab'], 'TabTabTabWidget') as mock_widget_cls:
             anchor.select_anchor_and_navigate()
             mock_widget_cls.assert_not_called()
 

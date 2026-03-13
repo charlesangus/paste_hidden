@@ -16,11 +16,19 @@ from unittest.mock import MagicMock
 
 
 class StubKnob:
-    """Minimal superset knob stub covering all five per-file StubKnob variants."""
+    """Minimal superset knob stub covering all five per-file StubKnob variants.
 
-    def __init__(self, value=''):
+    The knob_name parameter supports node.addKnob() lookups via knob.name().
+    It defaults to '' so that existing StubKnob(value) calls remain unchanged.
+    """
+
+    def __init__(self, value='', knob_name=''):
         self._value = value
         self._visible = True
+        self._knob_name = knob_name
+
+    def name(self):
+        return self._knob_name
 
     def getText(self):
         return str(self._value)
@@ -135,9 +143,9 @@ def make_stub_nuke_module():
     stub.INVISIBLE = 0
     stub.NUKE_VERSION_MAJOR = 16  # critical: forces PySide6 path in anchor.py; do NOT use 14
     stub.PyScript_Knob = MagicMock()
-    stub.String_Knob = MagicMock(side_effect=lambda name, *args: StubKnob())
-    stub.Tab_Knob = MagicMock(side_effect=lambda name, *args: StubKnob())
-    stub.Boolean_Knob = MagicMock(side_effect=lambda name, *args: StubKnob())
+    stub.String_Knob = MagicMock(side_effect=lambda name, *args: StubKnob(knob_name=name))
+    stub.Tab_Knob = MagicMock(side_effect=lambda name, *args: StubKnob(knob_name=name))
+    stub.Boolean_Knob = MagicMock(side_effect=lambda name, *args: StubKnob(knob_name=name))
     stub.zoom = MagicMock(return_value=1.0)
     stub.center = MagicMock(return_value=[0.0, 0.0])
     stub.zoomToFitSelected = MagicMock()
