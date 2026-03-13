@@ -17,18 +17,18 @@ created: 2026-03-13
 
 | Property | Value |
 |----------|-------|
-| **Framework** | pytest |
-| **Config file** | `pyproject.toml` (Wave 0 configures ruff; pytest config already present) |
-| **Quick run command** | `pytest tests/ -q` |
-| **Full suite command** | `pytest tests/` |
+| **Framework** | unittest (stdlib) — pytest is NOT installed |
+| **Config file** | `pyproject.toml` (Wave 0 configures ruff; unittest needs no config) |
+| **Quick run command** | `python3 -m unittest discover -s tests/ -t . -p "test_*.py"` |
+| **Full suite command** | `python3 -m unittest discover -s tests/ -t . -p "test_*.py"` |
 | **Estimated runtime** | ~5 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pytest tests/ -q`
-- **After every plan wave:** Run `pytest tests/`
+- **After every task commit:** Run `python3 -m unittest discover -s tests/ -t . -p "test_*.py" -q`
+- **After every plan wave:** Run `python3 -m unittest discover -s tests/ -t . -p "test_*.py"`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 10 seconds
 
@@ -38,10 +38,8 @@ created: 2026-03-13
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 10-01-01 | 01 | 0 | QUAL-01 | lint | `/home/latuser/.local/share/nvim/mason/bin/ruff check --select E,F,W,B,C90,I,SIM .` | ✅ | ⬜ pending |
-| 10-01-02 | 01 | 1 | QUAL-01 | lint+unit | `ruff check . && pytest tests/ -q` | ✅ | ⬜ pending |
-| 10-01-03 | 01 | 1 | QUAL-01 | lint+unit | `ruff check . && pytest tests/ -q` | ✅ | ⬜ pending |
-| 10-01-04 | 01 | 1 | QUAL-01 | lint+unit | `ruff check . && pytest tests/ -q` | ✅ | ⬜ pending |
+| 10-01-01 | 01 | 1 | QUAL-01 | lint | `/home/latuser/.local/share/nvim/mason/bin/ruff check /workspace/ 2>&1 \| tail -5` | ✅ | ⬜ pending |
+| 10-01-02 | 01 | 1 | QUAL-01 | lint+unit | `/home/latuser/.local/share/nvim/mason/bin/ruff check /workspace/ --select I && python3 -m unittest discover -s tests/ -t . -p "test_*.py" 2>&1 \| tail -3` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,9 +47,9 @@ created: 2026-03-13
 
 ## Wave 0 Requirements
 
-- [ ] `pyproject.toml` — add `[tool.ruff]` with `line-length = 100`, `select = ["E","F","W","B","C90","I","SIM"]`, and `per-file-ignores` for `tabtabtab.py`
+- [ ] `pyproject.toml` — add `[tool.ruff]` with `line-length = 100`, `select = ["E","F","W","B","C90","I","SIM"]`, and `per-file-ignores` for `menu.py` (F401) and `tabtabtab.py` (B008, C901, SIM, E501)
 
-*Wave 0 is a config-only task; no test stubs needed — existing pytest infrastructure covers all behavioral verification.*
+*Wave 0 is a config-only task; no test stubs needed — existing unittest infrastructure covers all behavioral verification.*
 
 ---
 
