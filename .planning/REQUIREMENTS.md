@@ -23,7 +23,7 @@
 
 - [ ] **TEST-01**: `nuke -t` validation scripts written covering StubNode/StubKnob assumptions and cross-script paste behavior
 - [ ] **TEST-02**: Any stub/mock inconsistencies found by validation scripts corrected in `tests/`
-- [ ] **TEST-03**: `tests/conftest.py` created with shared stubs — fixes pytest flat-discovery Qt stub ordering conflicts (4–8 spurious errors)
+- [x] **TEST-03**: `tests/conftest.py` created with shared stubs — fixes pytest flat-discovery Qt stub ordering conflicts (4–8 spurious errors)
 
 ## Future Requirements
 
@@ -50,7 +50,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-03 | Phase 8 | Pending |
+| TEST-03 | Phase 8 | Complete (2026-03-13) |
 | BUG-01 | Phase 9 | Pending |
 | BUG-02 | Phase 9 | Pending |
 | QUAL-01 | Phase 10 | Pending |
@@ -66,4 +66,4 @@
 
 ---
 *Requirements defined: 2026-03-12*
-*Last updated: 2026-03-12 — traceability confirmed after roadmap creation*
+*Last updated: 2026-03-13 — TEST-03 marked complete (Phase 8 Plan 01)*

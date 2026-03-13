@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Hardening
-status: roadmap_complete
-stopped_at: Phase 8 not started
-last_updated: "2026-03-12T00:00:00.000Z"
-last_activity: 2026-03-12 — v1.2 roadmap created (5 phases, 8 requirements)
+status: in_progress
+stopped_at: "Completed 08-01-PLAN.md"
+last_updated: "2026-03-13T06:40:40Z"
+last_activity: 2026-03-13 — Phase 8 Plan 01 complete (test infrastructure stabilization)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 1
+  completed_plans: 1
+  percent: 4
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 
 ## Current Position
 
-Phase: 8 (Test Infrastructure Stabilization) — Not started
-Plan: —
-Status: Roadmap complete, ready to plan Phase 8
-Last activity: 2026-03-12 — v1.2 roadmap created
+Phase: 8 (Test Infrastructure Stabilization) — In progress
+Plan: 1 of 1 complete
+Status: Phase 8 plan 01 complete; phase complete pending any additional plans
+Last activity: 2026-03-13 — Phase 8 Plan 01 executed (centralized stub infrastructure)
 
 ```
-v1.2 Progress: [----------] 0% (0/5 phases)
+v1.2 Progress: [#---------] 4% (1/1 plans complete in Phase 8)
 ```
 
 ## Performance Metrics
@@ -40,13 +40,19 @@ v1.2 Progress: [----------] 0% (0/5 phases)
 |--------|-------|
 | Phases defined | 5 (Phases 8-12) |
 | Requirements mapped | 8/8 |
-| Plans complete | 0 |
+| Plans complete | 1 |
+| Phase 8 plan 01 duration | 7 min |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions logged in PROJECT.md Key Decisions table.
+
+**Phase 8 Plan 01 decisions:**
+- StubKnob.name() method added; factory functions pass knob name to StubKnob so addKnob() stores correctly by name
+- unittest discover requires -t . flag (workspace as top-level dir) to trigger tests/__init__.py; this is the correct usage for package-structured test suites
+- conftest.py uses MagicMock (not types.ModuleType) for PySide6 sub-modules so attribute access auto-creates (required for colors.py subclassing QtWidgets.QDialog)
 
 **v1.2 phase ordering rationale:**
 - Phase 8 first: flat-discovery test suite has 4-8 spurious errors; unreliable suite cannot gate regressions
@@ -60,11 +66,13 @@ None.
 
 ### Blockers/Concerns
 
-- Test suite flat-discovery has Qt stub ordering conflicts (4-8 errors) — this is Phase 8's target.
+- Test suite flat-discovery Qt stub ordering conflicts RESOLVED (Phase 8 Plan 01 complete; was 5 errors, now 0).
+- Note: full suite requires `python3 -m unittest discover -s tests/ -t . -p "test_*.py"` (with -t . flag) for tests/__init__.py to trigger. Without -t ., stubs are not pre-installed.
 - nuke -t validation (Phase 12) is MEDIUM confidence on license type (nuke_r vs nuke_i) and `nuke.root().name()` default in headless — spot validation against local Nuke install required before writing final scripts.
 
 ## Session Continuity
 
-To resume: start with `/gsd:plan-phase 8`
+Last session: 2026-03-13 — Phase 8 Plan 01 complete
+To resume: Phase 8 has 1 plan (08-01 complete). Phase 8 is complete. Run `/gsd:plan-phase 9` to continue.
 
-Phase 8 entry point: `tests/conftest.py` creation to fix flat-discovery Qt stub ordering conflicts (TEST-03). Root cause confirmed — per-file stub installation in individual test files conflicts under flat discovery. Fix: shared authoritative stubs in conftest.py.
+Phase 8 completed: centralized stub infrastructure in tests/stubs.py + conftest.py. Full suite passes: 130 tests, 0 errors.

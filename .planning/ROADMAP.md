@@ -35,7 +35,7 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 
 **Milestone Goal:** Fix cross-script paste regressions, stabilize test infrastructure, sweep code quality, and add CI/CD packaging pipeline.
 
-- [ ] **Phase 8: Test Infrastructure Stabilization** - Fix flat-discovery Qt stub ordering conflicts so the test suite is a reliable feedback mechanism
+- [x] **Phase 8: Test Infrastructure Stabilization** - Fix flat-discovery Qt stub ordering conflicts so the test suite is a reliable feedback mechanism
 - [ ] **Phase 9: Cross-Script Paste Bug Fixes** - Fix BUG-01 and BUG-02 in paste_hidden.py with regression tests
 - [ ] **Phase 10: Code Quality Sweep** - Dead code removal, unused import cleanup, complex conditional simplification
 - [ ] **Phase 11: CI/CD Pipeline** - Tag-triggered GitHub Actions workflow: offline tests, versioned ZIP, GitHub Release
@@ -55,7 +55,7 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md — Create tests/stubs.py + tests/conftest.py, strip per-file stub blocks from 5 test files
+- [x] 08-01-PLAN.md — Create tests/stubs.py + tests/conftest.py, strip per-file stub blocks from 5 test files
 
 ### Phase 9: Cross-Script Paste Bug Fixes
 **Goal**: Anchors pasted cross-script stay anchors, and NoOp links pasted cross-script receive the correct anchor tile_color — both with regression test coverage that guards the subsequent quality sweep
@@ -112,7 +112,7 @@ Plans:
 | 5. DOT_TYPE Distinction | v1.0 | 3/3 | Complete | 2026-03-05 |
 | 6. Preferences Infrastructure | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 7. Color Picker Redesign and Preferences Panel | v1.1 | 3/3 | Complete | 2026-03-12 |
-| 8. Test Infrastructure Stabilization | v1.2 | 0/1 | Not started | - |
+| 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
 | 9. Cross-Script Paste Bug Fixes | v1.2 | 0/? | Not started | - |
 | 10. Code Quality Sweep | v1.2 | 0/? | Not started | - |
 | 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
