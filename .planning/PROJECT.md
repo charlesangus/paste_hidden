@@ -1,5 +1,17 @@
 # paste_hidden
 
+## Current Milestone: v1.2 Hardening
+
+**Goal:** Fix cross-script paste regressions, add GitHub Actions CI/CD packaging pipeline, sweep code for moderate-scope quality improvements, and validate test suite stubs against real Nuke behavior.
+
+**Target features:**
+- GitHub Actions CI/CD: tag-triggered ZIP packaging + GitHub Release creation
+- Bug fix: NoOp links pasted cross-script get wrong color (default purple instead of anchor color)
+- Bug fix: Anchor pasted cross-script creates a link instead of a new anchor (regression)
+- Moderate code quality sweep: simplify over-complex logic, remove dead code (no API breaks)
+- nuke -t validation: confirm stub behavior matches real Nuke; fix any mock inconsistencies
+- Fix test suite flat-discovery Qt stub ordering conflicts
+
 ## What This Is
 
 `paste_hidden` is a Foundry Nuke plugin that replaces Nuke's native clipboard system with one that intelligently handles hidden inputs, and adds a named anchor/link reference system for navigating and reusing node graph connections. It is used by a single VFX artist to manage complex compositing node graphs.
@@ -46,6 +58,15 @@ Copy and paste must reconnect predictably — anchors provide stable, navigable 
 - ✓ Click-to-select ColorPaletteDialog: swatch highlight without closing, OK/Enter confirms, groups ordered custom→backdrop→defaults, initial color pre-highlighted — v1.1
 
 ### Active
+
+- [ ] GitHub Actions CI/CD: tag-triggered ZIP packaging + GitHub Release (CI-01, CI-02)
+- [ ] NoOp links pasted cross-script receive anchor tile_color, not default purple (BUG-01)
+- [ ] Anchor pasted cross-script creates a new anchor, not a link (BUG-02)
+- [ ] Moderate code quality sweep: simplify, remove dead code (QUAL-01)
+- [ ] nuke -t validation scripts confirm stub behavior; inconsistencies corrected (TEST-01, TEST-02)
+- [ ] Test suite flat-discovery Qt stub ordering conflicts resolved (TEST-03)
+
+### Future
 
 - [ ] Full browser-style forward/back navigation history stack (NAV-03, promoted from v2 if prioritized)
 - [ ] Manual tile_color changes by user propagate to links (COLOR-V2-01 — currently by-design out of scope)
@@ -99,4 +120,4 @@ Known issue: Test suite flat-discovery (`python3 -m unittest discover`) has Qt s
 | Working-copy pattern in PrefsDialog: seed locals at open, flush to module vars only on OK | Cancel leaves prefs unchanged; no accidental writes | ✓ Good |
 
 ---
-*Last updated: 2026-03-12 after v1.1 milestone*
+*Last updated: 2026-03-12 after v1.2 milestone start*
