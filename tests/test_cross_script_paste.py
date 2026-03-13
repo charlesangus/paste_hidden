@@ -211,5 +211,150 @@ class TestCrossScriptReconnect(unittest.TestCase):
             mock_nuke.delete.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# Regression tests for BUG-01 and BUG-02 — both tests FAIL before any fix
+# ---------------------------------------------------------------------------
+
+class TestBugRegressions(unittest.TestCase):
+    """Regression tests for cross-script paste bugs.
+
+    Both tests are written to FAIL against the current (unfixed) code.
+    They exercise the exact buggy code paths identified in the research phase.
+    All pre-existing tests must remain green after this class is added.
+    """
+
+    def _make_link_dot_node(self, stored_fqnn):
+        """Return a stub Dot node configured as a cross-script Link Dot."""
+        import nuke as _nuke
+        from constants import KNOB_NAME, DOT_TYPE_KNOB_NAME
+        return _nuke.StubNode(
+            name='Dot1',
+            node_class='Dot',
+            knobs_dict={
+                KNOB_NAME: _nuke.StubKnob(stored_fqnn),
+                DOT_TYPE_KNOB_NAME: _nuke.StubKnob('link'),
+                'selected': _nuke.StubKnob(False),
+                'hide_input': _nuke.StubKnob(True),
+                'tile_color': _nuke.StubKnob(0),
+                'label': _nuke.StubKnob(''),
+                'note_font_size': _nuke.StubKnob(0),
+            },
+        )
+
+    def _make_noop_anchor_node_for_bug02(self, stored_fqnn, xpos=100, ypos=200):
+        """Return a stub NoOp anchor node with a cross-script FQNN for BUG-02."""
+        import nuke as _nuke
+        from constants import KNOB_NAME, ANCHOR_PREFIX
+        return _nuke.StubNode(
+            name=ANCHOR_PREFIX + 'MyFootage',
+            node_class='NoOp',
+            xpos=xpos,
+            ypos=ypos,
+            knobs_dict={
+                KNOB_NAME: _nuke.StubKnob(stored_fqnn),
+                'selected': _nuke.StubKnob(False),
+            },
+        )
+
+    def test_bug01_link_dot_cross_script_color(self):
+        """BUG-01 regression: a Link Dot pasted cross-script must display the
+        anchor's tile_color, not ANCHOR_DEFAULT_COLOR (purple 0x6f3399ff).
+
+        This test FAILS before the fix because paste_hidden() line 212 calls
+        node['tile_color'].setValue(ANCHOR_DEFAULT_COLOR) after setup_link_node()
+        has already set the correct anchor color.
+        """
+        import nuke as _nuke
+        from constants import ANCHOR_DEFAULT_COLOR
+        from tests.stubs import make_stub_nuke_module
+
+        anchor_color = 0xff0000ff  # red — distinct from purple ANCHOR_DEFAULT_COLOR
+        cross_script_fqnn = 'sourceScript.Anchor_MyFootage'
+
+        link_dot_node = self._make_link_dot_node(stored_fqnn=cross_script_fqnn)
+
+        destination_anchor = _nuke.StubNode(
+            name='Anchor_MyFootage',
+            node_class='NoOp',
+            knobs_dict={
+                'tile_color': _nuke.StubKnob(anchor_color),
+                'label': _nuke.StubKnob(''),
+                'hide_input': _nuke.StubKnob(False),
+            },
+        )
+
+        stub_nuke_for_link = make_stub_nuke_module()
+
+        with patch('paste_hidden.nuke') as mock_paste_nuke, \
+             patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.find_anchor_node', return_value=None), \
+             patch('paste_hidden.find_anchor_by_name', return_value=destination_anchor), \
+             patch('link.find_node_color', return_value=anchor_color), \
+             patch('link.nuke', stub_nuke_for_link):
+
+            mock_paste_nuke.root.return_value.name.return_value = 'destScript.nk'
+            mock_paste_nuke.nodePaste.return_value = None
+            mock_paste_nuke.selectedNodes.return_value = [link_dot_node]
+
+            from paste_hidden import paste_hidden
+            paste_hidden()
+
+        result_color = link_dot_node['tile_color'].getValue()
+        self.assertEqual(
+            result_color,
+            anchor_color,
+            f"Expected tile_color {hex(anchor_color)} (anchor color) but got "
+            f"{hex(result_color)} — BUG-01: line 212 is overwriting with ANCHOR_DEFAULT_COLOR "
+            f"{hex(ANCHOR_DEFAULT_COLOR)}",
+        )
+
+    def test_bug02_anchor_stays_anchor_cross_script(self):
+        """BUG-02 regression: a NoOp anchor pasted cross-script must remain an
+        anchor node — it must NOT be deleted and replaced by a link node, even
+        when a same-named anchor exists in the destination script.
+
+        This test FAILS before the fix because paste_hidden() lines 162-171 call
+        nuke.createNode() and nuke.delete() to replace the anchor placeholder.
+        """
+        import nuke as _nuke
+        from constants import KNOB_NAME
+
+        cross_script_fqnn = 'sourceScript.Anchor_MyFootage'
+        pasted_anchor_node = self._make_noop_anchor_node_for_bug02(
+            stored_fqnn=cross_script_fqnn,
+        )
+
+        destination_anchor = _nuke.StubNode(
+            name='Anchor_MyFootage',
+            node_class='NoOp',
+            knobs_dict={
+                'tile_color': _nuke.StubKnob(0),
+                'label': _nuke.StubKnob(''),
+                'hide_input': _nuke.StubKnob(False),
+            },
+        )
+
+        def is_anchor_side_effect(node):
+            """Return True only for the pasted anchor node, False for anything else."""
+            return node is pasted_anchor_node
+
+        with patch('paste_hidden.nuke') as mock_nuke, \
+             patch('paste_hidden.nukescripts') as mock_nukescripts, \
+             patch('paste_hidden.find_anchor_node', return_value=None), \
+             patch('paste_hidden.find_anchor_by_name', return_value=destination_anchor), \
+             patch('paste_hidden.setup_link_node'), \
+             patch('paste_hidden.is_anchor', side_effect=is_anchor_side_effect):
+
+            mock_nuke.root.return_value.name.return_value = 'destScript.nk'
+            mock_nuke.nodePaste.return_value = None
+            mock_nuke.selectedNodes.return_value = [pasted_anchor_node]
+
+            from paste_hidden import paste_hidden
+            paste_hidden()
+
+        mock_nuke.createNode.assert_not_called()
+        mock_nuke.delete.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()
