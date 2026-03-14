@@ -97,7 +97,10 @@ Plans:
   2. The GitHub Release contains a ZIP artifact with only the plugin source files (no `tests/`, `validation/`, `.planning/`, `__pycache__`)
   3. The workflow runs offline tests (`pytest tests/`) and fails the release if tests fail
   4. A locally unzipped copy of the release artifact contains exactly the expected files and no extras
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 11-01-PLAN.md — Create .github/workflows/release.yml — tag-triggered test gate, ZIP packaging, GitHub Release publication
 
 ### Phase 12: Nuke -t Validation Scripts
 **Goal**: A developer running the validation scripts against a local licensed Nuke install can confirm that StubNode/StubKnob assumptions in `tests/` match real Nuke API behavior, and that the BUG-01 and BUG-02 fixed code paths work correctly under a real runtime
@@ -124,5 +127,5 @@ Plans:
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
 | 9. Cross-Script Paste Bug Fixes | 2/2 | Complete   | 2026-03-13 | - |
 | 10. Code Quality Sweep | 3/3 | Complete    | 2026-03-13 | - |
-| 11. CI/CD Pipeline | v1.2 | 0/? | Not started | - |
+| 11. CI/CD Pipeline | v1.2 | 0/1 | Not started | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
