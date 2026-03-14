@@ -11,11 +11,14 @@ Covers:
 
 import json
 import os
+from pathlib import Path
 import sys
 import tempfile
 import types
 import unittest
 from unittest.mock import MagicMock, patch, call
+
+_REPO_ROOT = Path(__file__).parent.parent
 
 
 # ---------------------------------------------------------------------------
@@ -34,7 +37,7 @@ sys.modules['colors'] = _colors_stub
 # Qt guard falling back to None.
 # ---------------------------------------------------------------------------
 import importlib
-# Remove the placeholder so importlib loads the real file from /workspace/colors.py
+# Remove the placeholder so importlib loads the real file from the repo root
 del sys.modules['colors']
 import colors as _real_colors_module
 sys.modules['colors'] = _real_colors_module
@@ -444,7 +447,7 @@ def _extract_method_from_source(method_name):
     The extracted function runs in a namespace that includes the real module-level
     helpers from colors.py (e.g. _color_int_to_rgb) and the nuke stub.
     """
-    with open('/workspace/colors.py', 'r') as source_file:
+    with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
         source_text = source_file.read()
     tree = ast.parse(source_text)
     for node in ast.walk(tree):
@@ -767,7 +770,7 @@ def _extract_prefs_dialog_method_from_source(method_name):
     Returns the compiled function object, or None if method not found.
     Mirrors _extract_method_from_source but targets the PrefsDialog class.
     """
-    with open('/workspace/colors.py', 'r') as source_file:
+    with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
         source_text = source_file.read()
     tree = ast.parse(source_text)
     for node in ast.walk(tree):
@@ -805,7 +808,7 @@ class TestPrefsDialogButtonsCreatedBeforePopulate(unittest.TestCase):
         the test will catch the AttributeError.
         """
         method_source_lines = []
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
         for node in ast.walk(tree):
@@ -830,7 +833,7 @@ class TestPrefsDialogButtonsCreatedBeforePopulate(unittest.TestCase):
         for self._edit_button appears at a lower line number than the Call to
         self._populate_swatch_grid.
         """
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -883,7 +886,7 @@ class TestColorPaletteDialogGroupLabels(unittest.TestCase):
 
     def test_build_ui_source_adds_group_labels_via_qlabel(self):
         """_build_ui must use QLabel for group section headers in the swatch grid."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -912,7 +915,7 @@ class TestColorPaletteDialogGroupLabels(unittest.TestCase):
 
     def test_group_label_texts_in_source(self):
         """_build_ui source must include 'Custom Colors', 'Backdrop Colors', and 'Nuke Defaults' labels."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         self.assertIn("Custom Colors", source_text,
                       "colors.py must define a 'Custom Colors' group label")
@@ -1005,7 +1008,7 @@ class TestPrefsDialogImportMenuModulePath(unittest.TestCase):
 
     def test_on_accept_source_uses_getattr_prefs_module_pattern(self):
         """_on_accept must use getattr(prefs_module, 'set_anchors_menu_enabled', None) pattern."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1049,7 +1052,7 @@ class TestPrefsDialogHighlightColorMethod(unittest.TestCase):
 
     def test_prefs_dialog_has_highlight_color_name_method(self):
         """PrefsDialog must define _highlight_color_name() method."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1069,7 +1072,7 @@ class TestPrefsDialogHighlightColorMethod(unittest.TestCase):
 
     def test_on_swatch_selected_uses_highlight_color_name(self):
         """_on_swatch_selected must call _highlight_color_name() for the selection border."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1128,7 +1131,7 @@ class TestMenuExecNotDeprecated(unittest.TestCase):
 
     def test_preferences_menu_command_uses_exec_not_exec_underscore(self):
         """The Preferences... menu command string must call dlg.exec() not dlg.exec_()."""
-        with open('/workspace/menu.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'menu.py', 'r') as source_file:
             source_text = source_file.read()
 
         self.assertIn('dlg.exec()', source_text,
@@ -1145,7 +1148,7 @@ class TestPrefsDialogButtonsHaveAutoDefaultFalse(unittest.TestCase):
 
     def test_build_ui_does_not_use_qdialogbuttonbox(self):
         """PrefsDialog._build_ui must not use QDialogButtonBox — use separate QPushButton widgets."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1170,7 +1173,7 @@ class TestPrefsDialogButtonsHaveAutoDefaultFalse(unittest.TestCase):
 
     def test_build_ui_ok_button_has_auto_default_false(self):
         """PrefsDialog OK button must have setAutoDefault(False)."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1207,7 +1210,7 @@ class TestPrefsDialogSwatchTabFocusPolicy(unittest.TestCase):
 
     def test_populate_swatch_grid_sets_strong_focus_not_no_focus(self):
         """_populate_swatch_grid must set Qt.StrongFocus on swatch buttons, not Qt.NoFocus."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1249,7 +1252,7 @@ class TestMenuCallbackStoredOnPrefsModule(unittest.TestCase):
 
     def test_menu_py_source_stores_function_on_prefs_module(self):
         """menu.py source must assign set_anchors_menu_enabled onto the prefs module object."""
-        with open('/workspace/menu.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'menu.py', 'r') as source_file:
             source_text = source_file.read()
 
         self.assertIn('prefs.set_anchors_menu_enabled = set_anchors_menu_enabled', source_text,
@@ -1258,7 +1261,7 @@ class TestMenuCallbackStoredOnPrefsModule(unittest.TestCase):
 
     def test_on_accept_uses_getattr_not_import(self):
         """_on_accept must use getattr(prefs_module, 'set_anchors_menu_enabled', None) not an import."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1339,7 +1342,7 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
 
     def test_init_source_sets_original_custom_colors(self):
         """PrefsDialog.__init__ must assign self._original_custom_colors."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1360,7 +1363,7 @@ class TestPrefsDialogOriginalCustomColorsSnapshot(unittest.TestCase):
 
     def test_recolor_helper_exists_in_prefs_dialog(self):
         """PrefsDialog must define _recolor_anchors_for_changed_custom_colors method."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1494,7 +1497,7 @@ class TestRecolorUsesAllAnchors(unittest.TestCase):
 
     def test_recolor_source_uses_all_anchors_not_allnodes(self):
         """_recolor_anchors_for_changed_custom_colors source must call all_anchors(), not nuke.allNodes()."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1523,7 +1526,7 @@ class TestRecolorUsesAllAnchors(unittest.TestCase):
 
     def test_recolor_does_not_call_nuke_allnodes_directly(self):
         """_recolor_anchors_for_changed_custom_colors source must not call nuke.allNodes()."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1556,7 +1559,7 @@ class TestHintModeKeyAssignment(unittest.TestCase):
 
     def _get_column_and_row_key_values(self):
         """Read _COLUMN_KEYS and _ROW_KEYS values from colors.py source."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         column_keys_value = None
         row_keys_value = None
@@ -1605,7 +1608,7 @@ class TestHintModeKeyAssignment(unittest.TestCase):
         The display format is row_label + col_label, e.g. "a1", "a2", "b1".
         This matches the letter-first, number-second navigation order.
         """
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
 
         # Extract _update_hint_overlays from ColorPaletteDialog
@@ -1653,7 +1656,7 @@ class TestPrefsDialogTabEventFilter(unittest.TestCase):
 
     def _has_prefs_dialog_method(self, method_name):
         """Return True if PrefsDialog in colors.py defines the given method."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
         for node in ast.walk(tree):
@@ -1665,7 +1668,7 @@ class TestPrefsDialogTabEventFilter(unittest.TestCase):
 
     def _get_method_source(self, method_name):
         """Return the source text of a PrefsDialog method, or None if not found."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
         for node in ast.walk(tree):
@@ -1805,7 +1808,7 @@ class TestPrefsDialogButtonOrderCancelLeft(unittest.TestCase):
 
     def test_cancel_button_added_before_ok_in_layout(self):
         """In PrefsDialog._build_ui, addWidget(_cancel_button) must appear before addWidget(_ok_button)."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
         tree = ast.parse(source_text)
 
@@ -1868,7 +1871,7 @@ class TestColorPaletteDialogButtonLayout(unittest.TestCase):
 
     def test_build_ui_uses_qhboxlayout_for_ok_cancel(self):
         """ColorPaletteDialog._build_ui must create a QHBoxLayout for the OK/Cancel row."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
 
         build_ui_node = self._get_build_ui_node(source_text)
@@ -1889,7 +1892,7 @@ class TestColorPaletteDialogButtonLayout(unittest.TestCase):
 
     def test_build_ui_uses_addlayout_not_addwidget_for_ok_cancel_row(self):
         """ColorPaletteDialog._build_ui must add the OK/Cancel row via addLayout, not two addWidget calls."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
 
         build_ui_node = self._get_build_ui_node(source_text)
@@ -1906,7 +1909,7 @@ class TestColorPaletteDialogButtonLayout(unittest.TestCase):
 
     def test_ok_button_added_to_hbox_before_cancel(self):
         """In ColorPaletteDialog._build_ui, ok_button must be added to the HBox before cancel_button."""
-        with open('/workspace/colors.py', 'r') as source_file:
+        with open(_REPO_ROOT / 'colors.py', 'r') as source_file:
             source_text = source_file.read()
 
         build_ui_node = self._get_build_ui_node(source_text)
