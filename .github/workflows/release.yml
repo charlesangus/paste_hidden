@@ -32,6 +32,7 @@ jobs:
           mkdir paste_hidden
           cp anchor.py colors.py constants.py labels.py link.py \
              menu.py paste_hidden.py prefs.py tabtabtab.py util.py \
+             README.md LICENSE \
              paste_hidden/
           zip -r "paste_hidden-${GITHUB_REF_NAME}.zip" paste_hidden/
 
