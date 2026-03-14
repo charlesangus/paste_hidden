@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Hardening
 status: completed
-last_updated: "2026-03-14T12:50:43.195Z"
+last_updated: "2026-03-14T13:10:11.042Z"
 last_activity: 2026-03-13 — Phase 8 Plan 01 executed (centralized stub infrastructure)
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -45,6 +45,7 @@ v1.2 Progress: [#---------] 4% (1/1 plans complete in Phase 8)
 | Phase 10-code-quality-sweep P01 | 1 | 2 tasks | 7 files |
 | Phase 10-code-quality-sweep P02 | 4 | 2 tasks | 3 files |
 | Phase 10-code-quality-sweep P03 | 2 | 2 tasks | 3 files |
+| Phase 11-ci-cd-pipeline P01 | 1 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 10-code-quality-sweep]: colors.py B007: all 4 unused loop variables renamed with _ prefix — none captured in lambdas or inner functions
 - [Phase 10-code-quality-sweep]: paste_hidden C901 suppressed with noqa on def lines — structural refactoring deferred due to recent BUG-01/BUG-02 fixes and in-place selected_nodes mutation
 - [Phase 10-code-quality-sweep]: FROZEN annotation pattern established: comment on line immediately above each serialized constant
+- [Phase 11-ci-cd-pipeline]: softprops/action-gh-release@v2 used for release publishing — generate_release_notes: true native support, cleaner YAML than gh CLI alternative
+- [Phase 11-ci-cd-pipeline]: Explicit 10-file cp manifest in ZIP step prevents stubs/__init__.py from entering release artifact; paste_hidden/ staging dir ensures correct ~/.nuke/paste_hidden/ install path
 
 ### Pending Todos
 
@@ -87,7 +90,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T12:50:43.181Z
+Last session: 2026-03-14T13:10:11.039Z
 To resume: Phase 8 has 1 plan (08-01 complete). Phase 8 is complete. Run `/gsd:plan-phase 9` to continue.
 
 Phase 8 completed: centralized stub infrastructure in tests/stubs.py + conftest.py. Full suite passes: 130 tests, 0 errors.

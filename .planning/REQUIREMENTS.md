@@ -7,8 +7,8 @@
 
 ### CI/CD
 
-- [ ] **CI-01**: Tag push to GitHub triggers a workflow that runs offline tests, packages plugin source files into a versioned ZIP, and creates a GitHub Release
-- [ ] **CI-02**: ZIP release artifact uses an explicit file manifest — excludes `tests/`, `validation/`, `.planning/`, `__pycache__`
+- [x] **CI-01**: Tag push to GitHub triggers a workflow that runs offline tests, packages plugin source files into a versioned ZIP, and creates a GitHub Release
+- [x] **CI-02**: ZIP release artifact uses an explicit file manifest — excludes `tests/`, `validation/`, `.planning/`, `__pycache__`
 
 ### Bug Fixes
 
@@ -54,8 +54,8 @@
 | BUG-01 | Phase 9 | Complete |
 | BUG-02 | Phase 9 | Complete |
 | QUAL-01 | Phase 10 | Complete |
-| CI-01 | Phase 11 | Pending |
-| CI-02 | Phase 11 | Pending |
+| CI-01 | Phase 11 | Complete |
+| CI-02 | Phase 11 | Complete |
 | TEST-01 | Phase 12 | Pending |
 | TEST-02 | Phase 12 | Pending |
 

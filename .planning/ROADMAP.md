@@ -38,7 +38,7 @@ Full archive: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 8: Test Infrastructure Stabilization** - Fix flat-discovery Qt stub ordering conflicts so the test suite is a reliable feedback mechanism
 - [x] **Phase 9: Cross-Script Paste Bug Fixes** - Fix BUG-01 and BUG-02 in paste_hidden.py with regression tests (completed 2026-03-13)
 - [x] **Phase 10: Code Quality Sweep** - Dead code removal, unused import cleanup, complex conditional simplification (completed 2026-03-13)
-- [ ] **Phase 11: CI/CD Pipeline** - Tag-triggered GitHub Actions workflow: offline tests, versioned ZIP, GitHub Release
+- [x] **Phase 11: CI/CD Pipeline** - Tag-triggered GitHub Actions workflow: offline tests, versioned ZIP, GitHub Release (completed 2026-03-14)
 - [ ] **Phase 12: Nuke -t Validation Scripts** - Manual developer validation confirming stub behavior matches real Nuke runtime
 
 ## Phase Details
@@ -127,5 +127,5 @@ Plans:
 | 8. Test Infrastructure Stabilization | v1.2 | 1/1 | Complete | 2026-03-13 |
 | 9. Cross-Script Paste Bug Fixes | 2/2 | Complete   | 2026-03-13 | - |
 | 10. Code Quality Sweep | 3/3 | Complete    | 2026-03-13 | - |
-| 11. CI/CD Pipeline | v1.2 | 0/1 | Not started | - |
+| 11. CI/CD Pipeline | 1/1 | Complete   | 2026-03-14 | - |
 | 12. Nuke -t Validation Scripts | v1.2 | 0/? | Not started | - |
